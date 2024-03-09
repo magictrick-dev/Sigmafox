@@ -1,0 +1,4 @@
+      1 BEGIN;
+      2   VARIABLE S 80;
+      3   S := 'HELLO WORLD';
+      4   WRITE 6 S;
