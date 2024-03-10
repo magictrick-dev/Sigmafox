@@ -13,8 +13,8 @@ namespace POSY
     // of CLI arguments easier.
     //
 
-    struct cli_argument;
-    typedef struct
+    struct cli_node;
+    struct cli_node
     {
 
         struct
@@ -23,10 +23,10 @@ namespace POSY
             u32         index;
         } args;
         
-        cli_argument *next;
-        cli_argument *prev;
+        cli_node *next;
+        cli_node *prev;
 
-    } cli_node;
+    };
 
     // --- CLI Argument API --------------------------------------------
     //
@@ -47,7 +47,7 @@ namespace POSY
     //
     //
 
-    cli_node*   cli_construct(int argc, char ** argv);
+    cli_node*   cli_construct(int argc, char **argv);
     void        cli_destruct(cli_node *root);
 
 };
