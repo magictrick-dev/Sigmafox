@@ -6,8 +6,6 @@ add_compile_definitions(POSY_DEBUG_BUILD=1)
 
 add_executable(POSY
     "source/main.cpp"
-    "source/cli.h"
-    "source/cli.cpp"
 
     "source/core.h"
     "source/core/debugging.h"
