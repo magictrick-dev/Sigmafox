@@ -1,8 +1,18 @@
+// ---------------------------------------------------------------------
+// POSY                 / Northern Illinois University
+// Primary Maintainer   / Chris DeJong
+//                      / Z1836870@students.niu.edu
+//                      / magiktrikdev@gmail.com
+// ---------------------------------------------------------------------
 //
-//
+// This is the entry point for the POSY transpiler. Documentation is
+// primarily inline, but designed to traceable starting from main so as
+// to keep it simple.
 //
 
 #include <core.h>
+#include <source.h>
+#include <lexer.h>
 
 #include <sys/stat.h>
 #include <cstdio>
@@ -31,7 +41,7 @@ cli_display_header()
     printf("  transpile and any additional parameters (if supported).\n");
     printf("------------------------------------------------------------\n\n");
     printf("  Useage: POSY [source files...]\n");
-    printf("     eg.: ./POSY test.foxy includes/ex.foxy includes/eg.foxy\n\n");
+    printf("          ./POSY test.foxy includes/ex.foxy includes/eg.foxy\n\n");
 }
 
 bool
@@ -72,12 +82,41 @@ int
 main(int argc, char ** argv)
 {
 
+    // --- CLI Validation ----------------------------------------------
+    //
     // Validates the command line arguments.
-    if (cli_validate_arguments(argc, argv)) return 1;
+    //
+    
+    if (!cli_validate_arguments(argc, argv))
+        return RETURN_STATUS_INIT_FAIL;
 
+    // NOTE(Chris): This is a temporary check, we are only supporting one
+    //              input file at a time.
+    if (argc >= 3)
+    {
+        cli_display_header();
+        printf("  Error: This is a temporary error; only one source file may\n");
+        printf("         be submitted at time.\n\n");
+        return RETURN_STATUS_INIT_FAIL;
+    }
+
+    // --- Source Loading ----------------------------------------------
+    //
     // All command line arguments are valid here, so we can now process
     // them into memory.
+    //
 
-    return 0;
+    source_file src = {};
+    char *buffer = source_file::load_source(argv[1]);
+    POSY_ASSERT(buffer != NULL); // This shouldn't happen... in theory.
+    src.set_buffer(buffer);
+        
+    // --- Cleanup -----------------------------------------------------
+    //
+    // Any necessary cleanup is here before exit.
+    //
+
+    source_file::free_source(buffer);
+    return RETURN_STATUS_SUCCESS;
 
 }

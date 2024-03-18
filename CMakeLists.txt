@@ -6,6 +6,10 @@ add_compile_definitions(POSY_DEBUG_BUILD=1)
 
 add_executable(POSY
     "source/main.cpp"
+    
+    "source/lexer.h"
+    "source/source.h"
+    "source/source.cpp"
 
     "source/core.h"
     "source/core/debugging.h"
