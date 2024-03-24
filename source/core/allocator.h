@@ -81,12 +81,9 @@ SF_MAY_ASSERT   void*   sigmafox_memarena_push(memory_arena *arena, size_t size)
 SF_MAY_ASSERT   void    sigmafox_memarena_pop(memory_arena *arena, size_t size);
 #define                 sigmafox_memarena_push_type(arena, type) (type*)sigmafox_memarena_push(arena, sizeof(type))
 #define                 sigmafox_memarena_push_array(arena, type, count) (type*)sigmafox_memarena_push(arena, (count) * sizeof(type))
-
-SF_MAY_ASSERT   void*   operator new(std::size_t size, memory_arena *arena);
-SF_MAY_ASSERT   void*   operator new[](std::size_t size, memory_arena *arena);
-SF_MAY_ASSERT   void    operator delete(void *buffer, memory_arena *arena) noexcept;
-SF_MAY_ASSERT   void    operator delete[](void *buffer, memory_arena *arena) noexcept;
-SF_MAY_ASSERT   void    operator delete(void *buffer, std::size_t size, memory_arena *arena) noexcept;
-SF_MAY_ASSERT   void    operator delete[](void *buffer, std::size_t size, memory_arena *arena) noexcept;
+#define                 sigmafox_memarena_push_class_type(arena, class) \
+                            new (sigmafox_memarena_push(arena, sizeof(class))) class
+#define                 sigmafox_memarena_push_class_array(arena, type, count) \
+                            new (sigmafox_memarena_push(arena, sizeof(class)*(count))) class
 
 #endif

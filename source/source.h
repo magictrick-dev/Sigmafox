@@ -8,7 +8,10 @@ class SourceFileBuffer
         SourceFileBuffer(char *source_buffer);
 
     protected:
-        char * buffer;
+        size_t  size;
+        char   *buffer;
 };
+
+
 
 #endif
