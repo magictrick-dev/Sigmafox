@@ -1,24 +1,14 @@
-#ifndef POSY_SOURCE_H
-#define POSY_SOURCE_H
+#ifndef SIGMAFOX_SOURCE_H
+#define SIGMAFOX_SOURCE_H
 #include <core.h>
 
-class source_file
+class SourceFileBuffer
 {
-
     public:
-                source_file();
-                source_file(char *buffer);
-
-        void    set_buffer(char *buffer);
-    
-    public:
-        static char*    load_source(const char *file_path);
-        static void     free_source(char *buffer);
+        SourceFileBuffer(char *source_buffer);
 
     protected:
-        char   *buffer_ptr;
-        u64     buffer_size;
-
+        char * buffer;
 };
 
 #endif

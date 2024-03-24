@@ -1,3 +1,13 @@
+#include <source.h>
+
+SourceFileBuffer::
+SourceFileBuffer(char *source_buffer)
+    : buffer(source_buffer)
+{
+    return;
+}
+
+#if 0
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -90,4 +100,4 @@ set_buffer(char *buffer)
     return;
 
 }
-
+#endif

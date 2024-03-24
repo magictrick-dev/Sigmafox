@@ -1,52 +1,49 @@
 #include <core/allocator.h>
 #include <cstdlib>
 
-POSYINTERNAL u64 allocation_total = 0;
-POSYINTERNAL u64 allocation_calls = 0;
-POSYINTERNAL u64 allocation_frees = 0;
+SF_PERSIST size_t   total_allocation    = 0;
+SF_PERSIST i64      total_calls         = 0;  
+SF_PERSIST i64      total_frees         = 0;
 
-void *
-smalloc_bytes(u64 size)
+SF_MAY_ASSERT void*
+sigmafox_memory_alloc_buffer(size_t size)
 {
-    void *allocation = malloc(size);
-    POSY_ASSERT(allocation);
-    allocation_total += size;
-    allocation_calls++;
-    return allocation;
+
+    SF_ASSERT(size > 0);
+    void *buffer = malloc(size);
+
+    total_allocation += size;
+    total_calls++;
+
+    SF_ASSERT(buffer != NULL);
+
+    return (buffer);
+
 }
 
-void
-smalloc_free(void *buffer)
-{
-    POSY_ASSERT(buffer != NULL);
-    allocation_frees++;
-    free(buffer);
-}
-
-u64
-smalloc_total_allocated()
-{
-    return allocation_total;
-}
-
-u64
-smalloc_total_calls()
-{
-    return allocation_calls;
-}
-
-u64
-smalloc_total_frees()
-{
-    return allocation_frees;
-}
-
-void
-smalloc_output_statistics()
+SF_MAY_ASSERT void
+sigmafox_memory_free(void *buffer)
 {
     
-    POSY_DEBUG_PRINT("Total allocation size: %llu bytes\n", allocation_total);
-    POSY_DEBUG_PRINT("Allocation calls: %llu\n", allocation_calls);
-    POSY_DEBUG_PRINT("Allocation frees: %llu\n", allocation_frees);
+    SF_ASSERT(buffer != NULL);
+    free(buffer);
+
+    total_frees++;
+    return;
+
+}
+
+bool
+sigmafox_memory_inspect(SF_OPTIONAL memory_stats *stats)
+{
+
+    if (stats != NULL)
+    {
+        stats->total_allocation_size    = total_allocation;
+        stats->total_alloc_calls        = total_calls;
+        stats->total_alloc_frees        = total_frees;
+    }
+
+    return (total_calls == total_frees);
 
 }

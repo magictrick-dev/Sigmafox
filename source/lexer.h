@@ -1,5 +1,5 @@
-#ifndef POSY_LEXER_H
-#define POSY_LEXER_H
+#ifndef SIGMAFOX_LEXER_H
+#define SIGMAFOX_LEXER_H
 #include <core.h>
 
 
