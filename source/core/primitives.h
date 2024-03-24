@@ -26,6 +26,9 @@ typedef int16_t         b16;
 typedef int32_t         b32;
 typedef int64_t         b64;
 
+typedef float           f32;
+typedef double          f64;
+
 // --- Tag Definitions ---------------------------------------------------------
 //
 // SF_PERSIST
