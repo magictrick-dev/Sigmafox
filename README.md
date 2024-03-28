@@ -1,45 +1,40 @@
-# POSY - Parser for COSY
+# Sigmafox
 
-A syntax parser and transpiler for COSY-scripts which produce executable
-C++ source files.
+A transpiler for COSY/FOXY scripting language.
 
-## Building POSY
+## Building Sigmafox
 
-POSY requires CMake to build the project. Given that it is being run on
-a Linux environment, the provided `build.sh` and `run.sh` will do the
-heavy lifting for you. The `run.sh` script forwards all arguments to POSY,
-or simply run POSY from the `./bin` folder.
+In order to build the project from source, you will need [cmake](https://cmake.org/)
+installed and accessible from the commandline. You can make use of the build
+scripts or you can simply run `cmake --build ./build` and `cmake -B ./build` to
+configure and compile the project.
 
-## Using POSY
+## Development Notes
 
-Invoke POSY like most CLI applications by providing a list of source files
-to parse and any additional parameters (given they're supported).
+- Lexer
 
-```
-POSY ./tests/basic.foxy
-```
+    When tokens are generated, it is sometimes helpful to know the line offset
+    and line number of their original location. The line offset is the relative
+    byte-offset within the source text and the line number is the literal line
+    (exclusive of zero) from the top of the source file. The line offset can be
+    subtracted from the token offset to get the column position of the token within
+    the source file. So far, these values are calculated as-needed, but it isn't
+    necessary since the lexer itself can track the line offset and line number as
+    it parses the source. These values can be fed into the token constructor such
+    that they can be cached rather than calculated at a later time, saving some
+    computation time.
 
-Given the parse was a success, an output file of the same base name will
-be created, such as `basic.posy.cpp` along with any additional supporting
-code needed to execute as well as an appropriate build file (either CMakeLists.txt
-or a makefile) to easily compile the project.
+- Threading the Lexer
 
-## Project TODOs
+    Multiple text files can be lexed at the same time using threading. This is
+    especially helpful if source files become significantly large. Since the lexer
+    doesn't perform any additional dependency processing, we can implement this
+    fairly early on with zero overhead.
 
-- [ ] Language Lexer
-    
-    A language lexer is required to tokenize all syntax in the language.
-    Once the lexer is complete, syntax analysis will be possible to validate
-    and ensure that the provided script file is one which matches the language
-    specification.
+- Multifile Projects
 
-- [ ] Supporting C++ Libraries
-
-    The supporting C++ libraries provide the required functionality to
-    operate POSY on the C++ side.
-
-- [ ] Syntax Parsing
-
-    Necessary for ensuring proper syntax structure and language implementation.
-    This is the meat and potatoes.
-
+    While not in the COSY/FOXY language specification, this can be added through
+    some modifications with how files are included. Since the include keyword is
+    already defined (for single-file imports), we can create a import heirarchy
+    which gives a top-down view of the order of which to place symbols in the symbols
+    table. That way, multifile projects are possible.
