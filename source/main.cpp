@@ -87,12 +87,10 @@ main(int argc, char ** argv)
     char *source_buffer = (char*)sigmafox_memory_alloc(source_size + 1);
     sigmafox_file_read_text(argv[1], source_buffer, source_size, source_size + 1);
 
-    Lex source_lex(source_buffer);
+    Lex source_lex(source_buffer, argv[1]);
     if (source_lex.has_errors())
     {
         source_lex.print_errors();
-        printf("\n -- Tokens\n");
-        source_lex.print_tokens();
         return RETURN_STATUS_LEXER_FAIL;
     }
     else

@@ -12,6 +12,7 @@ SF_INTERNAL size_t  impl_file_size(const char *path);
 SF_INTERNAL bool    impl_file_read(const char *path, void *buffer, size_t rsize, size_t bsize);
 SF_INTERNAL bool    impl_file_read_text(const char *path, void *buffer, size_t rsize, size_t bsize);
 SF_INTERNAL bool    impl_file_write(const char *path, void *buffer, size_t wsize);
+SF_INTERNAL void    impl_file_get_full_path(const char *path, char *path_buffer, size_t buffer_size);
 
 bool                    
 sigmafox_file_exists(const char *path)
@@ -41,6 +42,12 @@ SF_MAY_ASSERT bool
 sigmafox_file_write(const char *path, void *buffer, size_t write_size)
 {
     return impl_file_write(path, buffer, write_size);
+}
+
+SF_MAY_ASSERT void
+sigmafox_file_get_full_path(const char *path, char *path_buffer, size_t buffer_size)
+{
+    impl_file_get_full_path(path, path_buffer, buffer_size);
 }
 
 // --- Win32 Definitions -------------------------------------------------------
@@ -153,6 +160,17 @@ impl_file_write(const char *path, void *buffer, size_t wsize)
     CloseHandle(file_handle);
 
     return true;
+
+}
+
+SF_INTERNAL void
+impl_file_get_full_path(const char *path, char *path_buffer, size_t buffer_size)
+{
+
+    DWORD path_length = GetFullPathNameA(path, buffer_size, path_buffer, NULL);
+    SF_ASSERT(path_length != 0);
+    path_buffer[path_length] = '\0';
+    return;
 
 }
 

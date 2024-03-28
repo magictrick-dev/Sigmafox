@@ -55,6 +55,8 @@ struct Lexeme
     const char *reference;
     size_t      offset;
     size_t      length;
+    size_t      line_number;
+    size_t      column_number;
 };
 
 class Token
@@ -78,7 +80,7 @@ class Lex
 {
     
     public:
-                        Lex(const char *source);
+                        Lex(const char *source, const char *source_path);
 
         bool            has_errors() const;
         void            print_errors() const;
@@ -86,21 +88,24 @@ class Lex
 
     protected:
         void            parse();
-        void            push_error(std::string error, size_t at);
+        void            push_error(Token token);
 
         bool            is_eof() const;       
 
         char            advance();
         char            peek();
 
-        void            add_token(Lexeme lexeme, TokenType type);
+        void            add_token(size_t offset, size_t length, TokenType type);
 
     protected:
+        char                        path[260];
         const char                 *source;
         std::vector<Token>          tokens;
         std::vector<std::string>    errors;
 
         size_t          step;
+        size_t          line_number;
+        size_t          line_offset;
         size_t          source_length;
         bool            has_error;
 

@@ -26,5 +26,6 @@ size_t                  sigmafox_file_size(const char *path);
 SF_MAY_ASSERT bool      sigmafox_file_read(const char *path, void *buffer, size_t read_size, size_t buffer_size);
 SF_MAY_ASSERT bool      sigmafox_file_read_text(const char *path, void *buffer, size_t read_size, size_t buffer_size);
 SF_MAY_ASSERT bool      sigmafox_file_write(const char *path, void *buffer, size_t write_size);
+SF_MAY_ASSERT void      sigmafox_file_get_full_path(const char *path, char *path_buffer, size_t buffer_size);
 
 #endif

@@ -1,45 +1,6 @@
 #include <lexer.h>
-
 #include <sstream>
 #include <iostream>
-
-// --- Helper Functions --------------------------------------------------------
-//
-// These are common helper functions that are used through the lexer.
-//
-
-SF_INTERNAL SF_INLINE size_t
-sigmafox_lexer_line_number_from_offset(const char *source, size_t offset)
-{
-
-    size_t line_number = 1;
-    for (size_t idx = 0; idx < offset; ++idx)
-        if (source[idx] == '\n')
-            line_number++;
-
-    return line_number;
-
-}
-
-SF_INTERNAL SF_INLINE size_t
-sigmafox_lexer_column_number_from_offset(const char *source, size_t offset)
-{
-
-    size_t last_line_position = 0;
-    size_t line_number = 1;
-    for (size_t idx = 0; idx < offset; ++idx)
-    {
-        if (source[idx] == '\n')
-        {
-            last_line_position = idx;
-            line_number++;
-        }
-    }
-
-    size_t column = offset - last_line_position + 1;
-    return column;
-
-}
 
 // --- Token -------------------------------------------------------------------
 //
@@ -76,13 +37,13 @@ get_length() const
 size_t Token::
 get_line() const
 {
-    return sigmafox_lexer_line_number_from_offset(this->lexeme.reference, this->lexeme.offset);
+    return this->lexeme.line_number;
 }
 
 size_t Token::
 get_column() const
 {
-    return sigmafox_lexer_column_number_from_offset(this->lexeme.reference, this->lexeme.offset);
+    return this->lexeme.column_number;
 }
 
 // --- Lexer -------------------------------------------------------------------
@@ -92,13 +53,18 @@ get_column() const
 //
 
 Lex::
-Lex(const char *source)
+Lex(const char *source, const char *path)
     : source(source)
 {
 
     // Initialize step.
     this->step = 0;
-    
+    this->line_number = 1;
+    this->line_offset = 0;
+ 
+    // Get the full path and store it.
+    sigmafox_file_get_full_path(path, this->path, 260);
+
     // Determine the length of the source.
     this->source_length = 0;
     while (this->source[this->source_length] != '\0')
@@ -130,7 +96,7 @@ print_tokens() const
 {
     for (const auto token : this->tokens)
     {
-        std::cout   << "  Token: " << token.to_string() << " at position (" << token.get_line()
+        std::cout   << "    Token: " << token.to_string() << " at position (" << token.get_line()
                     << "," << token.get_column() << ")" << std::endl;
     }
 }
@@ -138,11 +104,8 @@ print_tokens() const
 bool Lex::
 is_eof() const
 {
-    
-    return (this->source[this->step] == '\0' ||
-            this->source[this->step] == 13   ||
-            this->source[this->step] == 10);
-
+    return (this->source[this->step] == '\0' || this->source[this->step] == '\13' ||
+            this->source[this->step] == '\10');
 }
 
 char Lex::
@@ -160,14 +123,16 @@ peek()
 }
 
 void Lex::
-add_token(Lexeme lexeme, TokenType type)
+add_token(size_t offset, size_t length, TokenType type)
 {
+    size_t column = offset - this->line_offset + 1;
+    Lexeme lexeme = { this->source, offset, length, this->line_number, column };
     this->tokens.push_back({ lexeme, type });
     return;
 };
 
 void Lex::
-push_error(std::string error, size_t at)
+push_error(Token token)
 {
 
     // TODO(Chris): We want our error formatting to match something like this, since it is
@@ -176,45 +141,9 @@ push_error(std::string error, size_t at)
     //              need to adjust the constructor to take that.
     // C:\Development\Sigmafox\source\lexer.cpp(167,13): error C2143: syntax error: missing ';' before '}'
 
-    // Calculate the relative position of the error.
-    size_t line_number      = 1;
-    size_t column_number    = 0;
-    size_t last_line        = 0;
-
-    for (size_t idx = 0; idx < at; ++idx)
-    {
-        if (this->source[idx] == '\n')
-        {
-            last_line = idx;
-            line_number++;
-        }
-    }
-
-    column_number = at - last_line;
-
-    // Now that we know where the error is, we can display the line and point to
-    // the error for a better user-experience.
-    size_t line_length = 0;
-    std::string line_contents;
-    for (size_t i = 0; i < this->source_length; ++i)
-    {
-        if (this->source[line_length] == '\n' ||
-            this->source[line_length] == '\r')
-                break;
-        line_contents += this->source[line_length++];
-    }
-
     std::stringstream ss = {};
-    ss  << "  Error on line " << line_number << ", column " << column_number
-        << ": " << error << std::endl;
-
-    ss  << "  See: " << line_contents << std::endl;
-    ss  << "       ";
-    for (size_t i = 0; i < column_number - 1; ++i)
-        ss << " ";
-    ss << "^";
-
-    
+    ss  << "  " << this->path << "(" << token.get_line() << "," << token.get_column()
+        << "): Error, unrecognized symbol: " << token.to_string();
 
     this->errors.push_back(ss.str());
     this->has_error = true;
@@ -235,44 +164,86 @@ parse()
         {
             case '{':
             {
-                this->add_token({this->source, this->step - 1, 1}, TokenType::LEFT_CURLY_BRACKET);
+                this->add_token(this->step - 1, 1, TokenType::LEFT_CURLY_BRACKET);
                 break;
             };
 
             case '}':
             {
-                this->add_token({ this->source, this->step - 1, 1 }, TokenType::RIGHT_CURLY_BRACKET);
+                this->add_token(this->step - 1, 1, TokenType::RIGHT_CURLY_BRACKET);
                 break;
             };
 
             case ';':
             {
-                this->add_token({ this->source, this->step - 1, 1 }, TokenType::SEMICOLON);
+                this->add_token(this->step - 1, 1, TokenType::SEMICOLON);
                 break;
             }
 
             case '+':
             {
-                this->add_token({ this->source, this->step - 1, 1 }, TokenType::PLUS);
+                this->add_token(this->step - 1, 1, TokenType::PLUS);
                 break;
             };
 
             case '-':
             {
-                this->add_token({ this->source, this->step - 1, 1 }, TokenType::MINUS);
+                this->add_token(this->step - 1, 1, TokenType::MINUS);
                 break;
             };
 
 
             case '*':
             {
-                this->add_token({ this->source, this->step - 1, 1 }, TokenType::MULTIPLY);
+                this->add_token(this->step - 1, 1, TokenType::MULTIPLY);
                 break;
             };
 
             case '/':
             {
-                this->add_token({ this->source, this->step - 1, 1 }, TokenType::DIVISION);
+                this->add_token(this->step - 1, 1, TokenType::DIVISION);
+                break;
+            };
+
+            case '<':
+            {
+                this->add_token(this->step - 1, 1, TokenType::LESSTHAN);
+                break;
+            };
+
+            case '>':
+            {
+                this->add_token(this->step - 1, 1, TokenType::GREATERTHAN);
+                break;
+            };
+
+            case '=':
+            {
+                this->add_token(this->step - 1, 1, TokenType::EQUALS);
+                break;
+            };
+
+            case '#':
+            {
+                this->add_token(this->step - 1, 1, TokenType::NOTEQUALS);
+                break;
+            };
+
+            case '&':
+            {
+                this->add_token(this->step - 1, 1, TokenType::CONCAT);
+                break;
+            };
+
+            case '|':
+            {
+                this->add_token(this->step - 1, 1, TokenType::EXTRACT);
+                break;
+            };
+
+            case '%':
+            {
+                this->add_token(this->step - 1, 1, TokenType::DERIVATION);
                 break;
             };
 
@@ -281,13 +252,21 @@ parse()
             case '\r':
             case '\n':
             {
+
+                if (c == '\n')
+                {
+                    this->line_number++;
+                    this->line_offset = this->step;
+                }
+
                 break;
             }
 
             default:
             {
-                this->add_token({ this->source, this->step - 1, 1 }, TokenType::UNDEFINED);
-                this->push_error("Undefined symbol encountered.", this->step);
+                this->add_token(this->step - 1, 1, TokenType::UNDEFINED);
+                Token error_token = this->tokens.back();
+                this->push_error(error_token);
                 break;
 
             };
