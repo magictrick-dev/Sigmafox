@@ -118,8 +118,45 @@ advance()
 char Lex::
 peek()
 {
-    char c = this->source[step + 1];
+    char c = this->source[step];
     return c;
+}
+
+bool Lex::
+is_number(char c)
+{
+    return (c >= '0' && c <= '9');
+}
+
+bool Lex::
+is_alpha(char c)
+{
+    bool is_lower = (c >= 'a' && c <= 'z');
+    bool is_upper = (c >= 'A' && c <= 'Z');
+    return ( is_lower || is_upper );
+}
+
+bool Lex::
+is_alphanumeric(char c)
+{
+
+    bool is_number = this->is_number(c);
+    bool is_alpha = this->is_alpha(c);
+    return ( is_number || is_alpha );
+
+}
+
+bool Lex::
+is_linecontrol(char c)
+{
+    return (c == '\r' || c == '\n');
+}
+
+bool Lex::
+is_eof(char c)
+{
+    return (this->source[this->step] == '\0' || this->source[this->step] == '\13' ||
+            this->source[this->step] == '\10');
 }
 
 void Lex::
@@ -135,15 +172,23 @@ void Lex::
 push_error(Token token)
 {
 
-    // TODO(Chris): We want our error formatting to match something like this, since it is
-    //              a bit more robust in determining the file and such. The lexer will
-    //              need more information about the file it is operating on, so we will
-    //              need to adjust the constructor to take that.
-    // C:\Development\Sigmafox\source\lexer.cpp(167,13): error C2143: syntax error: missing ';' before '}'
+    std::stringstream ss = {};
+    ss  << "  " << this->path << "(" << token.get_line() << "," << token.get_column()
+        << "): Error, unrecognized symbol: \n  - Error contents: " << token.to_string();
+
+    this->errors.push_back(ss.str());
+    this->has_error = true;
+    return;
+
+};
+
+void Lex::
+push_error(Token token, std::string message)
+{
 
     std::stringstream ss = {};
     ss  << "  " << this->path << "(" << token.get_line() << "," << token.get_column()
-        << "): Error, unrecognized symbol: " << token.to_string();
+        << "): Error, " << message << ": \n  - Error contents: " << token.to_string();
 
     this->errors.push_back(ss.str());
     this->has_error = true;
@@ -165,6 +210,8 @@ parse()
             case '{':
             {
                 this->add_token(this->step - 1, 1, TokenType::LEFT_CURLY_BRACKET);
+                while (this->peek() != '}')
+                    this->advance();
                 break;
             };
 
@@ -192,11 +239,105 @@ parse()
                 break;
             };
 
+            case '\'':
+            {
+                
+                // Move one passed the quote.
+                i32 length = 1;
+                char last;
+                while (this->peek() != '\'' && 
+                        !this->is_linecontrol(this->peek()) &&
+                        !this->is_eof(this->peek()))
+                {
+                    length++;
+                    this->advance();
+                    last = this->peek();
+                }
+                
+                if (this->is_linecontrol(last) || this->is_eof(last))
+                {
+                    this->add_token(this->step - length, length, TokenType::UNDEFINED);
+                    Token error_token = this->tokens.back();
+                    this->push_error(error_token, "single quote string reached end-of-line");
+                }
+                else
+                {
+                    this->advance();
+                    length++;
+
+                    this->add_token(this->step - length, length, TokenType::STRING_SINGLE);
+                    this->advance();
+                }
+
+                break;
+
+            };
+
+            case '\"':
+            {
+                
+                // Move one passed the quote.
+                i32 length = 1;
+                char last;
+                while (this->peek() != '\"' && 
+                        !this->is_linecontrol(this->peek()) &&
+                        !this->is_eof(this->peek()))
+                {
+                    length++;
+                    this->advance();
+                    last = this->peek();
+                }
+                
+                if (this->is_linecontrol(last) || this->is_eof(last))
+                {
+                    this->add_token(this->step - length, length, TokenType::UNDEFINED);
+                    Token error_token = this->tokens.back();
+                    this->push_error(error_token, "double quote string reached end-of-line");
+                }
+                else
+                {
+                    this->advance();
+                    length++;
+
+                    this->add_token(this->step - length, length, TokenType::STRING_SINGLE);
+                    this->advance();
+                }
+
+                break;
+
+            };
 
             case '*':
             {
-                this->add_token(this->step - 1, 1, TokenType::MULTIPLY);
+
+                if (this->peek() == '*')
+                {
+                    this->add_token(this->step - 1, 2, TokenType::POWER);
+                    this->advance();
+                }
+                else
+                {
+                    this->add_token(this->step - 1, 1, TokenType::MULTIPLY);
+                }
+
                 break;
+            };
+
+            case ':':
+            {
+                if (this->peek() == '=')
+                {
+                    this->add_token(this->step - 1, 2, TokenType::ASSIGNMENT_OPERATOR);
+                    this->advance();
+                    break;
+                }
+                else
+                {
+                    this->add_token(this->step - 1, 1, TokenType::UNDEFINED);
+                    Token error_token = this->tokens.back();
+                    this->push_error(error_token);
+                    break;
+                }
             };
 
             case '/':
@@ -264,10 +405,50 @@ parse()
 
             default:
             {
-                this->add_token(this->step - 1, 1, TokenType::UNDEFINED);
-                Token error_token = this->tokens.back();
-                this->push_error(error_token);
-                break;
+
+                // Numbers.
+                if (this->is_number(c))
+                {
+
+                    i32 length = 1;
+                    while (this->is_number(this->peek()))
+                    {
+                        length++;
+                        this->advance();
+                    }
+
+                    this->add_token(this->step - length, length, TokenType::NUMBER);
+
+                }
+
+                // Identifiers.
+                else if (this->is_alpha(c))
+                {
+
+                    i32 length = 1;
+                    while (this->is_alphanumeric(this->peek()))
+                    {
+                       length++; 
+                       this->advance();
+                    }
+
+                    this->add_token(this->step - length, length, TokenType::IDENTIFIER);
+
+                    // TODO(Chris): Identifiers can be keywords, so we need to do
+                    //              some additional checks here.
+
+                }
+
+                // Anything else.
+                else
+                {
+
+                    this->add_token(this->step - 1, 1, TokenType::UNDEFINED);
+                    Token error_token = this->tokens.back();
+                    this->push_error(error_token);
+                    break;
+
+                }
 
             };
         };

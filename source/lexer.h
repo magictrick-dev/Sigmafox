@@ -27,7 +27,8 @@ enum class TokenType
 
     // Definables
     IDENTIFIER,
-    STRING,
+    STRING_SINGLE,
+    STRING_DOUBLE,
     NUMBER,
 
     // Keywords
@@ -89,11 +90,18 @@ class Lex
     protected:
         void            parse();
         void            push_error(Token token);
+        void            push_error(Token token, std::string message);
 
         bool            is_eof() const;       
+        bool            is_eof(char c);
 
         char            advance();
         char            peek();
+
+        bool            is_number(char c);
+        bool            is_alpha(char c);
+        bool            is_alphanumeric(char c);
+        bool            is_linecontrol(char c);
 
         void            add_token(size_t offset, size_t length, TokenType type);
 
