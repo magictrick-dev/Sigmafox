@@ -92,9 +92,7 @@ class Lex
         void            push_error(Token token);
         void            push_error(Token token, std::string message);
 
-        bool            is_eof() const;       
-        bool            is_eof(char c);
-
+        bool            is_eof() const;
         char            advance();
         char            peek();
 
@@ -102,6 +100,8 @@ class Lex
         bool            is_alpha(char c);
         bool            is_alphanumeric(char c);
         bool            is_linecontrol(char c);
+        bool            is_eof(char c);
+        TokenType       check_keyword(Token token);
 
         void            add_token(size_t offset, size_t length, TokenType type);
 

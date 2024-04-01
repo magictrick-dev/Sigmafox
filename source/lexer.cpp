@@ -1,6 +1,8 @@
 #include <lexer.h>
 #include <sstream>
+#include <iomanip>
 #include <iostream>
+#include <unordered_map>
 
 // --- Token -------------------------------------------------------------------
 //
@@ -96,8 +98,9 @@ print_tokens() const
 {
     for (const auto token : this->tokens)
     {
-        std::cout   << "    Token: " << token.to_string() << " at position (" << token.get_line()
-                    << "," << token.get_column() << ")" << std::endl;
+        std::stringstream header = {};
+        header << "  Token(" << token.get_line() << "," << token.get_column() << "): ";
+        std::cout << std::setw(20) << std::left << header.str() << token.to_string() << std::endl;
     }
 }
 
@@ -167,6 +170,51 @@ add_token(size_t offset, size_t length, TokenType type)
     this->tokens.push_back({ lexeme, type });
     return;
 };
+
+TokenType::
+check_keyword(Token token)
+{
+    
+    SF_PERSIST std::unordered_map<std::string, TokenType> keyword_map =
+    {
+        { "begin",          TokenType::BEGIN        },
+        { "end",            TokenType::END          },
+        { "procedure",      TokenType::PROCEDURE    },
+        { "endprocedure",   TokenType::ENDPROCEDURE },
+        { "function",       TokenType::FUNCTION     },
+        { "endfunction",    TokenType::ENDFUNCTION  },
+        { "if",             TokenType::IF           },
+        { "endif",          TokenType::ENDIF        },
+        { "while",          TokenType::WHILE        },
+        { "endwhile",       TokenType::ENDWHILE     },
+        { "loop",           TokenType::LOOP         },
+        { "endloop",        TokenType::ENDLOOP      },
+        { "ploop",          TokenType::PLOOP        },
+        { "endploop",       TokenType::ENDPLOOP     },
+        { "fit",            TokenType::FIT          },
+        { "endfit",         TokenType::ENDFIT       },
+        { "variable",       TokenType::VARIABLE     },
+        { "write",          TokenType::WRITE        },
+        { "read",           TokenType::READ         },
+        { "save",           TokenType::SAVE         },
+        { "include",        TokenType::INCLUDE      },
+    };
+
+    // Search for the string.
+    std::string identifier = token.to_string().to_lower();
+    auto location = keyword_map.find(identifier);
+
+    // If the location is found, then return the type.
+    if (location != keyword_map.end())
+    {
+        return *location;
+    }
+    
+    else
+    {
+        return TokenType::IDENTIFIER;
+    }
+}
 
 void Lex::
 push_error(Token token)
@@ -426,7 +474,8 @@ parse()
                 {
 
                     i32 length = 1;
-                    while (this->is_alphanumeric(this->peek()))
+                    while (this->is_alphanumeric(this->peek()) ||
+                            this->peek() == '_')
                     {
                        length++; 
                        this->advance();
