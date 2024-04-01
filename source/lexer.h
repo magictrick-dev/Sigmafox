@@ -51,6 +51,8 @@ enum class TokenType
 
 };
 
+std::string token_type_to_string(TokenType type);
+
 struct Lexeme
 {
     const char *reference;
@@ -70,6 +72,7 @@ class Token
         size_t      get_length() const;
         size_t      get_line() const;
         size_t      get_column() const;
+        TokenType   get_type() const;
 
     protected:
         Lexeme      lexeme;
@@ -101,7 +104,7 @@ class Lex
         bool            is_alphanumeric(char c);
         bool            is_linecontrol(char c);
         bool            is_eof(char c);
-        TokenType       check_keyword(Token token);
+        TokenType       check_keyword(std::string identifier);
 
         void            add_token(size_t offset, size_t length, TokenType type);
 

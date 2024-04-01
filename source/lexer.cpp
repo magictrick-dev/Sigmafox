@@ -4,6 +4,63 @@
 #include <iostream>
 #include <unordered_map>
 
+std::string
+token_type_to_string(TokenType type)
+{
+
+    switch (type)
+    {
+        case TokenType::LEFT_CURLY_BRACKET:     { return "left_curly";      }
+        case TokenType::RIGHT_CURLY_BRACKET:    { return "right_curly";     }
+        case TokenType::SEMICOLON:              { return "semicolon";       }
+        case TokenType::ASSIGNMENT_OPERATOR:    { return "assignment";      }
+        case TokenType::PLUS:                   { return "plus";            }
+        case TokenType::MINUS:                  { return "minus";           }
+        case TokenType::MULTIPLY:               { return "multiply";        }
+        case TokenType::DIVISION:               { return "division";        }
+        case TokenType::POWER:                  { return "power";           }
+        case TokenType::LESSTHAN:               { return "lessthan";        }
+        case TokenType::GREATERTHAN:            { return "greaterthan";     }
+        case TokenType::EQUALS:                 { return "equals";          }
+        case TokenType::NOTEQUALS:              { return "notequals";       }
+        case TokenType::CONCAT:                 { return "concat";          }
+        case TokenType::EXTRACT:                { return "extract";         }
+        case TokenType::DERIVATION:             { return "derivation";      }
+
+        case TokenType::IDENTIFIER:             { return "identifier";      }
+        case TokenType::STRING_SINGLE:          { return "string_signle";   }
+        case TokenType::STRING_DOUBLE:          { return "string_double";   }
+        case TokenType::NUMBER:                 { return "number_literal";  }
+
+        case TokenType::BEGIN:                  { return "begin";           }
+        case TokenType::END:                    { return "end";             }
+        case TokenType::PROCEDURE:              { return "procedure";       }
+        case TokenType::ENDPROCEDURE:           { return "endprocedure";    }
+        case TokenType::FUNCTION:               { return "function";        }
+        case TokenType::ENDFUNCTION:            { return "endfunction";     }    
+        case TokenType::IF:                     { return "if";              }
+        case TokenType::ENDIF:                  { return "endif";           }
+        case TokenType::WHILE:                  { return "while";           }
+        case TokenType::ENDWHILE:               { return "endwhile";        }
+        case TokenType::LOOP:                   { return "loop";            }
+        case TokenType::ENDLOOP:                { return "endloop";         }
+        case TokenType::PLOOP:                  { return "ploop";           }
+        case TokenType::ENDPLOOP:               { return "endploop";        }
+        case TokenType::FIT:                    { return "fit";             }
+        case TokenType::ENDFIT:                 { return "endfit";          }
+        case TokenType::VARIABLE:               { return "variable";        }
+        case TokenType::WRITE:                  { return "write";           }
+        case TokenType::READ:                   { return "read";            }
+        case TokenType::SAVE:                   { return "save";            }
+        case TokenType::INCLUDE:                { return "include";         }
+        default:                                { return "undefined";       }
+
+    }
+
+    return "";
+
+}
+
 // --- Token -------------------------------------------------------------------
 //
 // Tokens contain lexeme information relative to the source file they're attached
@@ -46,6 +103,12 @@ size_t Token::
 get_column() const
 {
     return this->lexeme.column_number;
+}
+
+TokenType Token::
+get_type() const
+{
+    return this->type;
 }
 
 // --- Lexer -------------------------------------------------------------------
@@ -99,8 +162,9 @@ print_tokens() const
     for (const auto token : this->tokens)
     {
         std::stringstream header = {};
-        header << "  Token(" << token.get_line() << "," << token.get_column() << "): ";
-        std::cout << std::setw(20) << std::left << header.str() << token.to_string() << std::endl;
+        header  << "  Token(" << token.get_line() << "," << token.get_column() << ","
+                << token_type_to_string(token.get_type()) << "): ";
+        std::cout << std::setw(34) << std::left << header.str() << token.to_string() << std::endl;
     }
 }
 
@@ -171,8 +235,8 @@ add_token(size_t offset, size_t length, TokenType type)
     return;
 };
 
-TokenType::
-check_keyword(Token token)
+TokenType Lex::
+check_keyword(std::string identifier)
 {
     
     SF_PERSIST std::unordered_map<std::string, TokenType> keyword_map =
@@ -201,13 +265,14 @@ check_keyword(Token token)
     };
 
     // Search for the string.
-    std::string identifier = token.to_string().to_lower();
+    for (char &c : identifier)
+        c = std::tolower(c);
     auto location = keyword_map.find(identifier);
 
     // If the location is found, then return the type.
     if (location != keyword_map.end())
     {
-        return *location;
+        return location->second;
     }
     
     else
@@ -481,10 +546,11 @@ parse()
                        this->advance();
                     }
 
-                    this->add_token(this->step - length, length, TokenType::IDENTIFIER);
-
-                    // TODO(Chris): Identifiers can be keywords, so we need to do
-                    //              some additional checks here.
+                    // Convert to a string.
+                    std::string identifier;
+                    for (size_t i = this->step - length; i < this->step; i++)
+                        identifier += this->source[i];
+                    this->add_token(this->step - length, length, this->check_keyword(identifier));
 
                 }
 

@@ -10,3 +10,37 @@ something identifier words
 some additional test symbols 12 34 56 78 90
 here_is_an_underscore
 some123thing_with456numbers
+camelCaseStrings
+PascalCaseStrings
+SCREAMINGCASESTRINGS
+
+begin
+procedure
+endprocedure
+function
+endfunction
+if
+endif
+while
+endwhile
+loop
+endloop
+ploop
+endploop
+fit
+endfit
+variable
+write
+read
+save
+include
+end
+
+BEGIN
+    VARIABLE S := 1
+    LOOP 1 10
+        WRITE S
+        S = S + 1
+    ENDLOOP
+END
+
