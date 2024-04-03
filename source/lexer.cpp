@@ -12,6 +12,8 @@ token_type_to_string(TokenType type)
     {
         case TokenType::LEFT_CURLY_BRACKET:     { return "left_curly";      }
         case TokenType::RIGHT_CURLY_BRACKET:    { return "right_curly";     }
+        case TokenType::LEFT_BRACKET:           { return "left_bracket";    }
+        case TokenType::RIGHT_BRACKET:          { return "right_bracket";   }
         case TokenType::SEMICOLON:              { return "semicolon";       }
         case TokenType::ASSIGNMENT_OPERATOR:    { return "assignment";      }
         case TokenType::PLUS:                   { return "plus";            }
@@ -28,7 +30,7 @@ token_type_to_string(TokenType type)
         case TokenType::DERIVATION:             { return "derivation";      }
 
         case TokenType::IDENTIFIER:             { return "identifier";      }
-        case TokenType::STRING_SINGLE:          { return "string_signle";   }
+        case TokenType::STRING_SINGLE:          { return "string_single";   }
         case TokenType::STRING_DOUBLE:          { return "string_double";   }
         case TokenType::NUMBER:                 { return "number_literal";  }
 
@@ -322,7 +324,11 @@ parse()
         {
             case '{':
             {
-                this->add_token(this->step - 1, 1, TokenType::LEFT_CURLY_BRACKET);
+                // NOTE(Chris): For comments, we may want to still tokenize it for
+                //              the transpiler so that the comments can be added
+                //              back to C++ as inline comments. For now, we will
+                //              advance until the closing curly bracket and consume.
+                //this->add_token(this->step - 1, 1, TokenType::LEFT_CURLY_BRACKET);
                 while (this->peek() != '}')
                     this->advance();
                 break;
@@ -330,7 +336,19 @@ parse()
 
             case '}':
             {
-                this->add_token(this->step - 1, 1, TokenType::RIGHT_CURLY_BRACKET);
+                //this->add_token(this->step - 1, 1, TokenType::RIGHT_CURLY_BRACKET);
+                break;
+            };
+
+            case '(':
+            {
+                this->add_token(this->step - 1, 1, TokenType::LEFT_BRACKET);
+                break;
+            };
+
+            case ')':
+            {
+                this->add_token(this->step - 1, 1, TokenType::RIGHT_BRACKET);
                 break;
             };
 
@@ -503,6 +521,7 @@ parse()
 
             // Whitespace conditions, we can skip these.
             case ' ':
+            case '\t':
             case '\r':
             case '\n':
             {

@@ -10,6 +10,8 @@ enum class TokenType
     // Symbols
     LEFT_CURLY_BRACKET,     // {
     RIGHT_CURLY_BRACKET,    // }
+    LEFT_BRACKET,           // (
+    RIGHT_BRACKET,          // )
     SEMICOLON,              // ;
     ASSIGNMENT_OPERATOR,    // :=
     PLUS,                   // +
