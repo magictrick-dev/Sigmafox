@@ -1,5 +1,5 @@
 { This is a symbol file which tests various symbols in the COSY language spec. }
-+ - * / = < > # & | %
++ - * / = < > # & | % ( )
 ** :=
 1234 5678 9 10
 something identifier words
@@ -37,8 +37,8 @@ include
 end
 
 BEGIN
-    VARIABLE S := 1
-    LOOP 1 10
+    VARIABLE S := 0
+    WHILE S < 10;
         WRITE S
         S = S + 1
     ENDLOOP
