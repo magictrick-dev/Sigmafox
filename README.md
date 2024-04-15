@@ -11,19 +11,6 @@ configure and compile the project.
 
 ## Development Notes
 
-- Lexer
-
-    When tokens are generated, it is sometimes helpful to know the line offset
-    and line number of their original location. The line offset is the relative
-    byte-offset within the source text and the line number is the literal line
-    (exclusive of zero) from the top of the source file. The line offset can be
-    subtracted from the token offset to get the column position of the token within
-    the source file. So far, these values are calculated as-needed, but it isn't
-    necessary since the lexer itself can track the line offset and line number as
-    it parses the source. These values can be fed into the token constructor such
-    that they can be cached rather than calculated at a later time, saving some
-    computation time.
-
 - Threading the Lexer
 
     Multiple text files can be lexed at the same time using threading. This is
@@ -38,6 +25,13 @@ configure and compile the project.
     already defined (for single-file imports), we can create a import heirarchy
     which gives a top-down view of the order of which to place symbols in the symbols
     table. That way, multifile projects are possible.
+
+- Define Language Specification Documentation
+
+- Parser Completion
+
+    Convert the lex'd source file to a parsed AST which uses the language
+    specification to properly define whether the syntax is in the language.
 
 ## Proposed Language Specification Changes
 
@@ -170,4 +164,5 @@ like `loop_count := loop_count + 1` shorter with `loop_count :+ 1`.
 
 Also, maybe increment and decrement shorthands, `:++`, `:--` to make this expression
 even short: `loop_count:++`.
+
 
