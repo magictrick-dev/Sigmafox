@@ -92,6 +92,10 @@ class Lex
         void            print_errors() const;
         void            print_tokens() const;
 
+        size_t          token_count() const;
+        Token&          operator[](size_t idx);
+        const Token&    operator[](size_t idx) const;
+
     protected:
         void            parse();
         void            push_error(Token token);

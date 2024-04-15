@@ -145,6 +145,26 @@ Lex(const char *source, const char *path)
 
 };
 
+Token& Lex::
+operator[](size_t idx)
+{
+    
+    return this->tokens[idx];
+
+}
+
+const Token& Lex::
+operator[](size_t idx) const
+{
+    return this->tokens[idx];
+}
+
+size_t Lex::
+token_count() const
+{
+    return this->tokens.size();
+};
+
 bool Lex::
 has_errors() const
 {
