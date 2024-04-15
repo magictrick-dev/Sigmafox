@@ -4,6 +4,19 @@
 #include <string>
 #include <iostream>
 
+struct property_definition
+{
+    std::string type;
+    std::string name;
+};
+
+struct grammar_definition
+{
+    std::string name;
+    std::vector<property_definition> props;
+};
+
+
 // --- Helpers -----------------------------------------------------------------
 
 inline static std::string
@@ -53,6 +66,15 @@ split_string(std::string str, std::string delim)
 
 // --- Generators --------------------------------------------------------------
 
+static void generate_break(std::ofstream& of, std::string name)
+{
+    size_t break_size = 72 - name.length();
+    of << "// --- " << name << " ";
+    for (size_t d = 0; d < break_size; ++d)
+        of << "-";
+    of << std::endl;
+}
+
 static void
 generate_header(std::ofstream& of)
 {
@@ -70,23 +92,30 @@ generate_footer(std::ofstream& of)
 static void
 generate_base(std::ofstream& of, std::string base_class_name)
 {
-    of << "\n\nclass " << base_class_name << std::endl;
-    of << "{\n\n\n};" << std::endl;
+    generate_break(of, base_class_name);
+    of << "\nclass " << base_class_name << std::endl;
+    of << "{" << std::endl;
+    of << "    public:\n        virtual void visit() = 0;\n";
+    of << "};" << std::endl;
+}
+
+static void
+generate_derived(std::ofstream& of, grammar_definition &definition, std::string base)
+{
+    generate_break(of, definition.name);
+    of << "\nclass " << definition.name << " : public " << base << std::endl;
+    of << "{" << std::endl;
+    of << "    protected:\n";
+
+    for (size_t idx = 0; idx < definition.props.size(); ++idx)
+    {
+
+    }
+
+    of << "};" << std::endl;
 }
 
 // --- Runtime -----------------------------------------------------------------
-
-struct property_definition
-{
-    std::string type;
-    std::string name;
-};
-
-struct grammar_definition
-{
-    std::string name;
-    std::vector<property_definition> props;
-};
 
 int
 main(int argc, char ** argv)

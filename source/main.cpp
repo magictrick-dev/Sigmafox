@@ -17,6 +17,38 @@
 #include <source.h>
 #include <lexer.h>
 
+#include <iostream>
+#include <cstdio>
+
+// --- Colored Output Testing --------------------------------------------------
+
+void
+test_cli_output()
+{
+
+    std::cout << " \t\t8-bit Color Table" << std::endl;
+    for (int i = 0; i < 108; ++i)
+    {
+        if (i % 9 == 0 && i != 0)
+            std::cout << std::endl;
+
+        printf("\033[%dm %3d\033[m", i, i);
+    }
+    std::cout << std::endl;
+
+    std::cout << " \t\t16-bit Color Table" << std::endl;
+    for (int i = 0; i < 256; i++)
+    {
+        if (i % 16 == 0 && i != 0)
+            std::cout << std::endl;
+        printf("\033[38;5;%dm %3d hello\033[m", i, i);
+    }
+    std::cout << std::endl;
+
+}
+
+// --- Input Runtime Functions -------------------------------------------------
+
 bool
 cli_validate_arguments(int argc, char ** argv)
 {
@@ -75,6 +107,9 @@ main(int argc, char ** argv)
         printf("         be submitted at time.\n\n");
         return RETURN_STATUS_INIT_FAIL;
     }
+
+    // Testing CLI output.
+    test_cli_output();
 
     // --- Source File Loading -------------------------------------------------
     // 
