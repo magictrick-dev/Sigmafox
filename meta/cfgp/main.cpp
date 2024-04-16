@@ -128,7 +128,7 @@ generate_visitor(std::ofstream& of, std::vector<grammar_definition>& gdef, std::
     for (auto& def : gdef)
     {
         of << "        inline void visit_" << lower_string(def.name) << "(" <<
-            base + "Visitor visitor) {}\n" << std::endl;
+            base + "Visitor visitor);" << std::endl;
     }
     of << "};\n" << std::endl;
 }
@@ -139,6 +139,9 @@ generate_derived(std::ofstream& of, grammar_definition &definition, std::string 
     generate_break(of, definition.name);
     of << "\nclass " << definition.name << " : public " << base << std::endl;
     of << "{" << std::endl;
+    of << "    public:\n";
+    of << "        inline virtual void accept(" << base + "Visitor visitor) override\n"
+       << "        { visitor.visit_" + lower_string(definition.name) << "(this); }\n\n";
     of << "    protected:\n";
 
     for (size_t idx = 0; idx < definition.props.size(); ++idx)

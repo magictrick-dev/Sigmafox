@@ -17,20 +17,20 @@ class Expression
 class ExpressionVisitor
 {
     public:
-        inline void visit_binary(ExpressionVisitor visitor) {}
-
-        inline void visit_grouping(ExpressionVisitor visitor) {}
-
-        inline void visit_literal(ExpressionVisitor visitor) {}
-
-        inline void visit_unary(ExpressionVisitor visitor) {}
-
+        inline void visit_binary(ExpressionVisitor visitor);
+        inline void visit_grouping(ExpressionVisitor visitor);
+        inline void visit_literal(ExpressionVisitor visitor);
+        inline void visit_unary(ExpressionVisitor visitor);
 };
 
 // --- Binary ------------------------------------------------------------------
 
 class Binary : public Expression
 {
+    public:
+        inline virtual void accept(ExpressionVisitor visitor) override
+        { visitor.visit_binary(this); }
+
     protected:
         Expression left;
         Token op;
@@ -42,6 +42,10 @@ class Binary : public Expression
 
 class Grouping : public Expression
 {
+    public:
+        inline virtual void accept(ExpressionVisitor visitor) override
+        { visitor.visit_grouping(this); }
+
     protected:
         Expression exp;
 
@@ -51,6 +55,10 @@ class Grouping : public Expression
 
 class Literal : public Expression
 {
+    public:
+        inline virtual void accept(ExpressionVisitor visitor) override
+        { visitor.visit_literal(this); }
+
     protected:
         Token value;
 
@@ -60,6 +68,10 @@ class Literal : public Expression
 
 class Unary : public Expression
 {
+    public:
+        inline virtual void accept(ExpressionVisitor visitor) override
+        { visitor.visit_unary(this); }
+
     protected:
         Token op;
         Expression right;
