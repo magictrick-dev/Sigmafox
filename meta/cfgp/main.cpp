@@ -1,3 +1,12 @@
+// --- CGFP --------------------------------------------------------------------
+//
+// This metaprogram generates an AST layout based on a provided grammar file.
+// The output is a C++ file which contains the grammar definitions and visitor
+// pattern for horizontal function expressions. The main idea is that this makes
+// it easier to extend functionality without having to manually write each class
+// definition.
+//
+
 #include <fstream>
 #include <algorithm>
 #include <vector>
@@ -16,8 +25,16 @@ struct grammar_definition
     std::vector<property_definition> props;
 };
 
-
 // --- Helpers -----------------------------------------------------------------
+
+inline static std::string
+lower_string(std::string str)
+{
+    std::string out;
+    for (auto c : str)
+        out += tolower(c);
+    return out;
+}
 
 inline static std::string
 trim_string(std::string str)
@@ -78,9 +95,10 @@ static void generate_break(std::ofstream& of, std::string name)
 static void
 generate_header(std::ofstream& of)
 {
+    of << "// This file was partially generated using a metaprogram, cgfp.\n"
+       << "// See ./meta/cgfp for details.\n" << std::endl;
     of << "#ifndef SIGMAFOX_EXPRESSION_H" << std::endl;
-    of << "#define SIGMAFOX_EXPRESSION_H" << std::endl;
-    of << "// This was generated using a metaprogram, cgfp. See ./meta/cgfp for details.\n" << std::endl;
+    of << "#define SIGMAFOX_EXPRESSION_H\n" << std::endl;
 }
 
 static void
@@ -95,8 +113,24 @@ generate_base(std::ofstream& of, std::string base_class_name)
     generate_break(of, base_class_name);
     of << "\nclass " << base_class_name << std::endl;
     of << "{" << std::endl;
-    of << "    public:\n        virtual void visit() = 0;\n";
-    of << "};" << std::endl;
+    of << "    public:\n        virtual void accept(" <<
+        base_class_name + "Visitor" << ") = 0;\n";
+    of << "};\n" << std::endl;
+}
+
+static void
+generate_visitor(std::ofstream& of, std::vector<grammar_definition>& gdef, std::string base)
+{
+    generate_break(of, base + "Visitor");
+    of << "\nclass " << base + "Visitor" << std::endl;
+    of << "{" << std::endl;
+    of << "    public:" << std::endl;
+    for (auto& def : gdef)
+    {
+        of << "        inline void visit_" << lower_string(def.name) << "(" <<
+            base + "Visitor visitor) {}\n" << std::endl;
+    }
+    of << "};\n" << std::endl;
 }
 
 static void
@@ -109,10 +143,11 @@ generate_derived(std::ofstream& of, grammar_definition &definition, std::string 
 
     for (size_t idx = 0; idx < definition.props.size(); ++idx)
     {
-
+        of  << "        " << definition.props[idx].type << " "
+            << definition.props[idx].name << ";" << std::endl;
     }
 
-    of << "};" << std::endl;
+    of << "\n};\n" << std::endl;
 }
 
 // --- Runtime -----------------------------------------------------------------
@@ -180,15 +215,11 @@ main(int argc, char ** argv)
 
     }
 
+    generate_visitor(output_fs, definitions, "Expression");
+
     // Print definitions
-    for (const auto& def : definitions)
-    {
-        std::cout << def.name << std::endl;
-        for (const auto& props : def.props)
-        {
-            std::cout << "\t" << props.type << " / " << props.name << std::endl;
-        }
-    }
+    for (auto& def : definitions)
+        generate_derived(output_fs, def, "Expression");
 
     generate_footer(output_fs);
 
