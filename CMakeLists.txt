@@ -11,6 +11,8 @@ set(COMMON_LIBRARIES
     "common/core/fileio.h"
     "common/core/allocator.cpp"
     "common/core/fileio.cpp"
+    "common/generate.h"
+    "common/generate.cpp"
 )
 
 add_executable(Sigmafox

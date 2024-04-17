@@ -1,5 +1,7 @@
 #ifndef SIGMAFOX_COMMON_GENERATE_H
 #define SIGMAFOX_COMMON_GENERATE_H
+#include <core.h>
+
 #include <string>
 #include <vector>
 #include <sstream>
@@ -76,8 +78,10 @@ struct Typename
     std::string     name;
     bool            pointer;
 
-    EAccessType     access;
+    EAccesstype     access;
     EConstness      constness;
+
+    inline bool     is_valid() const { return (this->type != "" && this->name != ""); };
 };
 
 struct Methodname
@@ -105,14 +109,14 @@ class ClassDefinition : public Generatable
 
         Typename&       add(Typename property, EScope scope);
         Methodname&     add(Methodname method, EScope scope);
-        Typename&       add_typename();
-        Methodname&     add_methodname();
+        Typename&       add_typename(EScope scope);
+        Methodname&     add_methodname(EScope scope);
 
-        virtual std::string     generate() override;
+        virtual std::string     generate(size_t tab_depth) override;
         
     private:
         Typename                class_signature;
-        ClassGeneration        *inherits;
+        ClassDefinition        *inherits;
 
         std::vector<Typename>   properties_public;
         std::vector<Typename>   properties_private;
