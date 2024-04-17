@@ -4,6 +4,15 @@ project(Sigmafox)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
 add_compile_definitions(SIGMAFOX_DEBUG_BUILD=1)
 
+set(COMMON_LIBRARIES
+    "common/core.h"
+    "common/core/debugging.h"
+    "common/core/primitives.h"
+    "common/core/fileio.h"
+    "common/core/allocator.cpp"
+    "common/core/fileio.cpp"
+)
+
 add_executable(Sigmafox
     "source/main.cpp"
     
@@ -14,16 +23,12 @@ add_executable(Sigmafox
     "source/source.cpp"
     "source/commandline.cpp"
 
-    "source/core.h"
-    "source/core/debugging.h"
-    "source/core/primitives.h"
-    "source/core/fileio.h"
-    "source/core/allocator.cpp"
-    "source/core/fileio.cpp"
+    ${COMMON_LIBRARIES}
 )
 
 target_include_directories(Sigmafox PUBLIC
-    "source"
-    "vendor"
+    "./source"
+    "./common"
+    "./vendor"
 )
 
