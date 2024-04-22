@@ -76,10 +76,10 @@ struct Typename
 {
     std::string     type;
     std::string     name;
-    bool            pointer;
 
-    EAccesstype     access;
-    EConstness      constness;
+    bool            pointer     = false;
+    EAccesstype     access      = EAccesstype::Direct;
+    EConstness      constness   = EConstness::Mutable;
 
     inline bool     is_valid() const { return (this->type != "" && this->name != ""); };
 };
@@ -88,6 +88,8 @@ struct Methodname
 {
     Typename                signature;
     std::vector<Typename>   parameters;
+
+    EVirtual                virtualness = EVirtual::Concrete;
 
     bool                    implemented;
     std::string             implementation;
@@ -112,8 +114,14 @@ class ClassDefinition : public Generatable
         Typename&       add_typename(EScope scope);
         Methodname&     add_methodname(EScope scope);
 
+        Methodname&     set_constructor(Methodname method);
+        Methodname&     set_destructor(Methodname method);
+
+        inline Typename signature() { return this->class_signature; };
+
         virtual std::string     generate(size_t tab_depth) override;
-        
+ 
+
     private:
         Typename                class_signature;
         ClassDefinition        *inherits;

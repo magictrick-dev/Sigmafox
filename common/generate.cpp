@@ -104,6 +104,111 @@ add_typename(EScope scope)
 std::string ClassDefinition::
 generate(size_t tab_depth)
 {
-    SF_NOIMPL("To do.");
-    return "";
+
+    std::stringstream output;
+
+    // Generate the class definition header.
+    output << "class " << this->class_signature.type;
+    if (this->inherits != NULL)
+        output << " : public " << this->inherits->signature().type;
+    output << std::endl;
+
+    output << "{" << std::endl << std::endl;
+
+    // -------------------------------------------------------------------------
+    // Add all public attributes.
+    output << "    public:" << std::endl;
+    for (auto method : this->methods_public)
+    {
+        output << "        ";
+        output << method.signature.type << " ";
+        output << method.signature.name;
+
+        output << "(";
+        for (size_t idx = 0; idx < method.parameters.size(); ++idx)
+        {
+            output  << method.parameters[idx].type << " "
+                    << method.parameters[idx].name;
+            if (idx < method.parameters.size() - 1)
+                output << ", ";
+        }
+        output << ");";
+    }
+    
+    output << std::endl;
+
+    for (auto property : this->properties_public)
+    {
+        output << "        ";
+        output << property.type << " ";
+        output << property.name << ";";
+    }
+
+    output << std::endl;
+
+    // -------------------------------------------------------------------------
+    // Add all protected attributes.
+    output << "    protected:" << std::endl;
+    for (auto method : this->methods_protected)
+    {
+        output << "        ";
+        output << method.signature.type << " ";
+        output << method.signature.name;
+
+        output << "(";
+        for (size_t idx = 0; idx < method.parameters.size(); ++idx)
+        {
+            output  << method.parameters[idx].type << " "
+                    << method.parameters[idx].name;
+            if (idx < method.parameters.size() - 1)
+                output << ", ";
+        }
+        output << ");";
+    }
+    
+    output << std::endl;
+
+    for (auto property : this->properties_protected)
+    {
+        output << "        ";
+        output << property.type << " ";
+        output << property.name << ";";
+    }
+
+    output << std::endl;
+
+    // -------------------------------------------------------------------------
+    // Add all private attributes.
+    output << "    private:" << std::endl;
+    for (auto method : this->methods_private)
+    {
+        output << "        ";
+        output << method.signature.type << " ";
+        output << method.signature.name;
+
+        output << "(";
+        for (size_t idx = 0; idx < method.parameters.size(); ++idx)
+        {
+            output  << method.parameters[idx].type << " "
+                    << method.parameters[idx].name;
+            if (idx < method.parameters.size() - 1)
+                output << ", ";
+        }
+        output << ");";
+    }
+    
+    output << std::endl;
+
+    for (auto property : this->properties_private)
+    {
+        output << "        ";
+        output << property.type << " ";
+        output << property.name << ";";
+    }
+
+    output << std::endl;
+
+    output << "};" << std::endl;
+
+    return output.str();
 }

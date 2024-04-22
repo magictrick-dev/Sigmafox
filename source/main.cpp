@@ -16,6 +16,7 @@
 #include <commandline.h>
 #include <source.h>
 #include <lexer.h>
+#include <generate.h>
 
 #include <iostream>
 #include <cstdio>
@@ -117,6 +118,7 @@ main(int argc, char ** argv)
     // pre-parse on them to break them up into line-by-line segments.
     //
 
+#if 0
     // Loads the source into memory.
     size_t source_size = sigmafox_file_size(argv[1]);
     char *source_buffer = (char*)sigmafox_memory_alloc(source_size + 1);
@@ -132,6 +134,12 @@ main(int argc, char ** argv)
     {
         source_lex.print_tokens();
     }
+#endif
+
+    Typename square_signature = { "ShapeSquare", "ShapeSquare" };
+    ClassDefinition square_class(square_signature, NULL);
+
+
 
     // --- Cleanup -------------------------------------------------------------
     //
