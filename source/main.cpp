@@ -139,6 +139,28 @@ main(int argc, char ** argv)
     Typename square_signature = { "ShapeSquare", "ShapeSquare" };
     ClassDefinition square_class(square_signature, NULL);
 
+    Methodname square_area;
+    square_area.signature = { "int", "get_area" };
+    square_class.add(square_area, EScope::Public);
+    
+    Methodname square_perimeter;
+    square_perimeter.signature = { "int", "get_perimter" };
+    square_class.add(square_perimeter, EScope::Public);
+
+    Methodname square_set_width;
+    square_set_width.signature = { "void", "set_width" };
+    square_set_width.parameters.push_back({"int", "width"});
+    square_class.add(square_set_width, EScope::Public);
+
+    Methodname square_set_height;
+    square_set_width.signature = { "void", "set_height" };
+    square_set_width.parameters.push_back({"int", "height"});
+    square_class.add(square_set_height, EScope::Public);
+
+    Typename square_width   = { "int", "width" };
+    Typename square_height  = { "int", "height" };
+    square_class.add(square_width, EScope::Private);
+    square_class.add(square_height, EScope::Private);
 
 
     // --- Cleanup -------------------------------------------------------------
