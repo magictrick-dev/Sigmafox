@@ -34,71 +34,62 @@ ClassDefinition(Typename signature, SF_OPTIONAL ClassDefinition *parent)
 
 }
 
-Typename& ClassDefinition::
-add(Typename property, EScope scope)
+void ClassDefinition::
+add_property(Typename type, EScope scope)
 {
 
     switch (scope)
     {
         case EScope::Public:
         {
-            this->properties_public.push_back(property);
-            Typename& instance = this->properties_public.back();
-            return instance;
-        };
-        case EScope::Private:
-        {
-            this->properties_private.push_back(property);
-            Typename &instance = this->properties_private.back();
-            return instance;
-        };
-        case EScope::Protected:
-        {
-            this->properties_protected.push_back(property);
-            Typename& instance = this->properties_protected.back();
-            return instance;
-        };
-    }
-
-    SF_NOREACH("All enum conditions must be reached, so if we're here, we bungled.");
-    static Typename no_reach = {};
-    return no_reach;
-}
-
-Typename& ClassDefinition::
-add_typename(EScope scope)
-{
-
-    Typename *instance = NULL;
-
-    switch (scope)
-    {
-        case EScope::Public:
-        {
-            this->properties_public.emplace_back();
-            instance = &this->properties_public.back();
+            this->properties_public.push_back(type);
             break;
         }
         case EScope::Private:
         {
-            this->properties_private.emplace_back();
-            instance = &this->properties_private.back();
+            this->properties_private.push_back(type);
             break;
         }
         case EScope::Protected:
         {
-            this->properties_protected.emplace_back();
-            instance = &this->properties_protected.back();
+            this->properties_protected.push_back(type);
             break;
         }
         default:
         {
             SF_NOREACH("All enum conditions must be reached, so if we're here, we bungled.");
-            instance = NULL;
         }
     }
 
-    return *instance;
+}
+
+void ClassDefinition::
+add_method(Methodname method, EScope scope)
+{
+
+    switch (scope)
+    {
+        case EScope::Public:
+        {
+            this->methods_public.push_back(method);
+            break;
+        }
+        case EScope::Private:
+        {
+            this->methods_private.push_back(method);
+            break;
+        }
+        case EScope::Protected:
+        {
+            this->methods_protected.push_back(method);
+            break;
+        }
+        default:
+        {
+            SF_NOREACH("All enum conditions must be reached, so if we're here, we bungled.");
+        }
+    }
+
 }
 
 std::string ClassDefinition::
@@ -117,6 +108,7 @@ generate(size_t tab_depth)
 
     // -------------------------------------------------------------------------
     // Add all public attributes.
+
     output << "    public:" << std::endl;
     for (auto method : this->methods_public)
     {
@@ -132,7 +124,7 @@ generate(size_t tab_depth)
             if (idx < method.parameters.size() - 1)
                 output << ", ";
         }
-        output << ");";
+        output << ");\n";
     }
     
     output << std::endl;
@@ -148,6 +140,7 @@ generate(size_t tab_depth)
 
     // -------------------------------------------------------------------------
     // Add all protected attributes.
+
     output << "    protected:" << std::endl;
     for (auto method : this->methods_protected)
     {
@@ -163,7 +156,7 @@ generate(size_t tab_depth)
             if (idx < method.parameters.size() - 1)
                 output << ", ";
         }
-        output << ");";
+        output << ");\n";
     }
     
     output << std::endl;
@@ -172,13 +165,14 @@ generate(size_t tab_depth)
     {
         output << "        ";
         output << property.type << " ";
-        output << property.name << ";";
+        output << property.name << ";\n";
     }
 
     output << std::endl;
 
     // -------------------------------------------------------------------------
     // Add all private attributes.
+
     output << "    private:" << std::endl;
     for (auto method : this->methods_private)
     {
@@ -194,7 +188,7 @@ generate(size_t tab_depth)
             if (idx < method.parameters.size() - 1)
                 output << ", ";
         }
-        output << ");";
+        output << ");\n";
     }
     
     output << std::endl;
@@ -203,7 +197,7 @@ generate(size_t tab_depth)
     {
         output << "        ";
         output << property.type << " ";
-        output << property.name << ";";
+        output << property.name << ";\n";
     }
 
     output << std::endl;

@@ -109,10 +109,8 @@ class ClassDefinition : public Generatable
     public:
         ClassDefinition(Typename signature, SF_OPTIONAL ClassDefinition *parent);
 
-        Typename&       add(Typename property, EScope scope);
-        Methodname&     add(Methodname method, EScope scope);
-        Typename&       add_typename(EScope scope);
-        Methodname&     add_methodname(EScope scope);
+        void add_property(Typename property, EScope scope);
+        void add_method(Methodname method, EScope scope);
 
         Methodname&     set_constructor(Methodname method);
         Methodname&     set_destructor(Methodname method);

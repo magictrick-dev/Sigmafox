@@ -141,27 +141,29 @@ main(int argc, char ** argv)
 
     Methodname square_area;
     square_area.signature = { "int", "get_area" };
-    square_class.add(square_area, EScope::Public);
+    square_class.add_method(square_area, EScope::Public);
     
     Methodname square_perimeter;
     square_perimeter.signature = { "int", "get_perimter" };
-    square_class.add(square_perimeter, EScope::Public);
+    square_class.add_method(square_perimeter, EScope::Public);
 
     Methodname square_set_width;
     square_set_width.signature = { "void", "set_width" };
     square_set_width.parameters.push_back({"int", "width"});
-    square_class.add(square_set_width, EScope::Public);
+    square_class.add_method(square_set_width, EScope::Public);
 
     Methodname square_set_height;
-    square_set_width.signature = { "void", "set_height" };
-    square_set_width.parameters.push_back({"int", "height"});
-    square_class.add(square_set_height, EScope::Public);
+    square_set_height.signature = { "void", "set_height" };
+    square_set_height.parameters.push_back({"int", "height"});
+    square_class.add_method(square_set_height, EScope::Public);
 
     Typename square_width   = { "int", "width" };
     Typename square_height  = { "int", "height" };
-    square_class.add(square_width, EScope::Private);
-    square_class.add(square_height, EScope::Private);
+    square_class.add_property(square_width, EScope::Private);
+    square_class.add_property(square_height, EScope::Private);
 
+    std::string output_class = square_class.generate(4);
+    std::cout << "\n\n" << output_class << std::endl;
 
     // --- Cleanup -------------------------------------------------------------
     //
