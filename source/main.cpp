@@ -54,6 +54,7 @@ bool
 cli_validate_arguments(int argc, char ** argv)
 {
 
+
     // Provides the user the necessary information to use the program.
     if (argc <= 1)
     {
@@ -90,14 +91,15 @@ cli_validate_arguments(int argc, char ** argv)
 int
 main(int argc, char ** argv)
 {
+    sigmafox_cli_print_header();
 
+#if 0
     // --- CLI Validation ------------------------------------------------------
     //
     // Validates the command line arguments.
     //
     
     if (!cli_validate_arguments(argc, argv)) return RETURN_STATUS_INIT_FAIL;
-    sigmafox_cli_print_header();
 
     // NOTE(Chris): This is a temporary check, we are only supporting one
     //              input file at a time.
@@ -118,7 +120,6 @@ main(int argc, char ** argv)
     // pre-parse on them to break them up into line-by-line segments.
     //
 
-#if 0
     // Loads the source into memory.
     size_t source_size = sigmafox_file_size(argv[1]);
     char *source_buffer = (char*)sigmafox_memory_alloc(source_size + 1);
@@ -128,13 +129,13 @@ main(int argc, char ** argv)
     if (source_lex.has_errors())
     {
         source_lex.print_errors();
+
         return RETURN_STATUS_LEXER_FAIL;
     }
     else
     {
         source_lex.print_tokens();
     }
-#endif
 
     Typename square_signature = { "ShapeSquare", "ShapeSquare" };
     ClassDefinition square_class(square_signature, NULL);
@@ -164,6 +165,22 @@ main(int argc, char ** argv)
 
     std::string output_class = square_class.generate(4);
     std::cout << "\n\n" << output_class << std::endl;
+#endif
+
+    SourceFunctionDecleration add_numbers({"int", "add_numbers"});
+    add_numbers.append_parameter({"int", "left_operand"});
+    add_numbers.append_parameter({"int", "right_operand"});
+
+    SourceFunctionDecleration multiply_numbers({"int", "mul_numbers"});
+    multiply_numbers.append_parameter({"int", "left_operand"});
+    multiply_numbers.append_parameter({"int", "right_operand"});
+
+    SourceHeaderDocument shape_document;
+    shape_document.append_function(add_numbers);
+    shape_document.append_function(multiply_numbers);
+
+    std::string shape_source = shape_document.to_string(0);
+    std::cout << shape_source << std::endl;
 
     // --- Cleanup -------------------------------------------------------------
     //

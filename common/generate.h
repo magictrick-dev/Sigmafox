@@ -7,6 +7,7 @@
 #include <sstream>
 
 #define TABS_TO_SPACES  4
+#define TAB_CONSTANT    4
 
 // --- Base Generatable Class --------------------------------------------------
 //
@@ -131,6 +132,221 @@ class ClassDefinition : public Generatable
         std::vector<Methodname> methods_public;
         std::vector<Methodname> methods_private; 
         std::vector<Methodname> methods_protected;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --- Generetable Refactor --------------------------------------------
+#include <core/stringutils.h>
+#include <string>
+#include <sstream>
+
+class GeneratableSource
+{
+    public:
+        virtual std::string     to_string(size_t tab_depth) = 0;
+};
+
+class SourceType : GeneratableSource
+{
+    public:
+        inline SourceType()
+            : source_type(""), source_name("") {};
+
+        inline SourceType(std::string type, std::string name)
+            : source_type(type), source_name(name) {};
+
+        inline SourceType(std::string type, std::string name, bool is_inline, bool is_static)
+            : source_type(type), source_name(name), is_inline(is_inline), is_static(is_static) { }
+
+        virtual inline std::string to_string(size_t tab_depth) override
+        {
+            std::stringstream output;
+            if (is_static) output << "static ";
+            if (is_inline) output << "inline ";
+            output << this->source_type << " " << this->source_name;
+            return output.str();
+        }
+
+        bool is_inline = false;
+        bool is_static = false;
+        std::string source_type;
+        std::string source_name;
+
+};
+
+class SourceFunctionDecleration : public GeneratableSource
+{
+    public:
+        inline SourceFunctionDecleration(SourceType callname)
+        {
+            this->function_type = callname;
+        }
+
+        inline void append_parameter(SourceType type)
+        {
+            this->params.push_back(type);
+        }
+
+        virtual inline std::string to_string(size_t tab_depth) override
+        {
+
+            std::stringstream output;
+            output << this->function_type.to_string(0);
+
+            // Output the parameters.
+            output << "(";
+            for (size_t i = 0; i < this->params.size(); ++i)
+            {
+                output << this->params[i].to_string(0);
+                if (i < this->params.size() - 1)
+                    output << ", ";
+            }
+            output << ");";
+            
+            return string_tabulate_lines(tab_depth, output.str());
+
+        }
+
+    protected:
+        SourceType function_type;
+        std::vector<SourceType> params;
+};
+
+class SourceClassDecleration : public GeneratableSource
+{
+    public:
+        inline SourceClassDecleration(std::string class_name)
+        {
+            this->class_name = class_name;
+        };
+
+        inline void append_public_property(SourceType type)
+        {
+            this->public_properties.push_back(type);
+        }
+
+        inline void append_protected_property(SourceType type)
+        {
+            this->protected_properties.push_back(type);
+        }
+
+        inline void append_private_property(SourceType type)
+        {
+            this->private_properties.push_back(type);
+        }
+
+        inline void append_public_method(SourceFunctionDecleration method)
+        {
+            this->public_methods.push_back(method);
+        }
+
+        inline void append_protected_method(SourceFunctionDecleration method)
+        {
+            this->protected_methods.push_back(method);
+        }
+
+        inline void append_private_method(SourceFunctionDecleration method)
+        {
+            this->private_methods.push_back(method);
+        }
+
+        virtual inline std::string to_string(size_t tab_depth) override
+        {
+            
+            std::stringstream output;
+            output << "class " << this->class_name << std::endl;
+            output << "{" << std::endl;
+
+            if (this->public_properties.size() > 0 || this->public_methods.size() > 0)
+            {
+
+                output << string_tabulate_lines(TAB_CONSTANT, "public:") << std::endl;
+                
+                // All of methods first.
+                for (size_t i = 0; i < this->public_methods.size(); ++i)
+                {
+                    
+                }
+
+            }
+        
+            output << "}" << std::endl;
+
+        }
+
+    protected:
+        std::string class_name;
+
+        std::vector<SourceType> public_properties;
+        std::vector<SourceType> protected_properties;
+        std::vector<SourceType> private_properties;
+
+        std::vector<SourceFunctionDecleration> public_methods;
+        std::vector<SourceFunctionDecleration> protected_methods;
+        std::vector<SourceFunctionDecleration> private_methods;
+
+};
+
+// SourceHeaderDocument
+//      Provides a method of generating header source files.
+class SourceHeaderDocument : public GeneratableSource
+{
+    public:
+        inline SourceHeaderDocument() { };
+
+        virtual inline std::string to_string(size_t tab_depth) override
+        {
+
+            std::stringstream output;
+            output << "#pragma once"<< std::endl << std::endl;
+
+            // Now we can process all our generatables.
+            for (size_t i = 0; i < this->source_function_declerations.size(); ++i)
+            {
+                std::string function_decleration = this->source_function_declerations[i].to_string(0);
+                output << string_tabulate_lines(0, function_decleration) << std::endl;
+
+                if (i == this->source_function_declerations.size() - 1)
+                    output << std::endl;
+            }
+
+
+            // Finally, we take our string and then bump it by the tab-depth.
+            return string_tabulate_lines(tab_depth, output.str());
+
+        }
+        
+        inline void append_function(SourceFunctionDecleration def)
+        { 
+            this->source_function_declerations.push_back(def);
+        }
+
+    protected:
+        std::string     include_name;
+        std::string     include_path;
+
+        std::vector<SourceFunctionDecleration> source_function_declerations;
 };
 
 #endif

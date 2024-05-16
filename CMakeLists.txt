@@ -13,6 +13,8 @@ set(COMMON_LIBRARIES
     "common/core/fileio.cpp"
     "common/generate.h"
     "common/generate.cpp"
+    "common/core/stringutils.h"
+    "common/core/stringutils.cpp"
 )
 
 add_executable(Sigmafox
