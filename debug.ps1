@@ -1,0 +1,1 @@
+devenv ./comp/sigmafox.sln

@@ -1,4 +1,0 @@
-Binary      : Expression left, Token op, Expression right
-Grouping    : Expression exp
-Literal     : Token value
-Unary       : Token op, Expression right

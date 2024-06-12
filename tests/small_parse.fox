@@ -1,0 +1,4 @@
+print 'hello world'; 
+1 + 2 - 3;
+print 'test';
+print 1 + 2 * 3 + (3 * 2 + -1);

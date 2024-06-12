@@ -1,0 +1,34 @@
+{ This is a comment. }
+();
++ - / * ^ :=
+'this is a string'
+< > # & | % = <= >=
+1234
+12.34
+test
+hello_world
+test1234
+a1b1_2c3
+begin
+end
+procedure
+endprocedure
+function
+endfunction
+if
+endif
+while
+endwhile
+loop
+endloop
+ploop
+endploop
+fit
+endfit
+variable
+write
+read
+save
+include
+'final string at the end of the file'
+{ Final comment spans multple lines on the file. }
