@@ -46,64 +46,37 @@ currently requires no additional SDKs or dependencies to work.
 
 ### Project File Structure
 
-Implementation files are location `source/` and are organized as described below:
+The project file structure diagram describes the basic layout of how files are laid out.
+Take careful note of platform directory since it is the only directory in Sigmafox that
+has special meaning to the build system. Header files within this directory are the only
+files meant to be included by the front-end APIs; sub-directories like win32, unix, or macosx
+are not meant to be directly imported.
 
--   `source/` The root directory containing runtime code. Generally speaking, files
-    that reside within this directory are non-library files needed to execute the
-    program. Files of note include `main.cpp` which contains the program entry point
-    and `runtime.h` and `runtime.cpp` which contain the runtime routines that main
-    invokes at launch.
+<p align="center"><img src="./documentation/images/file_layout_structure.svg" /></p>
 
--   `source/compiler` Contains all implementation and header files regarding the compilation
-    routines needed to properly transform Sigmafox source files to C++ source files.
+-   **source/** Contains runtime specific files and library directories. Files of note in
+    this directory are `main.cpp` which serves as the application entry point, and `runtime.h`
+    which describes the runtime environment that main directly invokes at startup.
 
--   `source/core` Contains commonly included helper libraries and definitions.
+-   **source/core** Contains commonly used libraries for the project.
 
-    - `source/core/utilities` Library implementations such as string, vector, and allocators
-      reside in this directory. You can manually include which utility library you need or
-      you can include `source/utilities.h` to get them all.
+    -   **source/core/utilities** A set of libraries such as `array`, `string`, and various
+        other utilities such as custom allocators. You can selective choose which libraries
+        to use from this directory or include `<core/utilities.h>` for them all.
 
--   `source/platform` The root directory for platform-specific header files are here.
-    Each platform has its own directory and implementations for these source files.
-    While the majority of the code base for Sigmafox is platform agnostic, some operations
-    require OS calls to manage files, memory, and other critical OS-level operations. Rather 
-    than writing a dense wrapper for each operating system, the code that drives these 
-    functions are housed in separate folders that get dynamically added to the build using CMake.
+-   **source/compiler** Contains implementation files for the Sigmafox compiler.
 
-    <p align="center"><img src="./documentation/images/platform_file_layout.svg" /></p>
+-   **source/platform** Contains a set of header definition files that each platform must
+    implement in their respective folders. CMake will automatically detect which OS the
+    project is built on and appropriately include the implementation files.
 
-    The platform header files describe what the implementation files need to implement. The
-    front-end API isn't aware how these platform abstractions are working under the hood, only
-    that they perform the required operations as outlined by the header file itself. When adding
-    a platform, make sure to properly implement each API carefully so that the desired results
-    are achieved. The idea behind this design is to maintain low-level access to the OS calls
-    so that more, well-developed APIs can abstract them further such that they require little
-    modification beyond the initial implementation.
+# Documentation
 
-# Documentation Index
+-   **[Utilites: Allocators](./documentation/allocators.md)**
 
--   **[Memory Allocators](./documentation/allocators.md)**
+    Various memory allocators and memory management utilities.
 
-    Describes the various custom memory allocators and strategies that Sigmafox utilizes.
+-   **[Compiler: Scanner](./documentation/scanner.md)**
 
--   **Platform APIs**
-
-    Some operations require access to operating system calls to leverage numerous features
-    that improve reliability and speed. These platform APIs are implemented with respect
-    to the OS that they're built on (see [File Structure](#project-file-structure) for more
-    information about this).
-
-    -   **[Platform File Input/Output API](./documentation/fileio.md)**
-
-        Defines various file input/output routines to read and write files.
-
-    -   **[Platform Virtual Memory API](./documentation/virtmem.md)**
-
-        Defines functions that help access low-level memory pages for more efficient
-        memory useage.
-
--   **[Scanner API](./documentation/scanner.md)**
-
-    The scanner API is what the transpiler uses in the first stage of the compiler to tokenize
-    raw source files.
+    Routines for converting raw text files into tokenized outputs for further parsing.
 
