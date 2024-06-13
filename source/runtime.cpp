@@ -92,14 +92,28 @@ environment_runtime()
         for (size_t idx = 0; idx < error_list.size(); ++idx)
             print_symbol_error(state->source_files[0], &error_list[idx]);
 
+        return STATUS_CODE_SUCCESS;
+
     }
-    else
+
+    // We will print the list of tokens our for now, but this is temporary.
+    for (size_t idx = 0; idx < token_list.size(); ++idx)
     {
-        for (size_t idx = 0; idx < token_list.size(); ++idx)
-        {
-            if (token_list[idx].type == token_type::END_OF_FILE) break;
-            print_symbol(state->source_files[0], &token_list[idx]);
-        }
+        if (token_list[idx].type == token_type::END_OF_FILE) break;
+        print_symbol(state->source_files[0], &token_list[idx]);
+    }
+
+    // --- AST Phase -----------------------------------------------------------
+    //
+    // Converts the list of tokens to a traversable abstract syntax tree.
+    //
+
+    ast_node *ast_root = NULL;
+    bool ast_status = parser_create_ast(&token_list, &ast_root, NULL);
+    if (!ast_status)
+    {
+        printf("Unable to compile source.\n");
+        return STATUS_CODE_SUCCESS;
     }
 
     // --- Cleanup Phase -------------------------------------------------------

@@ -337,3 +337,25 @@ parser_tokenize_source_file(const char *source_file, array<token> *tokens, array
 
 }
 
+// --- Abstract Syntax Tree ----------------------------------------------------
+//
+// An abstract syntax tree takes the set of linear tokens and composes them into
+// a tree that corresponds to the language grammar. The basis for the language is
+// expressions. We use recursive descent to the generate the required grammar.
+//
+// expression   : equality
+// equality     : comparison ( ( "=" | "#" ) comparison )*
+// comparison   : term ( ( "<" | ">" | "<=" | ">=" ) term )*
+// term         : factor ( ( "+" | "-" ) factor )*
+// factor       : unary ( ( "*" | "/" ) unary )*
+// unary        : ( "-" ) unary | primary
+// primary      : NUMBER | STRING | "true" | "false" | "(" expression ")"
+
+bool
+parser_create_ast(array<token> *tokens, ast_node **ast, array<void*> *alloc_list)
+{
+
+    
+
+    return true;
+}
