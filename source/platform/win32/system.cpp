@@ -2,6 +2,96 @@
 #include <cassert>
 #include <windows.h>
 
+// --- System Timing Functions -------------------------------------------------
+//
+// Definitions for high-resolution system timing.
+//
+
+static size_t performance_frequency = 0;
+
+size_t          
+system_timestamp()
+{
+
+    LARGE_INTEGER current_time = {};
+    QueryPerformanceCounter(&current_time);
+    return (size_t)current_time.QuadPart;
+
+}
+
+double
+system_timestamp_difference_ss(size_t a, size_t b)
+{
+
+    if (performance_frequency == 0)
+    {
+        LARGE_INTEGER frequency = {};
+        QueryPerformanceFrequency(&frequency);
+        performance_frequency = frequency.QuadPart;
+    }
+
+    size_t difference = b - a;
+    double time_scale = (double)difference / (double)performance_frequency;
+    return time_scale;
+
+}
+
+double
+system_timestamp_difference_ms(size_t a, size_t b)
+{
+
+    if (performance_frequency == 0)
+    {
+        LARGE_INTEGER frequency = {};
+        QueryPerformanceFrequency(&frequency);
+        performance_frequency = frequency.QuadPart;
+    }
+
+    size_t difference = (b - a) * 1000;
+    double time_scale = (double)difference / (double)performance_frequency;
+    return time_scale;
+
+}
+
+double
+system_timestamp_difference_us(size_t a, size_t b)
+{
+
+    if (performance_frequency == 0)
+    {
+        LARGE_INTEGER frequency = {};
+        QueryPerformanceFrequency(&frequency);
+        performance_frequency = frequency.QuadPart;
+    }
+
+    size_t difference = (b - a) * 1000000;
+    double time_scale = (double)difference / (double)performance_frequency;
+    return time_scale;
+
+}
+
+double
+system_timestamp_difference_ns(size_t a, size_t b)
+{
+
+    if (performance_frequency == 0)
+    {
+        LARGE_INTEGER frequency = {};
+        QueryPerformanceFrequency(&frequency);
+        performance_frequency = frequency.QuadPart;
+    }
+
+    size_t difference = (b - a) * 1000000000;
+    double time_scale = (double)difference / (double)performance_frequency;
+    return time_scale;
+
+}
+
+// --- System Virtual Allocation Functions -------------------------------------
+//
+// Definitions for allocating pages of virtual memory from the operating system.
+//
+
 void*
 system_virtual_alloc(void* offset, size_t size)
 {
