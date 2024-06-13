@@ -33,12 +33,12 @@ main(int argc, char ** argv)
     if (!memory_statistics(&memory_stats))
         std::cout << "      Warning, potential memory mismatch." << std::endl;
 
+    std::cout << "      Current Allocation Useage : " << memory_stats.current_useage << " bytes" << std::endl;
+    std::cout << "      Peak Allocation Useage    : " << memory_stats.peak_useage << " bytes" << std::endl;
     std::cout << "      Allocation Size Total     : " << memory_stats.memory_allocated << " bytes" << std::endl;
     std::cout << "      Free Size Total           : " << memory_stats.memory_freed << " bytes" << std::endl;
     std::cout << "      Allocation Calls          : " << memory_stats.alloc_calls << std::endl;
     std::cout << "      Free Calls                : " << memory_stats.free_calls << std::endl;
-    std::cout << "      Current Allocation Useage : " << memory_stats.current_useage << std::endl;
-    std::cout << "      Peak Allocation Useage    : " << memory_stats.peak_useage << std::endl;
 
     printf("------------------------------------------------------------\n");
 

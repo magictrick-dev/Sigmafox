@@ -1,69 +1,88 @@
-#ifndef SIGMAFOX_COMPILER_PARSER_H
-#define SIGMAFOX_COMPILER_PARSER_H
-#include <vector>
-#include <allocator.h>
-#include <compiler/grammar.h>
+// --- Parser ------------------------------------------------------------------
+//
+// Contains the required methods to parse a source file into an AST list. In
+// order to properly transform a source file into an AST, we first tokenize the
+// source file into a set of consumable tokens, then we take this list of tokens
+// and construct an AST.
+//
 
-class SyntaxErrorException
+#ifndef SIGMAFOX_COMPILER_PARSER_H 
+#define SIGMAFOX_COMPILER_PARSER_H 
+#include <core/utilities.h>
+#include <core/definitions.h>
+
+enum token_type
 {
 
-    public:
-        inline SyntaxErrorException(Token error_token, std::string message)
-        {
-            this->error_token = error_token;
-            this->message = message;
-        }
+    // Symbols:
+    COMMENT_BLOCK,          // { ... }
+    LEFT_PARENTHESIS,       // (
+    RIGHT_PARENTHESIS,      // )
+    SEMICOLON,              // ;
+    ASSIGNMENT,             // :=
+    PLUS,                   // +
+    MINUS,                  // -
+    MULTIPLY,               // *
+    DIVISION,               // /
+    POWER,                  // ^
+    LESS_THAN,              // <
+    LESS_THAN_EQUALS,       // <=
+    GREATER_THAN,           // >
+    GREATER_THAN_EQUALS,    // >=
+    EQUALS,                 // =
+    NOT_EQUALS,             // #
+    CONCAT,                 // &
+    EXTRACT,                // |
+    DERIVATION,             // %
 
-        inline std::string to_string()
-        {
-            std::string error_message = message + " at line(";
-            error_message += std::to_string(this->error_token.line) + "): '";
-            error_message += this->error_token.lexeme + "'";
-            return error_message;
-        }
+    // Definables: 
+    IDENTIFIER,
+    STRING,                 // '', single quotes only.
+    NUMBER,
 
-    protected:
-        std::string message;
-        Token error_token;
+    // Keywords: 
+    BEGIN,      
+    END,
+    PROCEDURE,  
+    ENDPROCEDURE,
+    FUNCTION,   
+    ENDFUNCTION,
+    IF,         
+    ENDIF,
+    WHILE,      
+    ENDWHILE,
+    LOOP,       
+    ENDLOOP,
+    PLOOP,      
+    ENDPLOOP,
+    FIT,        
+    ENDFIT,
+    VARIABLE,
+    WRITE,
+    READ,
+    SAVE,
+    INCLUDE,
+
+    // Special:
+    PRINT,
+    UNDEFINED,
+    END_OF_FILE,
+    END_OF_LINE,
 
 };
 
-class Parser
+struct token
 {
-    public:
-        inline  Parser(std::vector<Token> tokens) : tokens(tokens) {};
-
-        std::vector<sharedptr<Statement>> parse();
-        bool                    is_eof();
-
-        sharedptr<Expression>   expression();
-
-    protected:
-        sharedptr<Expression>   equality();
-        sharedptr<Expression>   comparison();
-        sharedptr<Expression>   term();
-        sharedptr<Expression>   factor();
-        sharedptr<Expression>   unary();
-        sharedptr<Expression>   primary();
-
-        sharedptr<Statement>    statement();
-        sharedptr<Statement>    print_statement();
-        sharedptr<Statement>    expression_statement();
-
-        void                    synchronize();
-
-        bool                    match(std::vector<TokenType> types);
-        bool                    check(TokenType type);
-        Token                   consume(TokenType type, std::string err_message);
-        Token                   advance();
-        Token                   previous();
-        Token                   peek();
-
-    protected:
-        std::vector<Token>  tokens;
-        size_t              current = 0;
-
-
+    const char *source;
+    size_t offset_from_start;
+    size_t offset_from_line;
+    size_t length;
+    size_t line;
+    uint32_t type;
 };
+
+bool    parser_tokenize_source_file(const char *source, array<token> *tokens, array<token> *errors);
+string  parser_token_to_string(token *instance);
+string  parser_token_type_to_string(token *instance);
 
 #endif

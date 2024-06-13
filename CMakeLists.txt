@@ -35,8 +35,8 @@ add_executable(Sigmafox
     "source/runtime.h"
     "source/runtime.cpp"
 
-    "source/scan.h"
-    "source/scan.cpp"
+    "source/compiler/parser.h"
+    "source/compiler/parser.cpp"
     
     "source/platform/fileio.h"
     "source/platform/system.h"

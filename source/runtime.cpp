@@ -6,7 +6,8 @@
 #include <core/utilities.h>
 #include <core/definitions.h>
 
-#include <scan.h>
+#include <compiler/parser.h>
+#include <compiler/printing.h>
 
 typedef struct
 environment_state
@@ -76,42 +77,29 @@ environment_runtime()
 
     // --- Scanning Phase ------------------------------------------------------
     //
-    // Converts a source file to its tokenized representation. The scanner produces
-    // two linked lists. The firt is a list of valid tokens that the parser collected
-    // and a list of tokens that are unrecognized by the parser. 
-    //
-    // If the scanner returns zero, indicating there are no errors in the error list
-    // and the token list contains at least one parsed token in total. Likewise,
-    // if the scanner returns a value greater than zero, than the value corresponds
-    // to the number of errors it encountered. A value of -1 indicates no tokens
-    // were parsed and the source file was either empty or contained trivial whitespace.
+    // Parses and tokenizes the source file. An error list is produced when the
+    // function returns false, indicating that it failed (at least one token is
+    // not recognized).
     //
 
     array<token> token_list;
     array<token> error_list;
 
-    bool scan_status = scanner_scan_source_file(source_file.str(), &token_list, &error_list);
+    bool scan_status = parser_tokenize_source_file(source_file.str(), &token_list, &error_list);
     if (!scan_status)
     {
 
-        printf("The scanner encountered errors:\n");
         for (size_t idx = 0; idx < error_list.size(); ++idx)
-        {
-            printf("    Undefined symbol encountered on line: %lld\n", error_list[idx].line);
-        }
+            print_symbol_error(state->source_files[0], &error_list[idx]);
 
     }
     else
     {
-        printf("The scanner results:\n");
         for (size_t idx = 0; idx < token_list.size(); ++idx)
         {
             if (token_list[idx].type == token_type::END_OF_FILE) break;
-            string token_string = token_to_string(token_list[idx]);
-            printf("    Symbol '%s' encountered on line: %lld\n", 
-                    token_string.str(), token_list[idx].line);
+            print_symbol(state->source_files[0], &token_list[idx]);
         }
-        
     }
 
     // --- Cleanup Phase -------------------------------------------------------
@@ -119,7 +107,6 @@ environment_runtime()
     // Transpilation process has ended, clean up resources.
     //
 
-    //memory_free(buffer);
     return STATUS_CODE_SUCCESS;
 
 }

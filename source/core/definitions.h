@@ -1,5 +1,6 @@
 #ifndef SIGMAFOX_CORE_DEFINITIONS_H
 #define SIGMAFOX_CORE_DEFINITIONS_H
+#include <cctype>
 #include <cstdint>
 #include <cassert>
 

@@ -66,9 +66,9 @@ string(const char *str)
 {
 
     // Check if we need to resize to fit.
-    size_t string_length = strlen(str);
-    size_t adjust_size = (((string_length + 1) / 8) + !!(string_length % 8)) * 8;
-    this->resize(adjust_size);
+    size_t string_length = strlen(str) + 1;
+    size_t unit_size = (string_length / 8) + 1;
+    this->resize(unit_size * 8);
 
     // Copy the string to the buffer.
     memcpy(this->buffer_pointer, str, string_length + 1);
@@ -131,9 +131,9 @@ resize_to_fit()
 {
 
     size_t string_length = this->length();
-    size_t adjust_size = (((string_length + 1) / 8) + !!(string_length % 8)) * 8;
+    size_t unit_size = (string_length / 8) + 1;
 
-    char *fresh_buffer = memory_alloc_array(char, adjust_size);
+    char *fresh_buffer = memory_alloc_array(char, (unit_size * 8));
     if (this->buffer_pointer != NULL)
         memcpy(fresh_buffer, this->buffer_pointer, string_length + 1);
 
@@ -141,7 +141,7 @@ resize_to_fit()
         memory_free(this->buffer_pointer);
 
     this->buffer_pointer = fresh_buffer;
-    this->buffer_size = adjust_size;
+    this->buffer_size = unit_size * 8;
 
 }
 
@@ -161,8 +161,8 @@ operator+=(const char *str)
     size_t total_length = string_length + self_length + 1;
     if (total_length >= this->buffer_size)
     {
-        size_t adjust_size = ((total_length / 8) + !!(total_length % 8)) * 8;
-        this->resize(adjust_size);
+        size_t unit_size = (total_length / 8) + 1;
+        this->resize(unit_size * 8);
     }
 
     memcpy(this->buffer_pointer + self_length, str, string_length + 1);
@@ -180,8 +180,8 @@ operator+=(const string& str)
     size_t total_length = string_length + self_length + 1;
     if (total_length >= this->buffer_size)
     {
-        size_t adjust_size = ((total_length / 8) + !!(total_length % 8)) * 8;
-        this->resize(adjust_size);
+        size_t unit_size = (total_length / 8) + 1;
+        this->resize(unit_size * 8);
     }
 
     memcpy(this->buffer_pointer + self_length, str.buffer_pointer, string_length + 1);
