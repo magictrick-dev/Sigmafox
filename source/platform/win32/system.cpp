@@ -1,13 +1,13 @@
+#include <core/definitions.h>
 #include <platform/system.h>
-#include <cassert>
+#include <intrin.h>
 #include <windows.h>
+#include <cstdio>
 
 // --- System Timing Functions -------------------------------------------------
 //
 // Definitions for high-resolution system timing.
 //
-
-static size_t performance_frequency = 0;
 
 size_t          
 system_timestamp()
@@ -19,10 +19,10 @@ system_timestamp()
 
 }
 
-double
-system_timestamp_difference_ss(size_t a, size_t b)
+size_t
+system_timestamp_frequency()
 {
-
+    static size_t performance_frequency = 0;
     if (performance_frequency == 0)
     {
         LARGE_INTEGER frequency = {};
@@ -30,8 +30,15 @@ system_timestamp_difference_ss(size_t a, size_t b)
         performance_frequency = frequency.QuadPart;
     }
 
+    return performance_frequency;
+}
+
+double
+system_timestamp_difference_ss(size_t a, size_t b)
+{
+
     size_t difference = b - a;
-    double time_scale = (double)difference / (double)performance_frequency;
+    double time_scale = (double)difference / (double)system_timestamp_frequency();
     return time_scale;
 
 }
@@ -40,15 +47,8 @@ double
 system_timestamp_difference_ms(size_t a, size_t b)
 {
 
-    if (performance_frequency == 0)
-    {
-        LARGE_INTEGER frequency = {};
-        QueryPerformanceFrequency(&frequency);
-        performance_frequency = frequency.QuadPart;
-    }
-
     size_t difference = (b - a) * 1000;
-    double time_scale = (double)difference / (double)performance_frequency;
+    double time_scale = (double)difference / (double)system_timestamp_frequency();
     return time_scale;
 
 }
@@ -57,15 +57,8 @@ double
 system_timestamp_difference_us(size_t a, size_t b)
 {
 
-    if (performance_frequency == 0)
-    {
-        LARGE_INTEGER frequency = {};
-        QueryPerformanceFrequency(&frequency);
-        performance_frequency = frequency.QuadPart;
-    }
-
     size_t difference = (b - a) * 1000000;
-    double time_scale = (double)difference / (double)performance_frequency;
+    double time_scale = (double)difference / (double)system_timestamp_frequency();
     return time_scale;
 
 }
@@ -74,16 +67,51 @@ double
 system_timestamp_difference_ns(size_t a, size_t b)
 {
 
-    if (performance_frequency == 0)
+    size_t difference = (b - a) * 1000000000;
+    double time_scale = (double)difference / (double)system_timestamp_frequency();
+    return time_scale;
+
+}
+
+size_t
+system_cpustamp()
+{
+    return __rdtsc();
+}
+
+size_t
+system_cpustamp_frequency()
+{
+    
+    static size_t cpu_frequency = 0;
+
+    if (cpu_frequency == 0)
     {
-        LARGE_INTEGER frequency = {};
-        QueryPerformanceFrequency(&frequency);
-        performance_frequency = frequency.QuadPart;
+
+        // Frequency interval is MH/z a second, so we scale this time down to
+        // 1ms so the time it takes to get the frequency becomes unnoticeable
+        // at runtime. This only needs to happen once and can be primed at the
+        // start of the application.
+        size_t frequency = system_timestamp_frequency() / 1000;
+
+        size_t start = system_timestamp();
+        size_t end = 0;
+        size_t elapsed = 0;
+
+        size_t rd_start = system_cpustamp();
+        size_t rd_end = 0;
+
+        while (elapsed <= frequency)
+        {
+            end = system_timestamp();
+            rd_end = system_cpustamp();
+            elapsed = end - start;
+        }
+
+        cpu_frequency = (rd_end - rd_start) * 1000;
     }
 
-    size_t difference = (b - a) * 1000000000;
-    double time_scale = (double)difference / (double)performance_frequency;
-    return time_scale;
+    return cpu_frequency;
 
 }
 

@@ -7,11 +7,12 @@ int
 main(int argc, char ** argv)
 {
 
+    // Prime CPU timing; prevents future calls from trying to cache the frequency.
+    size_t cpu_frequency = system_cpustamp_frequency();
+
     // Invoke initialization procedure. If init fails, immediately call shutdown
     // with -1 to indicate a fail.
-    size_t init_start = system_timestamp();
     int init_code = environment_initialize(argc, argv);
-    size_t init_end = system_timestamp();
     if (init_code != STATUS_CODE_SUCCESS)
     {
         printf("Initialization failed with status code: %i\n", init_code);
@@ -20,18 +21,13 @@ main(int argc, char ** argv)
     }
 
     // Process the runtime. The returned runtime code is then fed back to shutdown.
-    size_t runtime_start = system_timestamp();
     int runtime_code = environment_runtime();
-    size_t runtime_end = system_timestamp();
     environment_shutdown(runtime_code);
 
     // Memory statistics and post-run debug information. This is automatically
     // compiled out when the debug build is turned off.
 #if defined(SIGMAFOX_DEBUG_BUILD)
 
-    double init_time = system_timestamp_difference_ms(init_start, init_end);
-    double runtime_time = system_timestamp_difference_ms(runtime_start, runtime_end);
-    double total_time = system_timestamp_difference_ms(init_start, runtime_end);
 
     printf("\n\n");
     printf("------------------------------------------------------------\n");
@@ -51,11 +47,6 @@ main(int argc, char ** argv)
 
     printf("------------------------------------------------------------\n");
 
-    std::cout << "      Initialization Time         : " << init_time << " ms" << std::endl;
-    std::cout << "      Runtime Time                : " << runtime_time << " ms" << std::endl;
-    std::cout << "      Total Execution Time        : " << total_time << " ms" << std::endl;
-
-    printf("------------------------------------------------------------\n");
 
 #endif
 
