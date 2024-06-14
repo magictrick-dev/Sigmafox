@@ -7,6 +7,7 @@
 #ifndef SIGMAFOX_CORE_UTILITIES_ARRAY_H
 #define SIGMAFOX_CORE_UTILITIES_ARRAY_H
 #include <new>
+#include <cstring>
 #include <core/definitions.h>
 #include <core/utilities/allocator.h>
 

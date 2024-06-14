@@ -147,17 +147,16 @@ struct ast_node
         struct
         {
             ast_node *left_expression;
-            ast_node *right_expressions;
+            ast_node *right_expression;
         };
     };
 
 };
 
-ast_node* create_ast_node(node_type type, token *instance, array<void*> *alloc_list);
-ast_node* create_ast_binary_node(ast_node *left, ast_node *right, token *operation);
-ast_node* create_ast_grouping_node(ast_node *expression);
-ast_node* create_ast_unary_node(ast_node *expression, token *operation);
-ast_node* create_ast_literal_node(token *literal);
+ast_node* parser_create_ast_binary_node(ast_node *left, ast_node *right, token *operation);
+ast_node* parser_create_ast_grouping_node(ast_node *expression);
+ast_node* parser_create_ast_unary_node(ast_node *expression, token *operation);
+ast_node* parser_create_ast_literal_node(token *literal);
 
 bool parser_create_ast(array<token> *tokens, ast_node **ast, array<void*> *alloc_list);
 

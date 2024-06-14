@@ -351,11 +351,181 @@ parser_tokenize_source_file(const char *source_file, array<token> *tokens, array
 // unary        : ( "-" ) unary | primary
 // primary      : NUMBER | STRING | "true" | "false" | "(" expression ")"
 
+struct parser
+{
+    size_t current;
+    array<token> *tokens;
+    array<void*> *alloc_list;
+};
+
+inline ast_node*
+parser_create_ast_binary_node(ast_node *left, ast_node *right, token *operation)
+{
+
+    assert(left != NULL);
+    assert(right != NULL);
+    assert(operation != NULL);
+
+    ast_node *node = memory_alloc_type(ast_node);
+    node->node_type         = node_type::BINARY_NODE;
+    node->operation         = operation;
+    node->left_expression   = left;
+    node->right_expression  = right;
+    return node;
+
+}
+
+inline ast_node*
+parser_create_ast_grouping_node(ast_node *expression)
+{
+
+    assert(expression != NULL);
+
+    ast_node *node = memory_alloc_type(ast_node);
+    node->node_type     = node_type::GROUPING_NODE;
+    node->operation     = NULL;
+    node->expression    = expression;
+    return node;
+
+}
+
+inline ast_node*
+parser_create_ast_unary_node(ast_node *expression, token *operation)
+{
+
+    assert(expression != NULL);
+    assert(operation != NULL);
+
+    ast_node *node = memory_alloc_type(ast_node);
+    node->node_type     = node_type::UNARY_NODE;
+    node->operation     = operation;
+    node->expression    = expression;
+    return node;
+
+}
+
+inline ast_node*
+parser_create_ast_literal_node(token *literal)
+{
+    
+    assert(literal != NULL);
+
+    ast_node *node = memory_alloc_type(ast_node);
+    node->node_type     = node_type::LITERAL_NODE;
+    node->literal       = literal;
+    node->expression    = NULL;
+    return node;
+
+}
+
+static inline token*
+parser_advance(parser *state)
+{
+    if (state->current < state->tokens->size())
+        state->current++;
+    token *current = &(*state->tokens)[state->current];
+    return current;
+}
+
+static inline token*
+parser_previous(parser *state)
+{
+    token *previous = &(*state->tokens)[state->current - 1];
+    return previous;
+}
+
+static inline token*
+parser_peek(parser *state)
+{
+    token *next = &(*state->tokens)[state->current];
+    return next;
+}
+
+static inline bool
+parser_is_eof(parser *state)
+{
+    token *next = parser_peek(state);
+    return next->type == token_type::END_OF_FILE;
+}
+
+static inline bool
+parser_match(parser *state, token_type type)
+{
+    if (parser_is_eof(state))
+        return false;
+    else
+    {
+        token *next = parser_peek(state);
+        if (next->type == type)
+        {
+            parser_advance(state);
+            return true;
+        }
+        else
+        {
+            return false;
+        }   
+    }
+}
+
+
+static ast_node*
+parser_recursive_descent_comparison(parser *state)
+{
+
+    return NULL;
+}
+
+static ast_node*
+parser_recursive_descent_equality(parser *state)
+{
+
+    ast_node *expression = parser_recursive_descent_comparison(state);
+
+    while (parser_match(state, token_type::EQUALS) || 
+           parser_match(state, token_type::NOT_EQUALS))
+    {
+
+        token *operation = parser_previous(state);
+        ast_node *right = parser_recursive_descent_comparison(state);
+        expression = parser_create_ast_binary_node(expression, right, operation);
+
+        state->alloc_list->push(right);
+    }
+
+    state->alloc_list->push(expression);
+    return expression;
+
+}
+
+static ast_node*
+parser_recursive_descent_expression(parser *state)
+{
+    
+    ast_node *equality = parser_recursive_descent_equality(state);
+    return equality;
+
+}
+
 bool
 parser_create_ast(array<token> *tokens, ast_node **ast, array<void*> *alloc_list)
 {
 
-    
+    assert(tokens != NULL);
+    assert(ast != NULL);
+    assert(alloc_list != NULL);
+
+    // Setup the parser state.
+    parser state = {};
+    state.current = 0;
+    state.tokens = tokens;
+    state.alloc_list = alloc_list;
+
+    // Using recursive descent, we generate an expression that follows the
+    // language grammar as describe in the above routine description.
+    ast_node *expression = parser_recursive_descent_expression(&state);
+    if (expression != NULL)
+        *ast = expression; // Set the AST to the expression.
 
     return true;
 }

@@ -109,7 +109,8 @@ environment_runtime()
     //
 
     ast_node *ast_root = NULL;
-    bool ast_status = parser_create_ast(&token_list, &ast_root, NULL);
+    array<void*> free_list;
+    bool ast_status = parser_create_ast(&token_list, &ast_root, &free_list);
     if (!ast_status)
     {
         printf("Unable to compile source.\n");
