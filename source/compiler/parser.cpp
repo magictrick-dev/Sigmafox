@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <compiler/parser.h>
 
 // --- Token Helper Functions --------------------------------------------------
@@ -358,6 +359,13 @@ struct parser
     array<void*> *alloc_list;
 };
 
+static ast_node* parser_recursive_descent_expression(parser *state);
+static ast_node* parser_recursive_descent_equality(parser *state);
+static ast_node* parser_recursive_descent_term(parser *state);
+static ast_node* parser_recursive_descent_factor(parser *state);
+static ast_node* parser_recursive_descent_unary(parser *state);
+static ast_node* parser_recursive_descent_primary(parser *state);
+
 inline ast_node*
 parser_create_ast_binary_node(ast_node *left, ast_node *right, token *operation)
 {
@@ -468,12 +476,131 @@ parser_match(parser *state, token_type type)
     }
 }
 
+static inline token*
+parser_consume(parser *state, token_type check)
+{
+
+    if (parser_is_eof(state)) return NULL;
+
+    token *next = parser_peek(state);
+    if (next->type == check) return parser_advance(state);
+    return NULL;
+
+}
+
+static ast_node*
+parser_recursive_descent_primary(parser *state)
+{
+
+    if (parser_match(state, token_type::STRING) ||
+        parser_match(state, token_type::NUMBER))
+    {
+        token *literal = parser_previous(state);
+        ast_node *expression = parser_create_ast_literal_node(literal);
+        return expression;
+    }
+
+    if (parser_match(state, token_type::LEFT_PARENTHESIS))
+    {
+
+        // Groupings will recurse up.
+        ast_node *expression = parser_recursive_descent_expression(state);
+        token *potential = parser_consume(state, token_type::RIGHT_PARENTHESIS);
+
+        // TODO(Chris): We need a way of elegantly handling syntax errors up to
+        //              this point. For now, we assume always valid syntax.
+        assert(potential != NULL);
+        return expression;
+
+    };
+
+    // TODO(Chris): Same as above, handle syntax errors.
+    assert(!"This is a no-reach condition");
+
+    return NULL; // This is a no-reach return, this is here so the compiler doesn't
+                 // complain about a potential no-return case.
+
+}
+
+static ast_node*
+parser_recursive_descent_unary(parser *state)
+{
+
+    if (parser_match(state, token_type::MINUS))
+    {
+        token *operation = parser_previous(state);
+        ast_node *right = parser_recursive_descent_unary(state);
+        ast_node *expression = parser_create_ast_unary_node(right, operation);
+
+        return expression;
+    }
+
+    ast_node *expression = parser_recursive_descent_primary(state);
+    return expression;
+
+}
+
+static ast_node*
+parser_recursive_descent_factor(parser *state)
+{
+
+    ast_node *expression = parser_recursive_descent_unary(state);
+
+    while (parser_match(state, token_type::MULTIPLY) ||
+           parser_match(state, token_type::DIVISION))
+    {
+        
+        token *operation = parser_previous(state);
+        ast_node *right = parser_recursive_descent_unary(state);
+        expression = parser_create_ast_binary_node(expression, right, operation);
+
+    }
+
+    return expression;
+
+}
+
+static ast_node*
+parser_recursive_descent_term(parser *state)
+{
+
+    ast_node *expression = parser_recursive_descent_factor(state);
+
+    while (parser_match(state, token_type::PLUS) ||
+           parser_match(state, token_type::MINUS))
+    {
+        
+        token *operation = parser_previous(state);
+        ast_node *right = parser_recursive_descent_factor(state);
+        expression = parser_create_ast_binary_node(expression, right, operation);
+
+    }
+
+    return expression;
+
+};
 
 static ast_node*
 parser_recursive_descent_comparison(parser *state)
 {
 
-    return NULL;
+    ast_node *expression = parser_recursive_descent_term(state);
+
+    while (parser_match(state, token_type::LESS_THAN) ||
+           parser_match(state, token_type::GREATER_THAN) ||
+           parser_match(state, token_type::LESS_THAN_EQUALS) ||
+           parser_match(state, token_type::GREATER_THAN_EQUALS))
+    {
+        
+        token *operation = parser_previous(state);
+        ast_node *right = parser_recursive_descent_term(state);
+        expression = parser_create_ast_binary_node(expression, right, operation);
+
+        state->alloc_list->push(right);
+
+    }
+
+    return expression;
 }
 
 static ast_node*
@@ -490,10 +617,8 @@ parser_recursive_descent_equality(parser *state)
         ast_node *right = parser_recursive_descent_comparison(state);
         expression = parser_create_ast_binary_node(expression, right, operation);
 
-        state->alloc_list->push(right);
     }
 
-    state->alloc_list->push(expression);
     return expression;
 
 }
@@ -508,7 +633,7 @@ parser_recursive_descent_expression(parser *state)
 }
 
 bool
-parser_create_ast(array<token> *tokens, ast_node **ast, array<void*> *alloc_list)
+parser_ast_create(array<token> *tokens, ast_node **ast, array<void*> *alloc_list)
 {
 
     assert(tokens != NULL);
@@ -528,4 +653,160 @@ parser_create_ast(array<token> *tokens, ast_node **ast, array<void*> *alloc_list
         *ast = expression; // Set the AST to the expression.
 
     return true;
+}
+
+// --- AST Traversals ----------------------------------------------------------
+//
+// The following definitions are AST traversal routines. Traversing isn't complicated,
+// but does require the use of recursion and switch statements.
+//
+
+void
+parser_ast_print_traversal(ast_node *ast)
+{
+
+    assert(ast != NULL); // Ensures we don't have an invalid ast.
+
+    switch (ast->node_type)
+    {
+    
+        case node_type::BINARY_NODE:
+        {
+            parser_ast_print_traversal(ast->left_expression);
+
+            string token_string = parser_token_to_string(ast->operation);
+            printf(" %s ", token_string.str());
+
+            parser_ast_print_traversal(ast->right_expression);
+            break;
+        };
+
+        case node_type::GROUPING_NODE:
+        {
+            
+            printf("( ");
+            parser_ast_print_traversal(ast->expression);
+            printf(" )");
+
+            break;
+        };
+
+        case node_type::UNARY_NODE:
+        {
+            
+            string token_string = parser_token_to_string(ast->operation);
+            printf("%s ", token_string.str());
+            parser_ast_print_traversal(ast->expression);
+
+            break;
+        };
+
+        case node_type::LITERAL_NODE:
+        {
+            string token_string = parser_token_to_string(ast->literal);
+            printf("%s", token_string.str());
+
+            break;
+        };
+
+    };
+
+}
+
+void
+parser_ast_print_order_traversal(ast_node *ast)
+{
+
+    assert(ast != NULL); // Ensures we don't have an invalid ast.
+
+    switch (ast->node_type)
+    {
+    
+        case node_type::BINARY_NODE:
+        {
+            printf("( ");
+            parser_ast_print_order_traversal(ast->left_expression);
+
+            string token_string = parser_token_to_string(ast->operation);
+            printf(" %s ", token_string.str());
+
+            parser_ast_print_order_traversal(ast->right_expression);
+            printf(" )");
+
+            break;
+        };
+
+        case node_type::GROUPING_NODE:
+        {
+            
+            printf("( ");
+            parser_ast_print_order_traversal(ast->expression);
+            printf(" )");
+
+            break;
+        };
+
+        case node_type::UNARY_NODE:
+        {
+            
+            string token_string = parser_token_to_string(ast->operation);
+            printf("%s ", token_string.str());
+            parser_ast_print_order_traversal(ast->expression);
+
+            break;
+        };
+
+        case node_type::LITERAL_NODE:
+        {
+            string token_string = parser_token_to_string(ast->literal);
+            printf("%s", token_string.str());
+
+            break;
+        };
+
+    };
+
+}
+
+void
+parser_ast_free_traversal(ast_node *ast)
+{
+
+    assert(ast != NULL); // Ensures we don't have an invalid ast.
+
+    // Essentially a post-order traversal.
+    switch (ast->node_type)
+    {
+    
+        case node_type::BINARY_NODE:
+        {
+            parser_ast_free_traversal(ast->left_expression);
+            parser_ast_free_traversal(ast->right_expression);
+            memory_free(ast);
+            break;
+        };
+
+        case node_type::GROUPING_NODE:
+        {          
+            parser_ast_free_traversal(ast->expression);
+            memory_free(ast);
+            break;
+        };
+
+        case node_type::UNARY_NODE:
+        {         
+            parser_ast_free_traversal(ast->expression);
+            memory_free(ast);
+            break;
+        };
+
+        case node_type::LITERAL_NODE:
+        {
+            memory_free(ast);
+            break;
+        };
+
+    };
+
+
 }

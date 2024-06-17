@@ -141,7 +141,7 @@ struct ast_node
         struct
         {
             ast_node *expression;
-            ast_node *expr;
+            ast_node *right_void;
         };
 
         struct
@@ -158,6 +158,9 @@ ast_node* parser_create_ast_grouping_node(ast_node *expression);
 ast_node* parser_create_ast_unary_node(ast_node *expression, token *operation);
 ast_node* parser_create_ast_literal_node(token *literal);
 
-bool parser_create_ast(array<token> *tokens, ast_node **ast, array<void*> *alloc_list);
+bool parser_ast_create(array<token> *tokens, ast_node **ast, array<void*> *alloc_list);
+void parser_ast_free_traversal(ast_node *ast);
+void parser_ast_print_traversal(ast_node *ast);
+void parser_ast_print_order_traversal(ast_node *ast);
 
 #endif

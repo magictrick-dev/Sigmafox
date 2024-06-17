@@ -110,17 +110,25 @@ environment_runtime()
 
     ast_node *ast_root = NULL;
     array<void*> free_list;
-    bool ast_status = parser_create_ast(&token_list, &ast_root, &free_list);
+    bool ast_status = parser_ast_create(&token_list, &ast_root, &free_list);
     if (!ast_status)
     {
         printf("Unable to compile source.\n");
         return STATUS_CODE_SUCCESS;
     }
 
+    parser_ast_print_traversal(ast_root);
+    printf("\n");
+    parser_ast_print_order_traversal(ast_root);
+    printf("\n");
+
     // --- Cleanup Phase -------------------------------------------------------
     //
     // Transpilation process has ended, clean up resources.
     //
+
+    // Frees the AST from memory.
+    parser_ast_free_traversal(ast_root);
 
     return STATUS_CODE_SUCCESS;
 
