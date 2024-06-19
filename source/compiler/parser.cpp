@@ -769,7 +769,10 @@ parser_recursively_descend_expression(parser *state, expression_type level)
             {
 
                 token *operation = &(*state->tokens)[state->current - 1];
+
                 expression *right = parser_recursively_descend_expression(state, expression_type::COMPARISON);
+                if (right == NULL) return NULL;
+
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
 
@@ -792,7 +795,10 @@ parser_recursively_descend_expression(parser *state, expression_type level)
             {
 
                 token *operation = &(*state->tokens)[state->current - 1];
+
                 expression *right = parser_recursively_descend_expression(state, expression_type::TERM);
+                if (right == NULL) return NULL;
+
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
 
@@ -811,7 +817,10 @@ parser_recursively_descend_expression(parser *state, expression_type level)
             {
 
                 token *operation = &(*state->tokens)[state->current - 1];
+
                 expression *right = parser_recursively_descend_expression(state, expression_type::FACTOR);
+                if (right == NULL) return NULL;
+
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
 
@@ -830,7 +839,10 @@ parser_recursively_descend_expression(parser *state, expression_type level)
             {
                 
                 token *operation = &(*state->tokens)[state->current - 1];
+
                 expression *right = parser_recursively_descend_expression(state, expression_type::UNARY);
+                if (right == NULL) return NULL;
+
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
 
@@ -847,7 +859,10 @@ parser_recursively_descend_expression(parser *state, expression_type level)
             {
 
                 token *operation = &(*state->tokens)[state->current - 1];
+
                 expression *expr = parser_recursively_descend_expression(state, expression_type::UNARY);
+                if (expr == NULL) return NULL;
+
                 expression *branch = parser_allocate_unary_node(expr, operation, state->arena);
                 return branch;
 
@@ -879,6 +894,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 // We need to manually adjust the node type to grouping, as it carries
                 // meaning for the transpilation process.
                 expression *group = parser_recursively_descend_expression(state, expression_type::EXPRESSION);
+                if (group == NULL) return NULL;
 
                 if (!parser_match_token(state, token_type::RIGHT_PARENTHESIS))
                 {
@@ -891,11 +907,14 @@ parser_recursively_descend_expression(parser *state, expression_type level)
 
             }
 
+            printf("Unrecognized symbol in expression.\n");
+            return NULL;
+
         } break;
 
     };
 
-    printf("Unrecognized symbol in expression.\n");
+    assert(!"Unreachable condition, recursive routine did not catch all cases!");
     return NULL;
 
 }
