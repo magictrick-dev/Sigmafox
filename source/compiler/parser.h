@@ -153,6 +153,64 @@ struct ast_node
 
 };
 
+enum statement_type
+{
+    STATEMENT,
+    EXPRESSION_STATEMENT,
+};
+
+enum expression_type 
+{
+    EXPRESSION,
+    EQUALITY,
+    COMPARISON,
+    TERM,
+    FACTOR,
+    UNARY,
+    PRIMARY
+};
+
+struct expression
+{
+
+    int type;
+ 
+    union
+    {
+
+        struct binary_expression
+        {
+            expression *left;
+            expression *right;
+            token *literal;
+        } binary_expression;
+
+        struct unary_expression
+        {
+            expression *primary;
+            token *literal;
+        } unary_expression;
+
+    };
+
+};
+
+struct statement
+{
+    int type;
+
+    union
+    {
+
+        struct expression_statement
+        {
+            expression *expr;
+        } expression_statement;
+
+    };
+
+};
+
 ast_node* parser_create_ast_binary_node(ast_node *left, ast_node *right, token *operation);
 ast_node* parser_create_ast_grouping_node(ast_node *expression);
 ast_node* parser_create_ast_unary_node(ast_node *expression, token *operation);
@@ -162,5 +220,7 @@ bool parser_ast_create(array<token> *tokens, ast_node **ast, array<void*> *alloc
 void parser_ast_free_traversal(ast_node *ast);
 void parser_ast_print_traversal(ast_node *ast);
 void parser_ast_print_order_traversal(ast_node *ast);
+
+bool parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement> *program, memory_arena *arena);
 
 #endif

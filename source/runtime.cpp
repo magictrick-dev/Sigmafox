@@ -12,10 +12,12 @@
 typedef struct
 environment_state
 {
-    array<string> source_files;
+    array<string>   source_files;
+    memory_arena    primary_store;
 } environment_state;
 
 static environment_state *state = NULL;
+#define SF_PRIMARY_STORE_SIZE SF_GIGABYTES(2)
 
 // --- Environment Initialize --------------------------------------------------
 //
@@ -32,6 +34,15 @@ environment_initialize(int argument_count, char ** argument_list)
     // for us, hence the strange "new" syntax below.
     state = new (memory_alloc_type(environment_state)) environment_state;
     if (state == NULL) return STATUS_CODE_ALLOC_FAIL;
+
+    // Allocate our primary store, ensure allocation success and then inspect
+    // the return size to determine upper-bound rounding.
+    void *primary_virtual_buffer = system_virtual_alloc(NULL, SF_PRIMARY_STORE_SIZE);
+    if (primary_virtual_buffer == NULL) return STATUS_CODE_ALLOC_FAIL;
+    state->primary_store.buffer = primary_virtual_buffer;
+    state->primary_store.commit = 0;
+    state->primary_store.size = system_virtual_buffer_size(primary_virtual_buffer);
+    assert(state->primary_store.size >= SF_PRIMARY_STORE_SIZE);
 
     // Verify the argument list.
     if (argument_count <= 1) return STATUS_CODE_NO_ARGS;
@@ -108,6 +119,7 @@ environment_runtime()
     // Converts the list of tokens to a traversable abstract syntax tree.
     //
 
+#if 0
     ast_node *ast_root = NULL;
     array<void*> free_list;
     bool ast_status = parser_ast_create(&token_list, &ast_root, &free_list);
@@ -121,6 +133,11 @@ environment_runtime()
     printf("\n");
     parser_ast_print_order_traversal(ast_root);
     printf("\n");
+#else
+
+    
+
+#endif
 
     // --- Cleanup Phase -------------------------------------------------------
     //
@@ -128,7 +145,7 @@ environment_runtime()
     //
 
     // Frees the AST from memory.
-    parser_ast_free_traversal(ast_root);
+    //parser_ast_free_traversal(ast_root);
 
     return STATUS_CODE_SUCCESS;
 

@@ -344,6 +344,10 @@ parser_tokenize_source_file(const char *source_file, array<token> *tokens, array
 // a tree that corresponds to the language grammar. The basis for the language is
 // expressions. We use recursive descent to the generate the required grammar.
 //
+// Expression Grammar
+//      - Defines expressions through recursive descent which enforces order
+//        of operations. The complete grammar references this for statements.
+//
 // expression   : equality
 // equality     : comparison ( ( "=" | "#" ) comparison )*
 // comparison   : term ( ( "<" | ">" | "<=" | ">=" ) term )*
@@ -351,12 +355,20 @@ parser_tokenize_source_file(const char *source_file, array<token> *tokens, array
 // factor       : unary ( ( "*" | "/" ) unary )*
 // unary        : ( "-" ) unary | primary
 // primary      : NUMBER | STRING | "true" | "false" | "(" expression ")"
+//
+// Complete Language Grammar
+//
+// program              : statement* EOF
+// statement            : expression_stm | print_stm
+// expression_stm       : expression ";"
+// print_stm            : "print" expression ";"
+// 
 
 struct parser
 {
     size_t current;
     array<token> *tokens;
-    array<void*> *alloc_list;
+    memory_arena *arena;
 };
 
 static ast_node* parser_recursive_descent_expression(parser *state);
@@ -507,18 +519,21 @@ parser_recursive_descent_primary(parser *state)
         ast_node *expression = parser_recursive_descent_expression(state);
         token *potential = parser_consume(state, token_type::RIGHT_PARENTHESIS);
 
-        // TODO(Chris): We need a way of elegantly handling syntax errors up to
-        //              this point. For now, we assume always valid syntax.
-        assert(potential != NULL);
+        if (potential == NULL)
+        {
+            printf("Error, unmatched paranthesis in expression.\n");
+            return NULL;
+        }
+
         return expression;
 
     };
 
-    // TODO(Chris): Same as above, handle syntax errors.
-    assert(!"This is a no-reach condition");
-
-    return NULL; // This is a no-reach return, this is here so the compiler doesn't
-                 // complain about a potential no-return case.
+    // NOTE(Chris): When we reach this condition, we return NULL, indicating that
+    //              there was an error. At no point should there be a NULL, so we
+    //              assume we should consume to next statement.
+    printf("Error, unexpected symbol in expression.\n");
+    return NULL; 
 
 }
 
@@ -596,8 +611,6 @@ parser_recursive_descent_comparison(parser *state)
         ast_node *right = parser_recursive_descent_term(state);
         expression = parser_create_ast_binary_node(expression, right, operation);
 
-        state->alloc_list->push(right);
-
     }
 
     return expression;
@@ -632,28 +645,239 @@ parser_recursive_descent_expression(parser *state)
 
 }
 
+// --- AST Format Refactor -----------------------------------------------------
+// Expression Grammar
+//      - Defines expressions through recursive descent which enforces order
+//        of operations. The complete grammar references this for statements.
+//
+// expression   : equality
+// equality     : comparison ( ( "=" | "#" ) comparison )*
+// comparison   : term ( ( "<" | ">" | "<=" | ">=" ) term )*
+// term         : factor ( ( "+" | "-" ) factor )*
+// factor       : unary ( ( "*" | "/" ) unary )*
+// unary        : ( "-" ) unary | primary
+// primary      : NUMBER | STRING | "true" | "false" | "(" expression ")"
+//
+// Complete Language Grammar
+//
+// program              : statement* EOF
+// statement            : expression_stm | print_stm
+// expression_stm       : expression ";"
+// print_stm            : "print" expression ";"
+
+static inline bool
+parser_validate_token(parser *state, token_type type)
+{
+    
+    uint32_t current_type = (*state->tokens)[state->current].type;
+    if (current_type == token_type::END_OF_FILE) return false;
+    return (current_type == type);
+
+}
+
+static inline bool
+parser_match_token(parser *state, token_type type)
+{
+
+    if (parser_validate_token(state, type))
+    {
+        state->current++;
+        return true;
+    }
+
+    return false;
+
+}
+
+static expression*
+parser_recursively_descend_expression(parser *state, int level)
+{
+
+    switch (level)
+    {
+
+        case expression_type::EXPRESSION:
+        {
+
+            expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::EQUALITY);
+            return expr;
+
+        } break;
+
+        case expression_type::EQUALITY:
+        {
+
+            expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::COMPARISON);
+            return expr;
+
+        } break;
+
+        case expression_type::COMPARISON:
+        {
+
+            expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::TERM);
+            return expr;
+
+        } break;
+
+        case expression_type::TERM:
+        {
+            expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::FACTOR);
+            return expr;
+
+        } break;
+
+        case expression_type::FACTOR:
+        {
+            expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::UNARY);
+            return expr;
+
+        } break;
+
+        case expression_type::UNARY:
+        {
+
+            expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::PRIMARY);
+            return expr;
+
+        } break;
+
+        case expression_type::PRIMARY:
+        {
+
+
+
+        } break;
+
+    };
+
+    printf("Unrecognized symbol in expression.\n");
+    return NULL;
+
+}
+
+static statement*
+parser_recursively_descend_statement(parser *state, int level)
+{
+
+    switch (level)
+    {
+
+        case statement_type::STATEMENT:
+        {
+            
+            // Default if we don't reach any other conditions.
+            parser_recursively_descend_statement(state, 
+                    statement_type::EXPRESSION_STATEMENT);
+
+        } break;
+
+        case statement_type::EXPRESSION_STATEMENT:
+        {
+            
+            expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::EXPRESSION);
+
+            if (parser_match_token(state, token_type::SEMICOLON))
+            {
+                printf("Expected semicolon at end of statement.\n");
+                return NULL;
+            };
+
+            statement *stm = memory_arena_push_type(state->arena, statement);
+            stm->expression_statement.expr = expr;
+            stm->type = statement_type::EXPRESSION_STATEMENT;
+            return stm;
+
+        } break;
+
+    };
+
+    printf("Unrecognized symbol in statement.\n");
+    return NULL;
+
+}
+
 bool
-parser_ast_create(array<token> *tokens, ast_node **ast, array<void*> *alloc_list)
+parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement> *program, memory_arena *arena)
 {
 
     assert(tokens != NULL);
-    assert(ast != NULL);
-    assert(alloc_list != NULL);
+    assert(program != NULL);
+    assert(arena != NULL);
 
-    // Setup the parser state.
+    parser parser_state = {};
+    parser_state.tokens = tokens;
+    parser_state.current = 0;
+    parser_state.arena = arena;
+
+    bool encountered_error = false;
+    while ((*tokens)[parser_state.current].type != token_type::END_OF_FILE)
+    {
+        
+    };
+
+    return (!encountered_error);
+
+};
+
+/*
+static statement_node*
+parser_recursive_descent_expression_stm(parser *state)
+{
+
+    ast_node *general_expression = parser_recursive_descent_expression(state);
+    
+
+};
+
+static statement_node*
+parser_recursive_descent_statement(parser *state)
+{
+    
+    if (parser_match(state, token_type::PRINT))
+    {
+        statement_node *print = parser_recursive_descent_print_stm(state);
+        return print;
+    }
+
+    // Fall through condition, standard expression statement.
+    statement_node *expression = parser_recursive_descent_expression_stm(state);
+    return expression;
+
+}
+
+bool
+parser_generate_ast(array<token> *tokens, array<statement_node> *statements, memory_arena *arena)
+{
+
+    assert(tokens != NULL);
+    assert(statements != NULL);
+    assert(arena != NULL);
+
     parser state = {};
     state.current = 0;
     state.tokens = tokens;
-    state.alloc_list = alloc_list;
+    state.arena = arena;
 
-    // Using recursive descent, we generate an expression that follows the
-    // language grammar as describe in the above routine description.
-    ast_node *expression = parser_recursive_descent_expression(&state);
-    if (expression != NULL)
-        *ast = expression; // Set the AST to the expression.
+    bool parse_is_valid = true;
+    while (!parser_is_eof(&state))
+    {
+        statement_node *current_statement = parser_recursive_descent_statement(&state);
+        if (current_state != NULL) statements->push(current_statement);
+        else parse_is_valid == false;
+    }
 
-    return true;
+    return parse_is_valid;
+
 }
+*/
 
 // --- AST Traversals ----------------------------------------------------------
 //
