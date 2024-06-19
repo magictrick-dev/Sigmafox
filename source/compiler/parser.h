@@ -16,7 +16,7 @@
 // The list of definitions regarding the tokenizer stage of the parser.
 //
 
-enum token_type
+enum class token_type
 {
 
     // Symbols:
@@ -83,7 +83,7 @@ struct token
     size_t offset_from_line;
     size_t length;
     size_t line;
-    uint32_t type;
+    token_type type;
 };
 
 bool    parser_tokenize_source_file(const char *source, array<token> *tokens, array<token> *errors);
@@ -153,13 +153,13 @@ struct ast_node
 
 };
 
-enum statement_type
+enum class statement_type
 {
     STATEMENT,
     EXPRESSION_STATEMENT,
 };
 
-enum expression_type 
+enum class expression_type 
 {
     EXPRESSION,
     EQUALITY,
@@ -170,10 +170,20 @@ enum expression_type
     PRIMARY
 };
 
+enum class ast_node_type
+{
+    BINARY_EXPRESSION,
+    UNARY_EXPRESSION,
+    GROUPING_EXPRESSION,
+    LITERAL_EXPRESSION,
+
+    EXPRESSION_STATEMENT,
+};
+
 struct expression
 {
 
-    int type;
+    ast_node_type node_type;
  
     union
     {
@@ -197,7 +207,7 @@ struct expression
 
 struct statement
 {
-    int type;
+    ast_node_type node_type;
 
     union
     {
@@ -221,6 +231,7 @@ void parser_ast_free_traversal(ast_node *ast);
 void parser_ast_print_traversal(ast_node *ast);
 void parser_ast_print_order_traversal(ast_node *ast);
 
-bool parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement> *program, memory_arena *arena);
+bool parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *statements, memory_arena *arena);
+void parser_ast_traversal_print(array<statement*> *statements);
 
 #endif

@@ -135,7 +135,17 @@ environment_runtime()
     printf("\n");
 #else
 
-    
+    array<statement*> program;   
+    bool parser_valid = parser_generate_abstract_syntax_tree(&token_list,
+            &program, &state->primary_store);
+    if (parser_valid)
+    {
+        parser_ast_traversal_print(&program);
+    }
+    else
+    {
+        printf("Unable to transpile source.\n");
+    }
 
 #endif
 
