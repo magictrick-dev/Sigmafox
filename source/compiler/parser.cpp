@@ -1,6 +1,17 @@
 #include <cstdio>
 #include <compiler/parser.h>
 
+#define propagate_on_error(exp) if ((exp) == NULL) return NULL
+
+static inline void
+parser_display_error(token *location, const char *reason)
+{
+    
+    printf("%s(%lld,%lld): %s\n", location->location, location->line,
+            location->offset_from_start - location->offset_from_line + 1, reason);
+
+}
+
 // --- Token Helper Functions --------------------------------------------------
 //
 // A set of helper functions regarding tokens.
@@ -65,7 +76,6 @@ parser_token_type_to_string(token *instance)
         case token_type::READ: return "read";
         case token_type::SAVE: return "save";
         case token_type::INCLUDE: return "include";
-        case token_type::PRINT: return "print";
         case token_type::UNDEFINED: return "undefined";
         case token_type::END_OF_FILE: return "end_of_file";
         case token_type::END_OF_LINE: return "end_of_line";
@@ -85,6 +95,7 @@ parser_token_type_to_string(token *instance)
 struct scanner
 {
     const char *source;
+    const char *file;
     size_t step;
     size_t start;
     size_t line;
@@ -123,26 +134,182 @@ scanner_peek(scanner *state)
     return current;
 }
 
+static inline token_type
+scanner_validate_identifier_type(token *current_token)
+{
+    
+    string current = parser_token_to_string(current_token);
+    current.to_uppercase();
+    
+    // NOTE(Chris): This is a strong candidate for a hashmap, but for now we can
+    //              use a good ol' fashion double table array. We statically store
+    //              this and let the first pass lazy-initialize.
+    static const char*  keyword_list[21];
+    static token_type   type_list[21];
+
+    static bool list_initialized = false;
+    if (list_initialized == false)
+    {
+        keyword_list[0] = "BEGIN";
+        type_list[0] = token_type::BEGIN;
+        keyword_list[1] = "END";
+        type_list[1] = token_type::END;
+        keyword_list[2] = "ENDPROCEDURE";
+        type_list[2] = token_type::ENDPROCEDURE;
+        keyword_list[3] = "ENDFUNCTION";
+        type_list[3] = token_type::ENDFUNCTION;
+        keyword_list[4] = "ENDIF";
+        type_list[4] = token_type::ENDIF;
+        keyword_list[5] = "ENDWHILE";
+        type_list[5] = token_type::ENDWHILE;
+        keyword_list[6] = "ENDLOOP";
+        type_list[6] = token_type::ENDLOOP;
+        keyword_list[7] = "ENDPLOOP";
+        type_list[7] = token_type::ENDPLOOP;
+        keyword_list[8] = "ENDFIT";
+        type_list[8] = token_type::ENDFIT;
+        keyword_list[9] = "FIT";
+        type_list[9] = token_type::FIT;
+        keyword_list[10] = "FUNCTION";
+        type_list[10] = token_type::FUNCTION;
+        keyword_list[11] = "IF";
+        type_list[11] = token_type::IF;
+        keyword_list[12] = "INCLUDE";
+        type_list[12] = token_type::INCLUDE;
+        keyword_list[13] = "LOOP";
+        type_list[13] = token_type::LOOP;
+        keyword_list[14] = "PLOOP";
+        type_list[14] = token_type::PLOOP;
+        keyword_list[15] = "PROCEDURE";
+        type_list[15] = token_type::PROCEDURE;
+        keyword_list[16] = "READ";
+        type_list[16] = token_type::READ;
+        keyword_list[17] = "SAVE";
+        type_list[17] = token_type::SAVE;
+        keyword_list[18] = "VARIABLE";
+        type_list[18] = token_type::VARIABLE;
+        keyword_list[19] = "WHILE";
+        type_list[19] = token_type::WHILE;
+        keyword_list[20] = "WRITE";
+        type_list[20] = token_type::WRITE;
+
+        list_initialized = true;
+    }
+
+    // NOTE(Chris): String compares are somewhat expensive, so the trick is to
+    //              reduce the amount of compares by alphabetizing into buckets
+    //              and searching that way.
+    switch (current[0])
+    {
+
+        case 'B':
+        {
+            if (keyword_list[0] == current)
+                return type_list[0];
+        } break;
+
+        case 'E':
+        {
+            for (size_t idx = 1; idx < 9; ++idx)
+            {
+                if (keyword_list[idx] == current)
+                    return type_list[idx];
+            }
+        } break;
+
+        case 'F':
+        {
+            for (size_t idx = 9; idx < 11; ++idx)
+            {
+                if (keyword_list[idx] == current)
+                    return type_list[idx];
+            }
+        } break;
+
+        case 'I':
+        {
+            for (size_t idx = 11; idx < 13; ++idx)
+            {
+                if (keyword_list[idx] == current)
+                    return type_list[idx];
+            }
+        } break;
+    
+        case 'L':
+        {
+            if (keyword_list[13] == current)
+                return type_list[13];
+        } break;
+
+        case 'P':
+        {
+            for (size_t idx = 14; idx < 16; ++idx)
+            {
+                if (keyword_list[idx] == current)
+                    return type_list[idx];
+            }
+        } break;
+
+        case 'R':
+        {
+            if (keyword_list[16] == current)
+                return type_list[16];
+        } break;
+
+        case 'S':
+        {
+            if (keyword_list[17] == current)
+                return type_list[17];
+        } break;
+
+        case 'V':
+        {
+            if (keyword_list[18] == current)
+                return type_list[18];
+        } break;
+            
+        case 'W':
+        {
+            for (size_t idx = 19; idx < 21; ++idx)
+            {
+                if (keyword_list[idx] == current)
+                    return type_list[idx];
+            }
+        } break;
+    };
+
+    return current_token->type;
+
+}
+
+
 static inline token
 scanner_create_token(scanner *state, token_type type)
 {
 
     token result = {};
-    result.source = state->source;
-    result.offset_from_start = state->start;
-    result.offset_from_line = state->line_offset;
-    result.length = state->step - state->start;
-    result.line = state->line;
-    result.type = type;
+    result.source               = state->source;
+    result.location             = state->file;
+    result.offset_from_start    = state->start;
+    result.offset_from_line     = state->line_offset;
+    result.length               = state->step - state->start;
+    result.line                 = state->line;
+    result.type                 = type;
+
+    if (type == token_type::IDENTIFIER)
+        result.type = scanner_validate_identifier_type(&result);
+
     return result;
 
 }
 
 bool 
-parser_tokenize_source_file(const char *source_file, array<token> *tokens, array<token> *errors)
+parser_tokenize_source_file(const char *source_name, const char *source_file, 
+        array<token> *tokens, array<token> *errors)
 {
 
     scanner state;
+    state.file = source_name;
     state.source = source_file;
     state.step = 0;
     state.start = 0;
@@ -359,9 +526,9 @@ parser_tokenize_source_file(const char *source_file, array<token> *tokens, array
 // Complete Language Grammar
 //
 // program              : statement* EOF
-// statement            : expression_stm | print_stm
+// statement            : declaration_stm | expression_stm
+// declaration_stm      : "variable" IDENTIFIER expression ( expression )* ";"
 // expression_stm       : expression ";"
-// print_stm            : "print" expression ";"
 // 
 
 struct parser
@@ -371,300 +538,6 @@ struct parser
     memory_arena *arena;
 };
 
-static ast_node* parser_recursive_descent_expression(parser *state);
-static ast_node* parser_recursive_descent_equality(parser *state);
-static ast_node* parser_recursive_descent_term(parser *state);
-static ast_node* parser_recursive_descent_factor(parser *state);
-static ast_node* parser_recursive_descent_unary(parser *state);
-static ast_node* parser_recursive_descent_primary(parser *state);
-
-inline ast_node*
-parser_create_ast_binary_node(ast_node *left, ast_node *right, token *operation)
-{
-
-    assert(left != NULL);
-    assert(right != NULL);
-    assert(operation != NULL);
-
-    ast_node *node = memory_alloc_type(ast_node);
-    node->node_type         = node_type::BINARY_NODE;
-    node->operation         = operation;
-    node->left_expression   = left;
-    node->right_expression  = right;
-    return node;
-
-}
-
-inline ast_node*
-parser_create_ast_grouping_node(ast_node *expression)
-{
-
-    assert(expression != NULL);
-
-    ast_node *node = memory_alloc_type(ast_node);
-    node->node_type     = node_type::GROUPING_NODE;
-    node->operation     = NULL;
-    node->expression    = expression;
-    return node;
-
-}
-
-inline ast_node*
-parser_create_ast_unary_node(ast_node *expression, token *operation)
-{
-
-    assert(expression != NULL);
-    assert(operation != NULL);
-
-    ast_node *node = memory_alloc_type(ast_node);
-    node->node_type     = node_type::UNARY_NODE;
-    node->operation     = operation;
-    node->expression    = expression;
-    return node;
-
-}
-
-inline ast_node*
-parser_create_ast_literal_node(token *literal)
-{
-    
-    assert(literal != NULL);
-
-    ast_node *node = memory_alloc_type(ast_node);
-    node->node_type     = node_type::LITERAL_NODE;
-    node->literal       = literal;
-    node->expression    = NULL;
-    return node;
-
-}
-
-static inline token*
-parser_advance(parser *state)
-{
-    if (state->current < state->tokens->size())
-        state->current++;
-    token *current = &(*state->tokens)[state->current];
-    return current;
-}
-
-static inline token*
-parser_previous(parser *state)
-{
-    token *previous = &(*state->tokens)[state->current - 1];
-    return previous;
-}
-
-static inline token*
-parser_peek(parser *state)
-{
-    token *next = &(*state->tokens)[state->current];
-    return next;
-}
-
-static inline bool
-parser_is_eof(parser *state)
-{
-    token *next = parser_peek(state);
-    return next->type == token_type::END_OF_FILE;
-}
-
-static inline bool
-parser_match(parser *state, token_type type)
-{
-    if (parser_is_eof(state))
-        return false;
-    else
-    {
-        token *next = parser_peek(state);
-        if (next->type == type)
-        {
-            parser_advance(state);
-            return true;
-        }
-        else
-        {
-            return false;
-        }   
-    }
-}
-
-static inline token*
-parser_consume(parser *state, token_type check)
-{
-
-    if (parser_is_eof(state)) return NULL;
-
-    token *next = parser_peek(state);
-    if (next->type == check) return parser_advance(state);
-    return NULL;
-
-}
-
-static ast_node*
-parser_recursive_descent_primary(parser *state)
-{
-
-    if (parser_match(state, token_type::STRING) ||
-        parser_match(state, token_type::NUMBER))
-    {
-        token *literal = parser_previous(state);
-        ast_node *expression = parser_create_ast_literal_node(literal);
-        return expression;
-    }
-
-    if (parser_match(state, token_type::LEFT_PARENTHESIS))
-    {
-
-        // Groupings will recurse up.
-        ast_node *expression = parser_recursive_descent_expression(state);
-        token *potential = parser_consume(state, token_type::RIGHT_PARENTHESIS);
-
-        if (potential == NULL)
-        {
-            printf("Error, unmatched paranthesis in expression.\n");
-            return NULL;
-        }
-
-        return expression;
-
-    };
-
-    // NOTE(Chris): When we reach this condition, we return NULL, indicating that
-    //              there was an error. At no point should there be a NULL, so we
-    //              assume we should consume to next statement.
-    printf("Error, unexpected symbol in expression.\n");
-    return NULL; 
-
-}
-
-static ast_node*
-parser_recursive_descent_unary(parser *state)
-{
-
-    if (parser_match(state, token_type::MINUS))
-    {
-        token *operation = parser_previous(state);
-        ast_node *right = parser_recursive_descent_unary(state);
-        ast_node *expression = parser_create_ast_unary_node(right, operation);
-
-        return expression;
-    }
-
-    ast_node *expression = parser_recursive_descent_primary(state);
-    return expression;
-
-}
-
-static ast_node*
-parser_recursive_descent_factor(parser *state)
-{
-
-    ast_node *expression = parser_recursive_descent_unary(state);
-
-    while (parser_match(state, token_type::MULTIPLY) ||
-           parser_match(state, token_type::DIVISION))
-    {
-        
-        token *operation = parser_previous(state);
-        ast_node *right = parser_recursive_descent_unary(state);
-        expression = parser_create_ast_binary_node(expression, right, operation);
-
-    }
-
-    return expression;
-
-}
-
-static ast_node*
-parser_recursive_descent_term(parser *state)
-{
-
-    ast_node *expression = parser_recursive_descent_factor(state);
-
-    while (parser_match(state, token_type::PLUS) ||
-           parser_match(state, token_type::MINUS))
-    {
-        
-        token *operation = parser_previous(state);
-        ast_node *right = parser_recursive_descent_factor(state);
-        expression = parser_create_ast_binary_node(expression, right, operation);
-
-    }
-
-    return expression;
-
-};
-
-static ast_node*
-parser_recursive_descent_comparison(parser *state)
-{
-
-    ast_node *expression = parser_recursive_descent_term(state);
-
-    while (parser_match(state, token_type::LESS_THAN) ||
-           parser_match(state, token_type::GREATER_THAN) ||
-           parser_match(state, token_type::LESS_THAN_EQUALS) ||
-           parser_match(state, token_type::GREATER_THAN_EQUALS))
-    {
-        
-        token *operation = parser_previous(state);
-        ast_node *right = parser_recursive_descent_term(state);
-        expression = parser_create_ast_binary_node(expression, right, operation);
-
-    }
-
-    return expression;
-}
-
-static ast_node*
-parser_recursive_descent_equality(parser *state)
-{
-
-    ast_node *expression = parser_recursive_descent_comparison(state);
-
-    while (parser_match(state, token_type::EQUALS) || 
-           parser_match(state, token_type::NOT_EQUALS))
-    {
-
-        token *operation = parser_previous(state);
-        ast_node *right = parser_recursive_descent_comparison(state);
-        expression = parser_create_ast_binary_node(expression, right, operation);
-
-    }
-
-    return expression;
-
-}
-
-static ast_node*
-parser_recursive_descent_expression(parser *state)
-{
-    
-    ast_node *equality = parser_recursive_descent_equality(state);
-    return equality;
-
-}
-
-// --- AST Format Refactor -----------------------------------------------------
-// Expression Grammar
-//      - Defines expressions through recursive descent which enforces order
-//        of operations. The complete grammar references this for statements.
-//
-// expression   : equality
-// equality     : comparison ( ( "=" | "#" ) comparison )*
-// comparison   : term ( ( "<" | ">" | "<=" | ">=" ) term )*
-// term         : factor ( ( "+" | "-" ) factor )*
-// factor       : unary ( ( "*" | "/" ) unary )*
-// unary        : ( "-" ) unary | primary
-// primary      : NUMBER | STRING | "true" | "false" | "(" expression ")"
-//
-// Complete Language Grammar
-//
-// program              : statement* EOF
-// statement            : expression_stm | print_stm
-// expression_stm       : expression ";"
-// print_stm            : "print" expression ";"
-
 static inline bool
 parser_validate_token(parser *state, token_type type)
 {
@@ -672,7 +545,6 @@ parser_validate_token(parser *state, token_type type)
     token_type current_type = (*state->tokens)[state->current].type;
     if (current_type == token_type::END_OF_FILE) 
     {
-        assert(!"Reached EOF!");
         return false;
     }
     return (current_type == type);
@@ -691,6 +563,35 @@ parser_match_token(parser *state, token_type type)
 
     return false;
 
+}
+
+static inline token*
+parser_consume_token(parser *state, token_type type)
+{
+
+    if (parser_validate_token(state, type))
+    {
+        token* current_token = &(*state->tokens)[state->current];
+        state->current++;
+        return current_token;
+    }
+
+    return NULL;
+
+}
+
+static inline token*
+parser_get_current_token(parser *state)
+{
+    token* current_token = &(*state->tokens)[state->current];
+    return current_token;
+}
+
+static inline token*
+parser_get_previous_token(parser *state)
+{
+    token* previous_token = &(*state->tokens)[state->current - 1];
+    return previous_token;
 }
 
 static inline expression*
@@ -771,7 +672,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 token *operation = &(*state->tokens)[state->current - 1];
 
                 expression *right = parser_recursively_descend_expression(state, expression_type::COMPARISON);
-                if (right == NULL) return NULL;
+                propagate_on_error(right);
 
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
@@ -797,7 +698,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 token *operation = &(*state->tokens)[state->current - 1];
 
                 expression *right = parser_recursively_descend_expression(state, expression_type::TERM);
-                if (right == NULL) return NULL;
+                propagate_on_error(right);
 
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
@@ -819,7 +720,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 token *operation = &(*state->tokens)[state->current - 1];
 
                 expression *right = parser_recursively_descend_expression(state, expression_type::FACTOR);
-                if (right == NULL) return NULL;
+                propagate_on_error(right);
 
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
@@ -841,7 +742,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 token *operation = &(*state->tokens)[state->current - 1];
 
                 expression *right = parser_recursively_descend_expression(state, expression_type::UNARY);
-                if (right == NULL) return NULL;
+                propagate_on_error(right);
 
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
                 expr = branch;
@@ -861,7 +762,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 token *operation = &(*state->tokens)[state->current - 1];
 
                 expression *expr = parser_recursively_descend_expression(state, expression_type::UNARY);
-                if (expr == NULL) return NULL;
+                propagate_on_error(expr);
 
                 expression *branch = parser_allocate_unary_node(expr, operation, state->arena);
                 return branch;
@@ -878,7 +779,8 @@ parser_recursively_descend_expression(parser *state, expression_type level)
 
             // Primary elements.
             if (parser_match_token(state, token_type::NUMBER) ||
-                parser_match_token(state, token_type::STRING))
+                parser_match_token(state, token_type::STRING) ||
+                parser_match_token(state, token_type::IDENTIFIER))
             {
 
                 token *literal = &(*state->tokens)[state->current - 1];
@@ -894,11 +796,12 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 // We need to manually adjust the node type to grouping, as it carries
                 // meaning for the transpilation process.
                 expression *group = parser_recursively_descend_expression(state, expression_type::EXPRESSION);
-                if (group == NULL) return NULL;
+                propagate_on_error(group);
 
                 if (!parser_match_token(state, token_type::RIGHT_PARENTHESIS))
                 {
-                    printf("Expected ')' in expression.\n");
+                    parser_display_error(parser_get_previous_token(state), 
+                            "expected ')' in expression.");
                     return NULL;
                 }
 
@@ -907,7 +810,8 @@ parser_recursively_descend_expression(parser *state, expression_type level)
 
             }
 
-            printf("Unrecognized symbol in expression.\n");
+            parser_display_error(parser_get_current_token(state), 
+                    "Unrecognized symbol in expression.");
             return NULL;
 
         } break;
@@ -929,9 +833,66 @@ parser_recursively_descend_statement(parser *state, statement_type level)
         case statement_type::STATEMENT:
         {
             
-            // Default if we don't reach any other conditions.
+            // Declaration statements.
+            if (parser_match_token(state, token_type::VARIABLE))
+            {
+                statement *stm = parser_recursively_descend_statement(state,
+                        statement_type::DECLARATION_STATEMENT);
+                return stm;
+            }
+
+            // Assume that the default is expression statements, so we fallthrough
+            // on this case and let errors propogate back up.
             statement *stm = parser_recursively_descend_statement(state, 
                     statement_type::EXPRESSION_STATEMENT);
+            return stm;
+
+        } break;
+
+        case statement_type::DECLARATION_STATEMENT:
+        {
+            
+            token* identifier = parser_consume_token(state, token_type::IDENTIFIER);       
+            if (identifier == NULL)
+            {
+                printf("Expected identifier after declaration statement.\n");
+                propagate_on_error(identifier);
+            }
+
+            expression *size = parser_recursively_descend_expression(state,
+                    expression_type::EXPRESSION);
+            propagate_on_error(size);
+
+            statement *stm = memory_arena_push_type(state->arena, statement);
+            stm->node_type = ast_node_type::DECLARATION_STATEMENT;
+            stm->declaration_statement.identifier = identifier;
+            stm->declaration_statement.size = size;
+            stm->declaration_statement.dimension_count = 0;
+
+            // NOTE(Chris): We are going to match until we hit a semicolon
+            //              or the max variable dimension count. I am not exactly
+            //              sure what the COSY spec expects this to be, documentation
+            //              doesn't put a capacity on it, but I am not exactly sure
+            //              dimensions beyond 3 is a reasonable amount (n^c sizing).
+            while (!parser_match_token(state, token_type::SEMICOLON))
+            {
+                expression *dimension = parser_recursively_descend_expression(state,
+                        expression_type::EXPRESSION);
+                propagate_on_error(dimension);
+                
+                size_t count = stm->declaration_statement.dimension_count;
+                stm->declaration_statement.dimensions[count] = dimension;
+                stm->declaration_statement.dimension_count++;
+
+                if (stm->declaration_statement.dimension_count >
+                        PARSER_VARIABLE_MAX_DIMENSIONS)
+                {
+                    printf("Max dimensions reached in variable declaration.\n");
+                    propagate_on_error(NULL);
+                }
+
+            }
+
             return stm;
 
         } break;
@@ -941,8 +902,7 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             
             expression *expr = parser_recursively_descend_expression(state,
                     expression_type::EXPRESSION);
-
-            if (expr == NULL) return NULL;
+            propagate_on_error(expr);
 
             if (!parser_match_token(state, token_type::SEMICOLON))
             {
@@ -1091,9 +1051,30 @@ parser_ast_traversal_print_statement(statement *stm)
         {
 
             parser_ast_traversal_print_expression(stm->expression_statement.expr);
-            printf("\n");
+            printf(";\n");
 
             return;
+
+        } break;
+
+        case ast_node_type::DECLARATION_STATEMENT:
+        {
+
+            string variable_name = parser_token_to_string(stm->declaration_statement.identifier);
+            printf("let %s ", variable_name.str());
+
+            printf("( ");
+            parser_ast_traversal_print_expression(stm->declaration_statement.size);
+            printf(" )");
+
+            for (size_t idx = 0; idx < stm->declaration_statement.dimension_count; ++idx)
+            {
+                printf("[");
+                parser_ast_traversal_print_expression(stm->declaration_statement.dimensions[idx]);
+                printf("]");
+            };
+
+            printf(";\n");
 
         } break;
 
@@ -1121,58 +1102,6 @@ parser_ast_traversal_print(array<statement*> *statements)
     }
 
 }
-
-/*
-static statement_node*
-parser_recursive_descent_expression_stm(parser *state)
-{
-
-    ast_node *general_expression = parser_recursive_descent_expression(state);
-    
-
-};
-
-static statement_node*
-parser_recursive_descent_statement(parser *state)
-{
-    
-    if (parser_match(state, token_type::PRINT))
-    {
-        statement_node *print = parser_recursive_descent_print_stm(state);
-        return print;
-    }
-
-    // Fall through condition, standard expression statement.
-    statement_node *expression = parser_recursive_descent_expression_stm(state);
-    return expression;
-
-}
-
-bool
-parser_generate_ast(array<token> *tokens, array<statement_node> *statements, memory_arena *arena)
-{
-
-    assert(tokens != NULL);
-    assert(statements != NULL);
-    assert(arena != NULL);
-
-    parser state = {};
-    state.current = 0;
-    state.tokens = tokens;
-    state.arena = arena;
-
-    bool parse_is_valid = true;
-    while (!parser_is_eof(&state))
-    {
-        statement_node *current_statement = parser_recursive_descent_statement(&state);
-        if (current_state != NULL) statements->push(current_statement);
-        else parse_is_valid == false;
-    }
-
-    return parse_is_valid;
-
-}
-*/
 
 // --- AST Traversals ----------------------------------------------------------
 //

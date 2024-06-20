@@ -11,6 +11,8 @@
 #include <core/utilities.h>
 #include <core/definitions.h>
 
+#define PARSER_VARIABLE_MAX_DIMENSIONS 4
+
 // --- Tokenizer ---------------------------------------------------------------
 //
 // The list of definitions regarding the tokenizer stage of the parser.
@@ -48,28 +50,27 @@ enum class token_type
     // Keywords: 
     BEGIN,      
     END,
-    PROCEDURE,  
     ENDPROCEDURE,
-    FUNCTION,   
     ENDFUNCTION,
-    IF,         
     ENDIF,
-    WHILE,      
     ENDWHILE,
-    LOOP,       
     ENDLOOP,
-    PLOOP,      
     ENDPLOOP,
-    FIT,        
     ENDFIT,
-    VARIABLE,
-    WRITE,
+    FIT,        
+    FUNCTION,   
+    IF,         
+    INCLUDE,
+    LOOP,       
+    PLOOP,      
+    PROCEDURE,  
     READ,
     SAVE,
-    INCLUDE,
+    VARIABLE,
+    WHILE,      
+    WRITE,
 
     // Special:
-    PRINT,
     UNDEFINED,
     END_OF_FILE,
     END_OF_LINE,
@@ -79,6 +80,7 @@ enum class token_type
 struct token
 {
     const char *source;
+    const char *location;
     size_t offset_from_start;
     size_t offset_from_line;
     size_t length;
@@ -86,7 +88,8 @@ struct token
     token_type type;
 };
 
-bool    parser_tokenize_source_file(const char *source, array<token> *tokens, array<token> *errors);
+bool    parser_tokenize_source_file(const char *file, const char *source,
+            array<token> *tokens, array<token> *errors);
 string  parser_token_to_string(token *instance);
 string  parser_token_type_to_string(token *instance);
 
@@ -157,6 +160,7 @@ enum class statement_type
 {
     STATEMENT,
     EXPRESSION_STATEMENT,
+    DECLARATION_STATEMENT,
 };
 
 enum class expression_type 
@@ -172,12 +176,15 @@ enum class expression_type
 
 enum class ast_node_type
 {
+
     BINARY_EXPRESSION,
     UNARY_EXPRESSION,
     GROUPING_EXPRESSION,
     LITERAL_EXPRESSION,
 
     EXPRESSION_STATEMENT,
+    DECLARATION_STATEMENT,
+
 };
 
 struct expression
@@ -216,6 +223,15 @@ struct statement
         {
             expression *expr;
         } expression_statement;
+
+        struct declaration_statement
+        {
+            token *identifier;
+            expression *size;
+
+            size_t dimension_count;
+            expression* dimensions[PARSER_VARIABLE_MAX_DIMENSIONS];
+        } declaration_statement;
 
     };
 

@@ -13,8 +13,7 @@
 #include <core/utilities/allocator.h>
 
 
-class 
-string 
+class string 
 {
     public:
         inline          string();
@@ -32,10 +31,14 @@ string
 
         inline const char * str() const;
 
-
         inline char&    operator[](size_t idx);
         inline string&  operator+=(const char *str);
         inline string&  operator+=(const string& str);
+
+        inline bool     operator==(const string& rhs) const;
+
+        inline void     to_uppercase();
+        inline void     to_lowercase();
 
     protected:
         char   *buffer_pointer  = NULL;
@@ -190,10 +193,45 @@ operator+=(const string& str)
 
 }
 
+inline bool string::
+operator==(const string& rhs) const
+{
+    const char *left = this->str();
+    const char *right = rhs.str();
+    return strcmp(left, right) == 0;
+}
+
 inline const char* string::
 str() const
 {
     return this->buffer_pointer;
 }
+
+inline void string::
+to_uppercase()
+{
+
+    size_t current_idx = 0;
+    while (this->buffer_pointer[current_idx] != '\0')
+    {
+        this->buffer_pointer[current_idx] = toupper(this->buffer_pointer[current_idx]);
+        ++current_idx;
+    }
+
+}
+
+inline void string::
+to_lowercase()
+{
+
+    size_t current_idx = 0;
+    while (this->buffer_pointer[current_idx] != '\0')
+    {
+        this->buffer_pointer[current_idx] = tolower(this->buffer_pointer[current_idx]);
+        ++current_idx;
+    }
+
+}
+
 
 #endif

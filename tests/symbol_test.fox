@@ -1,34 +1,39 @@
-{ This is a comment. }
+{ Operators }
 ();
 + - / * ^ :=
-'this is a string'
 < > # & | % = <= >=
+
+{ Numerics }
 1234
 12.34
-test
-hello_world
-test1234
-a1b1_2c3
-begin
-end
-procedure
-endprocedure
-function
-endfunction
-if
-endif
-while
-endwhile
-loop
-endloop
-ploop
-endploop
-fit
-endfit
-variable
-write
-read
-save
-include
-'final string at the end of the file'
-{ Final comment spans multple lines on the file. }
+
+{ String }
+'this is a string'
+
+{ Identifiers }
+foo             FOO
+bar123          BAR123
+baz_bax         BAZ_BAX
+
+{ Keywords }
+begin           BEGIN
+end             END
+procedure       PROCEDURE
+endprocedure    ENDPROCEDURE
+function        FUNCTION
+endfunction     ENDFUNCTION
+if              IF
+endif           ENDIF
+while           WHILE
+endwhile        ENDWHILE
+loop            LOOP
+endloop         ENDLOOP
+ploop           PLOOP
+endploop        ENDPLOOP
+fit             FIT
+endfit          ENDFIT
+variable        VARIABLE
+write           WRITE
+read            READ
+save            SAVE
+include         INCLUDE

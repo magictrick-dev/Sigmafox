@@ -96,7 +96,8 @@ environment_runtime()
     array<token> token_list;
     array<token> error_list;
 
-    bool scan_status = parser_tokenize_source_file(source_file.str(), &token_list, &error_list);
+    bool scan_status = parser_tokenize_source_file(state->source_files[0].str(), 
+            source_file.str(), &token_list, &error_list);
     if (!scan_status)
     {
 
@@ -107,18 +108,20 @@ environment_runtime()
 
     }
 
+#if 0
     // We will print the list of tokens our for now, but this is temporary.
     for (size_t idx = 0; idx < token_list.size(); ++idx)
     {
         if (token_list[idx].type == token_type::END_OF_FILE) break;
         print_symbol(state->source_files[0], &token_list[idx]);
     }
+#endif
 
     // --- AST Phase -----------------------------------------------------------
     //
     // Converts the list of tokens to a traversable abstract syntax tree.
     //
-
+#if 1
 #if 0
     ast_node *ast_root = NULL;
     array<void*> free_list;
@@ -144,9 +147,10 @@ environment_runtime()
     }
     else
     {
-        printf("Unable to transpile source.\n");
+        return STATUS_CODE_SUCCESS;
     }
 
+#endif
 #endif
 
     // --- Cleanup Phase -------------------------------------------------------
