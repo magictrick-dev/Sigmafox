@@ -1,0 +1,18 @@
+1 * 2 + 3;
+5 * 9 / 3 + 1 - 1;
+18 - 9;
+22 * (3 / 3);
+14 - 1 > 5;
+
+variable my_integer 8;
+variable my_integer 8 4;
+variable my_integer 8 32 8;
+variable my_integer 8 32 8 4;
+variable my_integer 8 32 8 4 2;
+variable my_integer (5 + (3 / 3) + 2);
+variable my_integer (5 + (3 / 3) + 2) (16 * 2);
+variable my_integer (5 + (3 / 3) + 2) (16 * 2) (16 / 2);
+variable my_integer (5 + (3 / 3) + 2) (16 * 2) (16 / 2) (16 / 4);
+
+variable array_size 4;
+variable my_numbers 8 array_size;
