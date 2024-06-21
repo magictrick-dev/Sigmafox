@@ -1,5 +1,8 @@
 #include <cstdio>
 #include <compiler/parser.h>
+#include <string>
+#include <stack>
+#include <unordered_map>
 
 #define propagate_on_error(exp) if ((exp) == NULL) return NULL
 
@@ -531,11 +534,80 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 // expression_stm       : expression ";"
 // 
 
+// --- Environments ------------------------------------------------------------
+//
+// Environments contain the symbol table? We're using C++ maps for this, but we
+// will probably want a custom hashing routine to handle this. There's a good chance
+// STL hashing routine isn't the fastest or least-resist to collisions, but for now
+// it is the most performant option.
+//
+
+enum class symbol_type : uint32_t
+{
+    UNINITIALIZED,
+    REAL,
+    STRING,
+};
+
+struct symbol
+{
+    symbol_type type;
+    token *token;
+};
+
+struct environment
+{
+    size_t symbol_count;
+    std::unordered_map<std::string, symbol> symbol_table; 
+};
+
+static inline symbol*
+parser_fetch_symbol_from_environment(environment *scope, token *identifier)
+{
+
+    std::string key;
+    for (size_t idx = 0; idx < identifier->length; ++idx)
+    {
+        char c = *(identifier->source + identifier->offset_from_start + idx);
+        key += c;
+    }
+
+    auto search = scope->symbol_table.find(key);
+    if (search == scope->symbol_table.end())
+        return NULL;
+
+    return &search->second;
+}
+
+static inline symbol*
+parser_insert_symbol_into_environment(environment *scope, token *identifier)
+{
+    std::string key;
+    for (size_t idx = 0; idx < identifier->length; ++idx)
+    {
+        char c = *(identifier->source + identifier->offset_from_start + idx);
+        key += c;
+    }
+
+    scope->symbol_table[key] = { symbol_type::UNINITIALIZED, identifier };
+    return &scope->symbol_table.at(key);
+}
+
+//
+// We will need to abstract some of this code out or refactor the connectedness
+// between the scanner routine and the parser. As it turns out, we only look at
+// the current token and the previous token and we store the ones that need to
+// persist as pointer into the token list; this means that the token list is
+// ultimately redundant.
+//
+// -----------------------------------------------------------------------------
+
 struct parser
 {
     size_t current;
     array<token> *tokens;
     memory_arena *arena;
+    environment global_environment;
 };
 
 static inline bool
@@ -855,9 +927,20 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             token* identifier = parser_consume_token(state, token_type::IDENTIFIER);       
             if (identifier == NULL)
             {
-                printf("Expected identifier after declaration statement.\n");
+                parser_display_error(parser_get_current_token(state), 
+                        "Expected identifier after declaration statement.\n");
                 propagate_on_error(identifier);
             }
+
+            // Ensure the identifier isn't already declared in the current scope.
+            symbol *sym = parser_fetch_symbol_from_environment(&state->global_environment, identifier);
+            if (sym != NULL)
+            {
+                parser_display_error(parser_get_current_token(state), 
+                        "Variable redeclared within current scope.");
+                propagate_on_error(NULL);
+            }
+            sym = parser_insert_symbol_into_environment(&state->global_environment, identifier);
 
             expression *size = parser_recursively_descend_expression(state,
                     expression_type::EXPRESSION);
@@ -1041,7 +1124,7 @@ parser_ast_traversal_print_expression(expression *expr)
 }
 
 static inline void
-parser_ast_traversal_print_statement(statement *stm)
+parser_ast_traversal_print_statement(statement *stm, size_t depth)
 {
 
     switch (stm->node_type)
@@ -1050,6 +1133,7 @@ parser_ast_traversal_print_statement(statement *stm)
         case ast_node_type::EXPRESSION_STATEMENT:
         {
 
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
             parser_ast_traversal_print_expression(stm->expression_statement.expr);
             printf(";\n");
 
@@ -1060,19 +1144,20 @@ parser_ast_traversal_print_statement(statement *stm)
         case ast_node_type::DECLARATION_STATEMENT:
         {
 
-            string variable_name = parser_token_to_string(stm->declaration_statement.identifier);
-            printf("let %s ", variable_name.str());
-
-            printf("( ");
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("sigmafox::dynamic<");
             parser_ast_traversal_print_expression(stm->declaration_statement.size);
-            printf(" )");
 
             for (size_t idx = 0; idx < stm->declaration_statement.dimension_count; ++idx)
             {
-                printf("[");
+                printf(", ");
                 parser_ast_traversal_print_expression(stm->declaration_statement.dimensions[idx]);
-                printf("]");
             };
+
+            printf(">");
+
+            string variable_name = parser_token_to_string(stm->declaration_statement.identifier);
+            printf(" %s()", variable_name.str());
 
             printf(";\n");
 
@@ -1093,168 +1178,17 @@ void
 parser_ast_traversal_print(array<statement*> *statements)
 {
 
+    printf("#include <iostream>\n");
+    printf("#include <sigmafox/core.h>\n\n");
+    printf("int\nmain(int argc, char ** argv)\n{\n");
     for (size_t idx = 0; idx < statements->size(); ++idx)
     {
 
         statement* current_statement = (*statements)[idx];
-        parser_ast_traversal_print_statement(current_statement);
+        parser_ast_traversal_print_statement(current_statement, 4);
 
     }
+    printf("}\n");
 
 }
 
-// --- AST Traversals ----------------------------------------------------------
-//
-// The following definitions are AST traversal routines. Traversing isn't complicated,
-// but does require the use of recursion and switch statements.
-//
-
-void
-parser_ast_print_traversal(ast_node *ast)
-{
-
-    assert(ast != NULL); // Ensures we don't have an invalid ast.
-
-    switch (ast->node_type)
-    {
-    
-        case node_type::BINARY_NODE:
-        {
-            parser_ast_print_traversal(ast->left_expression);
-
-            string token_string = parser_token_to_string(ast->operation);
-            printf(" %s ", token_string.str());
-
-            parser_ast_print_traversal(ast->right_expression);
-            break;
-        };
-
-        case node_type::GROUPING_NODE:
-        {
-            
-            printf("( ");
-            parser_ast_print_traversal(ast->expression);
-            printf(" )");
-
-            break;
-        };
-
-        case node_type::UNARY_NODE:
-        {
-            
-            string token_string = parser_token_to_string(ast->operation);
-            printf("%s ", token_string.str());
-            parser_ast_print_traversal(ast->expression);
-
-            break;
-        };
-
-        case node_type::LITERAL_NODE:
-        {
-            string token_string = parser_token_to_string(ast->literal);
-            printf("%s", token_string.str());
-
-            break;
-        };
-
-    };
-
-}
-
-void
-parser_ast_print_order_traversal(ast_node *ast)
-{
-
-    assert(ast != NULL); // Ensures we don't have an invalid ast.
-
-    switch (ast->node_type)
-    {
-    
-        case node_type::BINARY_NODE:
-        {
-            printf("( ");
-            parser_ast_print_order_traversal(ast->left_expression);
-
-            string token_string = parser_token_to_string(ast->operation);
-            printf(" %s ", token_string.str());
-
-            parser_ast_print_order_traversal(ast->right_expression);
-            printf(" )");
-
-            break;
-        };
-
-        case node_type::GROUPING_NODE:
-        {
-            
-            printf("( ");
-            parser_ast_print_order_traversal(ast->expression);
-            printf(" )");
-
-            break;
-        };
-
-        case node_type::UNARY_NODE:
-        {
-            
-            string token_string = parser_token_to_string(ast->operation);
-            printf("%s ", token_string.str());
-            parser_ast_print_order_traversal(ast->expression);
-
-            break;
-        };
-
-        case node_type::LITERAL_NODE:
-        {
-            string token_string = parser_token_to_string(ast->literal);
-            printf("%s", token_string.str());
-
-            break;
-        };
-
-    };
-
-}
-
-void
-parser_ast_free_traversal(ast_node *ast)
-{
-
-    assert(ast != NULL); // Ensures we don't have an invalid ast.
-
-    // Essentially a post-order traversal.
-    switch (ast->node_type)
-    {
-    
-        case node_type::BINARY_NODE:
-        {
-            parser_ast_free_traversal(ast->left_expression);
-            parser_ast_free_traversal(ast->right_expression);
-            memory_free(ast);
-            break;
-        };
-
-        case node_type::GROUPING_NODE:
-        {          
-            parser_ast_free_traversal(ast->expression);
-            memory_free(ast);
-            break;
-        };
-
-        case node_type::UNARY_NODE:
-        {         
-            parser_ast_free_traversal(ast->expression);
-            memory_free(ast);
-            break;
-        };
-
-        case node_type::LITERAL_NODE:
-        {
-            memory_free(ast);
-            break;
-        };
-
-    };
-
-
-}
