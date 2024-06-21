@@ -518,7 +518,7 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 //      - Defines expressions through recursive descent which enforces order
 //        of operations. The complete grammar references this for statements.
 //
-// expression   : equality
+// expression   : assignment
 // equality     : comparison ( ( "=" | "#" ) comparison )*
 // comparison   : term ( ( "<" | ">" | "<=" | ">=" ) term )*
 // term         : factor ( ( "+" | "-" ) factor )*
@@ -531,6 +531,7 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 // program              : statement* EOF
 // statement            : declaration_stm | expression_stm
 // declaration_stm      : "variable" IDENTIFIER expression ( expression )* ";"
+// assigment_stm        : IDENTIFIER ":=" expression ";"
 // expression_stm       : expression ";"
 // 
 
@@ -692,6 +693,16 @@ parser_allocate_unary_node(expression *primary, token *literal, memory_arena *ar
 }
 
 static inline expression*
+parser_allocate_assignment_node(token *identifier, expression *assignment, memory_arena *arena)
+{
+    expression *expr = memory_arena_push_type(arena, expression);
+    expr->node_type = ast_node_type::ASSIGNMENT_EXPRESSION;
+    expr->assignment_expression.identifier = identifier;
+    expr->assignment_expression.assignment = assignment;
+    return expr;
+}
+
+static inline expression*
 parser_allocate_grouping_node(expression *primary, memory_arena *arena)
 {
 
@@ -726,7 +737,42 @@ parser_recursively_descend_expression(parser *state, expression_type level)
         {
 
             expression *expr = parser_recursively_descend_expression(state,
+                    expression_type::ASSIGNMENT);
+            return expr;
+
+        } break;
+
+        case expression_type::ASSIGNMENT:
+        {
+
+            expression *expr = parser_recursively_descend_expression(state,
                     expression_type::EQUALITY);
+
+            if (parser_match_token(state, token_type::ASSIGNMENT))
+            {
+
+                token *identifier = parser_get_previous_token(state);
+                expression *assign = parser_recursively_descend_expression(state,
+                        expression_type::ASSIGNMENT);
+                propagate_on_error(assign);
+
+                if (identifier->type == token_type::IDENTIFIER)
+                {
+                    
+                    printf("Is Identifier.\n");
+
+                    // I saw the opportunity, and I took it.
+                    expression *ass_expression = parser_allocate_assignment_node(identifier, 
+                            assign, state->arena);
+                    return ass_expression;
+
+                }
+
+                parser_display_error(identifier, "Invalid assignment expression.");
+                propagate_on_error(NULL);
+
+            }
+
             return expr;
 
         } break;
@@ -856,6 +902,18 @@ parser_recursively_descend_expression(parser *state, expression_type level)
             {
 
                 token *literal = &(*state->tokens)[state->current - 1];
+
+                // If the symbol is an identifier, verify its in the symbol table.
+                if (literal->type == token_type::IDENTIFIER)
+                {
+                    symbol *sym = parser_fetch_symbol_from_environment(&state->global_environment, literal);
+                    if (sym == NULL)
+                    {
+                        parser_display_error(literal, "Undefined identifier in expression.");
+                        propagate_on_error(sym);
+                    }
+                }
+
                 expression *primary = parser_allocate_literal_node(literal, state->arena);
                 return primary;
 
@@ -913,8 +971,7 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                 return stm;
             }
 
-            // Assume that the default is expression statements, so we fallthrough
-            // on this case and let errors propogate back up.
+            // Expression statements.
             statement *stm = parser_recursively_descend_statement(state, 
                     statement_type::EXPRESSION_STATEMENT);
             return stm;
@@ -970,7 +1027,8 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                 if (stm->declaration_statement.dimension_count >
                         PARSER_VARIABLE_MAX_DIMENSIONS)
                 {
-                    printf("Max dimensions reached in variable declaration.\n");
+                    parser_display_error(parser_get_current_token(state),
+                            "Max dimensions reached in variable declaration.");
                     propagate_on_error(NULL);
                 }
 
@@ -989,13 +1047,17 @@ parser_recursively_descend_statement(parser *state, statement_type level)
 
             if (!parser_match_token(state, token_type::SEMICOLON))
             {
-                printf("Expected semicolon at end of statement.\n");
+                parser_display_error(parser_get_current_token(state),
+                        "Expected semicolon at end of statement.");
                 return NULL;
             };
 
             statement *stm = memory_arena_push_type(state->arena, statement);
             stm->expression_statement.expr = expr;
             stm->node_type = ast_node_type::EXPRESSION_STATEMENT;
+
+            
+        
             return stm;
 
         } break;
@@ -1097,6 +1159,14 @@ parser_ast_traversal_print_expression(expression *expr)
             parser_ast_traversal_print_expression(expr->unary_expression.primary);
 
         } break;
+
+        case ast_node_type::ASSIGNMENT_EXPRESSION:
+        {
+            string identifier = parser_token_to_string(expr->assignment_expression.identifier);
+            printf("%s = ", identifier.str());
+
+            parser_ast_traversal_print_expression(expr->assignment_expression.assignment);
+        };
 
         case ast_node_type::GROUPING_EXPRESSION:
         {

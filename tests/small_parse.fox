@@ -11,3 +11,11 @@ variable bar 4 16;
 variable baz 4 16 8;
 variable bax 4 16 8 4;
 
+variable test_a 4;
+variable test_b 4;
+test_a := 10;
+test_b := 6;
+
+variable test_c 4;
+test_c := test_a + test_b;
+
