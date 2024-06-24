@@ -447,26 +447,26 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 // a tree that corresponds to the language grammar. The basis for the language is
 // expressions. We use recursive descent to the generate the required grammar.
 //
-// Expression Grammar
-//      - Defines expressions through recursive descent which enforces order
-//        of operations. The complete grammar references this for statements.
-//
-// expression   : assignment
-// equality     : comparison ( ( "=" | "#" ) comparison )*
-// comparison   : term ( ( "<" | ">" | "<=" | ">=" ) term )*
-// term         : factor ( ( "+" | "-" ) factor )*
-// factor       : unary ( ( "*" | "/" ) unary )*
-// unary        : ( "-" ) unary | primary
-// primary      : NUMBER | STRING | "true" | "false" | "(" expression ")"
-//
 // Complete Language Grammar
 //
-// program              : statement* EOF
-// statement            : declaration_stm | expression_stm | block_stm
-// block_stm            : "scope" statement* "endscope" ;
-// declaration_stm      : "variable" IDENTIFIER expression ( expression )* ;
-// expression_stm       : expression ;
+//      program                 : statement* EOF
+//      statement               : declaration_stm | expression_stm | block_stm
+//      block_stm               : "scope" statement* "endscope" ;
+//      declaration_stm         : "variable" IDENTIFIER expression ( expression )* ;
+//      expression_stm          : expression ;
+//
+// Expression Grammar
+//
+//      expression              : assignment
+//      assignment              : identifier ":=" assignment | equality
+//      equality                : comparison ( ( "=" | "#" ) comparison )*
+//      comparison              : term ( ( "<" | ">" | "<=" | ">=" ) term )*
+//      term                    : factor ( ( "+" | "-" ) factor )*
+//      factor                  : unary ( ( "*" | "/" ) unary )*
+//      unary                   : ( "-" ) unary | primary
+//      primary                 : NUMBER | STRING | identifier | "(" expression ")"
 // 
+
 
 // --- Environments ------------------------------------------------------------
 //
