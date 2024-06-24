@@ -556,33 +556,46 @@ struct symbol
     token *token;
 };
 
-struct environment
+struct scope
 {
-    size_t symbol_count;
-    std::unordered_map<std::string, symbol> symbol_table; 
+    uint32_t depth;
+
+    std::unordered_map<std::string, symbol> table;
+    scope *parent_scope;
 };
 
-static inline symbol*
-parser_fetch_symbol_from_environment(environment *scope, token *identifier)
+struct environment
+{
+    scope   global_scope;
+    scope  *active_scope;
+};
+
+static inline void
+parser_environment_push_scope(environment *env)
 {
 
-    std::string key;
-    for (size_t idx = 0; idx < identifier->length; ++idx)
-    {
-        char c = *(identifier->source + identifier->offset_from_start + idx);
-        key += c;
-    }
+    scope *new_scope = memory_alloc_type(scope);
+    new (new_scope) scope;
+    new_scope->parent_scope = env->active_scope;
+    new_scope->depth = new_scope->parent_scope->depth + 1;
+    env->active_scope = new_scope;
+}
 
-    auto search = scope->symbol_table.find(key);
-    if (search == scope->symbol_table.end())
-        return NULL;
-
-    return &search->second;
+static inline void
+parser_environment_pop_scope(environment *env)
+{
+    scope *parent = env->active_scope->parent_scope;
+    scope *current = env->active_scope;
+    env->active_scope = parent;
+    assert(parent != NULL); // We should never have a null scope, global must persist.
+    current->~scope(); // Required for placement new due to std::unordered_map...
+    free(current);
 }
 
 static inline symbol*
-parser_insert_symbol_into_environment(environment *scope, token *identifier)
+parser_environment_get_symbol(environment *env, token *identifier)
 {
+
     std::string key;
     for (size_t idx = 0; idx < identifier->length; ++idx)
     {
@@ -590,8 +603,37 @@ parser_insert_symbol_into_environment(environment *scope, token *identifier)
         key += c;
     }
 
-    scope->symbol_table[key] = { symbol_type::UNINITIALIZED, identifier };
-    return &scope->symbol_table.at(key);
+    // Start at top-level scope and search for symbol.
+    scope *current_scope = env->active_scope;
+    while (current_scope != NULL)
+    {
+        auto search = current_scope->table.find(key); // ew, auto
+        if (search != current_scope->table.end())
+            return &search->second;
+
+        current_scope = current_scope->parent_scope;
+    }
+
+    // If we didn't find it, we automatically return NULL.
+    return NULL;
+
+}
+
+static inline symbol*
+parser_environment_insert_symbol(environment *env, token *identifier)
+{
+
+    std::string key;
+    for (size_t idx = 0; idx < identifier->length; ++idx)
+    {
+        char c = *(identifier->source + identifier->offset_from_start + idx);
+        key += c;
+    }
+
+    scope *current_scope = env->active_scope;
+    current_scope->table[key] = { symbol_type::UNINITIALIZED, identifier };
+    return &current_scope->table.at(key);
+
 }
 
 //
@@ -905,7 +947,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 // If the symbol is an identifier, verify its in the symbol table.
                 if (literal->type == token_type::IDENTIFIER)
                 {
-                    symbol *sym = parser_fetch_symbol_from_environment(&state->global_environment, literal);
+                    symbol *sym = parser_environment_get_symbol(&state->global_environment, literal);
                     if (sym == NULL)
                     {
                         parser_display_error(literal, "Undefined identifier in expression.");
@@ -989,14 +1031,14 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             }
 
             // Ensure the identifier isn't already declared in the current scope.
-            symbol *sym = parser_fetch_symbol_from_environment(&state->global_environment, identifier);
+            symbol *sym = parser_environment_get_symbol(&state->global_environment, identifier);
             if (sym != NULL)
             {
                 parser_display_error(parser_get_current_token(state), 
                         "Variable redeclared within current scope.");
                 propagate_on_error(NULL);
             }
-            sym = parser_insert_symbol_into_environment(&state->global_environment, identifier);
+            sym = parser_environment_insert_symbol(&state->global_environment, identifier);
 
             expression *size = parser_recursively_descend_expression(state,
                     expression_type::EXPRESSION);
@@ -1121,6 +1163,8 @@ parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *st
     parser_state.tokens = tokens;
     parser_state.current = 0;
     parser_state.arena = arena;
+    parser_state.global_environment.active_scope = 
+        &parser_state.global_environment.global_scope;
 
     bool encountered_error = false;
     while ((*tokens)[parser_state.current].type != token_type::END_OF_FILE)
