@@ -166,6 +166,7 @@ enum class statement_type
 enum class expression_type 
 {
     EXPRESSION,
+    ASSIGNMENT,
     EQUALITY,
     COMPARISON,
     TERM,
@@ -179,11 +180,13 @@ enum class ast_node_type
 
     BINARY_EXPRESSION,
     UNARY_EXPRESSION,
+    ASSIGNMENT_EXPRESSION,
     GROUPING_EXPRESSION,
     LITERAL_EXPRESSION,
 
     EXPRESSION_STATEMENT,
     DECLARATION_STATEMENT,
+    ASSIGNMENT_STATEMENT,
 
 };
 
@@ -207,6 +210,12 @@ struct expression
             expression *primary;
             token *literal;
         } unary_expression;
+
+        struct assignment_expression
+        {
+            expression *assignment;
+            token *identifier;
+        } assignment_expression;
 
     };
 
@@ -232,6 +241,12 @@ struct statement
             size_t dimension_count;
             expression* dimensions[PARSER_VARIABLE_MAX_DIMENSIONS];
         } declaration_statement;
+
+        struct assignment_statement
+        {
+            token *identifier;
+            expression *value;
+        } assignment_statement;
 
     };
 
