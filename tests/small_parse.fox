@@ -1,21 +1,12 @@
-1 + 2;
-2 - 3;
-3 * 4;
-4 / 5;
+variable test_variable 4;
 
-1 + 2 - 3 * 4 / 5;
-6 + ((7 - 8) * (9 / 10));
+variable foo 4 32;
+variable bar 4 32 16;
+variable baz 4 32 16 8;
+variable bax 4 32 16 8 4;
 
-variable foo 4;
-variable bar 4 16;
-variable baz 4 16 8;
-variable bax 4 16 8 4;
+variable number_a 4;
+variable number_b 4;
+variable number_c 4;
 
-variable test_a 4;
-variable test_b 4;
-test_a := 10;
-test_b := 6;
-
-variable test_c 4;
-test_c := test_a + test_b;
-
+number_c := number_a + number_b;

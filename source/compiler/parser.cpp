@@ -751,24 +751,23 @@ parser_recursively_descend_expression(parser *state, expression_type level)
             if (parser_match_token(state, token_type::ASSIGNMENT))
             {
 
-                token *identifier = parser_get_previous_token(state);
                 expression *assign = parser_recursively_descend_expression(state,
                         expression_type::ASSIGNMENT);
                 propagate_on_error(assign);
 
-                if (identifier->type == token_type::IDENTIFIER)
+                if (expr->node_type == ast_node_type::LITERAL_EXPRESSION)
                 {
-                    
-                    printf("Is Identifier.\n");
 
-                    // I saw the opportunity, and I took it.
-                    expression *ass_expression = parser_allocate_assignment_node(identifier, 
+                    token *identifier = expr->unary_expression.literal;
+
+                    expression *ass_expr = parser_allocate_assignment_node(identifier,
                             assign, state->arena);
-                    return ass_expression;
+                    return ass_expr;
 
                 }
 
-                parser_display_error(identifier, "Invalid assignment expression.");
+                parser_display_error(parser_get_previous_token(state), 
+                        "Invalid assignment expression.");
                 propagate_on_error(NULL);
 
             }
@@ -1002,6 +1001,12 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             expression *size = parser_recursively_descend_expression(state,
                     expression_type::EXPRESSION);
             propagate_on_error(size);
+            if (size->node_type == ast_node_type::ASSIGNMENT_EXPRESSION)
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Variable size assignment expression is not allowed.");
+                propagate_on_error(NULL);
+            }
 
             statement *stm = memory_arena_push_type(state->arena, statement);
             stm->node_type = ast_node_type::DECLARATION_STATEMENT;
@@ -1019,6 +1024,12 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                 expression *dimension = parser_recursively_descend_expression(state,
                         expression_type::EXPRESSION);
                 propagate_on_error(dimension);
+                if (dimension->node_type == ast_node_type::ASSIGNMENT_EXPRESSION)
+                {
+                    parser_display_error(parser_get_previous_token(state),
+                            "Assignment expression is not allowed in array format.");
+                    propagate_on_error(NULL);
+                }
                 
                 size_t count = stm->declaration_statement.dimension_count;
                 stm->declaration_statement.dimensions[count] = dimension;
@@ -1032,6 +1043,15 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                     propagate_on_error(NULL);
                 }
 
+            }
+
+            // Assuming we reached this point, the previous token *must* be a
+            // semicolon, otherwise something got horribly messed up.
+            token *previous = parser_get_previous_token(state);
+            if (previous->type != token_type::SEMICOLON)
+            {
+                parser_display_error(previous, "Expected semicolon at end-of-line.");
+                propagate_on_error(NULL);
             }
 
             return stm;
@@ -1166,7 +1186,7 @@ parser_ast_traversal_print_expression(expression *expr)
             printf("%s = ", identifier.str());
 
             parser_ast_traversal_print_expression(expr->assignment_expression.assignment);
-        };
+        } break;
 
         case ast_node_type::GROUPING_EXPRESSION:
         {
