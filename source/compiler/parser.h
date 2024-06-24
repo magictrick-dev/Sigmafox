@@ -57,6 +57,7 @@ enum class token_type
     ENDLOOP,
     ENDPLOOP,
     ENDFIT,
+    ENDSCOPE,
     FIT,        
     FUNCTION,   
     IF,         
@@ -66,6 +67,7 @@ enum class token_type
     PROCEDURE,  
     READ,
     SAVE,
+    SCOPE,
     VARIABLE,
     WHILE,      
     WRITE,
@@ -160,6 +162,7 @@ enum class statement_type
 {
     STATEMENT,
     EXPRESSION_STATEMENT,
+    BLOCK_STATEMENT,
     DECLARATION_STATEMENT,
 };
 
@@ -186,6 +189,7 @@ enum class ast_node_type
 
     EXPRESSION_STATEMENT,
     DECLARATION_STATEMENT,
+    BLOCK_STATEMENT,
     ASSIGNMENT_STATEMENT,
 
 };
@@ -247,6 +251,15 @@ struct statement
             token *identifier;
             expression *value;
         } assignment_statement;
+
+        struct block_statement
+        {
+            // TODO(Chris): For arrays or the like, we don't have the luxury of
+            //              using contiguous data in the tree, since recursive nature
+            //              means that using stack-allocation to generate a fixed size
+            //              will cause holes on resize, so we need to use a linked-list.
+            //              Not ideal, of course, but it is what it is.
+        } block_statement;
 
     };
 

@@ -79,6 +79,8 @@ parser_token_type_to_string(token *instance)
         case token_type::READ: return "read";
         case token_type::SAVE: return "save";
         case token_type::INCLUDE: return "include";
+        case token_type::SCOPE: return "scope";
+        case token_type::ENDSCOPE: return "endscope";
         case token_type::UNDEFINED: return "undefined";
         case token_type::END_OF_FILE: return "end_of_file";
         case token_type::END_OF_LINE: return "end_of_line";
@@ -171,30 +173,34 @@ scanner_validate_identifier_type(token *current_token)
         type_list[7] = token_type::ENDPLOOP;
         keyword_list[8] = "ENDFIT";
         type_list[8] = token_type::ENDFIT;
-        keyword_list[9] = "FIT";
-        type_list[9] = token_type::FIT;
-        keyword_list[10] = "FUNCTION";
-        type_list[10] = token_type::FUNCTION;
-        keyword_list[11] = "IF";
-        type_list[11] = token_type::IF;
-        keyword_list[12] = "INCLUDE";
-        type_list[12] = token_type::INCLUDE;
-        keyword_list[13] = "LOOP";
-        type_list[13] = token_type::LOOP;
-        keyword_list[14] = "PLOOP";
-        type_list[14] = token_type::PLOOP;
-        keyword_list[15] = "PROCEDURE";
-        type_list[15] = token_type::PROCEDURE;
-        keyword_list[16] = "READ";
-        type_list[16] = token_type::READ;
-        keyword_list[17] = "SAVE";
-        type_list[17] = token_type::SAVE;
-        keyword_list[18] = "VARIABLE";
-        type_list[18] = token_type::VARIABLE;
-        keyword_list[19] = "WHILE";
-        type_list[19] = token_type::WHILE;
-        keyword_list[20] = "WRITE";
-        type_list[20] = token_type::WRITE;
+        keyword_list[9] = "ENDSCOPE";
+        type_list[9] = token_type::ENDSCOPE;
+        keyword_list[10] = "FIT";
+        type_list[10] = token_type::FIT;
+        keyword_list[11] = "FUNCTION";
+        type_list[11] = token_type::FUNCTION;
+        keyword_list[12] = "IF";
+        type_list[12] = token_type::IF;
+        keyword_list[13] = "INCLUDE";
+        type_list[13] = token_type::INCLUDE;
+        keyword_list[14] = "LOOP";
+        type_list[14] = token_type::LOOP;
+        keyword_list[15] = "PLOOP";
+        type_list[15] = token_type::PLOOP;
+        keyword_list[16] = "PROCEDURE";
+        type_list[16] = token_type::PROCEDURE;
+        keyword_list[17] = "READ";
+        type_list[17] = token_type::READ;
+        keyword_list[18] = "SAVE";
+        type_list[18] = token_type::SAVE;
+        keyword_list[19] = "SCOPE";
+        type_list[19] = token_type::SCOPE;
+        keyword_list[20] = "VARIABLE";
+        type_list[20] = token_type::VARIABLE;
+        keyword_list[21] = "WHILE";
+        type_list[21] = token_type::WHILE;
+        keyword_list[22] = "WRITE";
+        type_list[22] = token_type::WRITE;
 
         list_initialized = true;
     }
@@ -202,84 +208,11 @@ scanner_validate_identifier_type(token *current_token)
     // NOTE(Chris): String compares are somewhat expensive, so the trick is to
     //              reduce the amount of compares by alphabetizing into buckets
     //              and searching that way.
-    switch (current[0])
+    for (size_t idx = 0; idx < 23; ++idx)
     {
-
-        case 'B':
-        {
-            if (keyword_list[0] == current)
-                return type_list[0];
-        } break;
-
-        case 'E':
-        {
-            for (size_t idx = 1; idx < 9; ++idx)
-            {
-                if (keyword_list[idx] == current)
-                    return type_list[idx];
-            }
-        } break;
-
-        case 'F':
-        {
-            for (size_t idx = 9; idx < 11; ++idx)
-            {
-                if (keyword_list[idx] == current)
-                    return type_list[idx];
-            }
-        } break;
-
-        case 'I':
-        {
-            for (size_t idx = 11; idx < 13; ++idx)
-            {
-                if (keyword_list[idx] == current)
-                    return type_list[idx];
-            }
-        } break;
-    
-        case 'L':
-        {
-            if (keyword_list[13] == current)
-                return type_list[13];
-        } break;
-
-        case 'P':
-        {
-            for (size_t idx = 14; idx < 16; ++idx)
-            {
-                if (keyword_list[idx] == current)
-                    return type_list[idx];
-            }
-        } break;
-
-        case 'R':
-        {
-            if (keyword_list[16] == current)
-                return type_list[16];
-        } break;
-
-        case 'S':
-        {
-            if (keyword_list[17] == current)
-                return type_list[17];
-        } break;
-
-        case 'V':
-        {
-            if (keyword_list[18] == current)
-                return type_list[18];
-        } break;
-            
-        case 'W':
-        {
-            for (size_t idx = 19; idx < 21; ++idx)
-            {
-                if (keyword_list[idx] == current)
-                    return type_list[idx];
-            }
-        } break;
-    };
+        if (keyword_list[idx] == current)
+            return type_list[idx];
+    }
 
     return current_token->type;
 
@@ -529,10 +462,10 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 // Complete Language Grammar
 //
 // program              : statement* EOF
-// statement            : declaration_stm | expression_stm
-// declaration_stm      : "variable" IDENTIFIER expression ( expression )* ";"
-// assigment_stm        : IDENTIFIER ":=" expression ";"
-// expression_stm       : expression ";"
+// statement            : declaration_stm | expression_stm | block_stm
+// block_stm            : "scope" statement* "endscope" ;
+// declaration_stm      : "variable" IDENTIFIER expression ( expression )* ;
+// expression_stm       : expression ;
 // 
 
 // --- Environments ------------------------------------------------------------
@@ -1012,6 +945,16 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                 return stm;
             }
 
+            // Block statements.
+            if (parser_match_token(state, token_type::SCOPE))
+            {
+
+                statement *stm = parser_recursively_descend_statement(state,
+                        statement_type::BLOCK_STATEMENT);
+                return stm;
+
+            }
+
             // Expression statements.
             statement *stm = parser_recursively_descend_statement(state, 
                     statement_type::EXPRESSION_STATEMENT);
@@ -1097,6 +1040,14 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             }
 
             return stm;
+
+        } break;
+
+        case statement_type::BLOCK_STATEMENT:
+        {
+
+            assert(!"No implementation");
+            return NULL;
 
         } break;
 

@@ -108,8 +108,11 @@ environment_runtime()
 
     }
 
-#if 0
+#if 1
     // We will print the list of tokens our for now, but this is temporary.
+    printf("------------------------------------------------------------\n");
+    printf("                Tokenization Results\n");
+    printf("------------------------------------------------------------\n");
     for (size_t idx = 0; idx < token_list.size(); ++idx)
     {
         if (token_list[idx].type == token_type::END_OF_FILE) break;
@@ -122,22 +125,9 @@ environment_runtime()
     // Converts the list of tokens to a traversable abstract syntax tree.
     //
 #if 1
-#if 0
-    ast_node *ast_root = NULL;
-    array<void*> free_list;
-    bool ast_status = parser_ast_create(&token_list, &ast_root, &free_list);
-    if (!ast_status)
-    {
-        printf("Unable to compile source.\n");
-        return STATUS_CODE_SUCCESS;
-    }
-
-    parser_ast_print_traversal(ast_root);
-    printf("\n");
-    parser_ast_print_order_traversal(ast_root);
-    printf("\n");
-#else
-
+    printf("------------------------------------------------------------\n");
+    printf("         Parser to Transpilation Print Results\n");
+    printf("------------------------------------------------------------\n");
     array<statement*> program;   
     bool parser_valid = parser_generate_abstract_syntax_tree(&token_list,
             &program, &state->primary_store);
@@ -149,8 +139,6 @@ environment_runtime()
     {
         return STATUS_CODE_SUCCESS;
     }
-
-#endif
 #endif
 
     // --- Cleanup Phase -------------------------------------------------------
