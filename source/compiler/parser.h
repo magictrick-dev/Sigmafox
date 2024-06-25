@@ -57,6 +57,7 @@ enum class token_type
     ENDLOOP,
     ENDPLOOP,
     ENDFIT,
+    ENDSCOPE,
     FIT,        
     FUNCTION,   
     IF,         
@@ -66,6 +67,7 @@ enum class token_type
     PROCEDURE,  
     READ,
     SAVE,
+    SCOPE,
     VARIABLE,
     WHILE,      
     WRITE,
@@ -108,58 +110,12 @@ string  parser_token_type_to_string(token *instance);
 // The parser will return false if there are any syntax errors.
 //
 
-enum node_type
-{
-    BINARY_NODE,
-    GROUPING_NODE,
-    UNARY_NODE,
-    LITERAL_NODE,
-};
-
-struct ast_node
-{
-
-    int node_type;
-
-    // We union operation and literal token pointers, they
-    // point to the same data but have logically different
-    // meanings depending on the node type.
-    union
-    {
-        token *operation;
-
-        struct
-        {
-            token *literal;
-        };
-    };
-
-    // Assume that an ast_node is binary at most, so we 
-    // union left/right, and let expression/expr be unary.
-    // For leaf nodes, we assume null.
-    union
-    {
-        ast_node *nodes[2];
-
-        struct
-        {
-            ast_node *expression;
-            ast_node *right_void;
-        };
-
-        struct
-        {
-            ast_node *left_expression;
-            ast_node *right_expression;
-        };
-    };
-
-};
-
 enum class statement_type
 {
     STATEMENT,
+    COMMENT_STATEMENT,
     EXPRESSION_STATEMENT,
+    BLOCK_STATEMENT,
     DECLARATION_STATEMENT,
 };
 
@@ -185,7 +141,9 @@ enum class ast_node_type
     LITERAL_EXPRESSION,
 
     EXPRESSION_STATEMENT,
+    COMMENT_STATEMENT,
     DECLARATION_STATEMENT,
+    BLOCK_STATEMENT,
     ASSIGNMENT_STATEMENT,
 
 };
@@ -248,21 +206,22 @@ struct statement
             expression *value;
         } assignment_statement;
 
+        struct block_statement
+        {
+            linked_list statements;
+        } block_statement;
+
+        struct comment_statement
+        {
+            token *comment;
+        } comment_statement;
+
     };
 
 };
 
-ast_node* parser_create_ast_binary_node(ast_node *left, ast_node *right, token *operation);
-ast_node* parser_create_ast_grouping_node(ast_node *expression);
-ast_node* parser_create_ast_unary_node(ast_node *expression, token *operation);
-ast_node* parser_create_ast_literal_node(token *literal);
-
-bool parser_ast_create(array<token> *tokens, ast_node **ast, array<void*> *alloc_list);
-void parser_ast_free_traversal(ast_node *ast);
-void parser_ast_print_traversal(ast_node *ast);
-void parser_ast_print_order_traversal(ast_node *ast);
-
-bool parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *statements, memory_arena *arena);
+bool parser_generate_abstract_syntax_tree(array<token> *tokens, 
+        array<statement*> *statements, memory_arena *arena);
 void parser_ast_traversal_print(array<statement*> *statements);
 
 #endif
