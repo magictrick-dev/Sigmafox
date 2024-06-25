@@ -10,7 +10,16 @@ static inline void
 parser_display_error(token *location, const char *reason)
 {
     
-    printf("%s(%lld,%lld): %s\n", location->location, location->line,
+    printf("%s(%lld,%lld) ERROR: %s\n", location->location, location->line,
+            location->offset_from_start - location->offset_from_line + 1, reason);
+
+}
+
+static inline void
+parser_display_warning(token *location, const char *reason)
+{
+
+    printf("%s(%lld,%lld) WARNING: %s\n", location->location, location->line,
             location->offset_from_start - location->offset_from_line + 1, reason);
 
 }
@@ -110,9 +119,12 @@ struct scanner
 static inline bool
 scanner_is_eof(scanner *state)
 {
+#if 0 
     bool eof_marker =  (state->source[state->step] == '\0'   ||
                         state->source[state->step] == '\13'  ||
                         state->source[state->step] == '\10');
+#endif
+    bool eof_marker = (state->source[state->step] == '\0');
     return eof_marker;
 }
 
@@ -446,11 +458,26 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 // An abstract syntax tree takes the set of linear tokens and composes them into
 // a tree that corresponds to the language grammar. The basis for the language is
 // expressions. We use recursive descent to the generate the required grammar.
+// 
+// Important Grammar Notes
+//
+//      comment_stm:    Comments are among a few special cases in which we actually
+//                      want to carray over into the AST for transpilation. We
+//                      incorporate it into the syntax for this reason. Since comments
+//                      are parsed as single tokens, their formatting carries over
+//                      complete with new-lines and character formatting that was
+//                      initially incorporated into the comment. This could potentially
+//                      pause some unusual edge-cases that may need to be considered,
+//                      but for now we let this go through as-is.
+//
+//      block_stm:      Block statements push a new scope onto the environment.
+//                      The scope pops when the appropriate "endscope" is encountered.
 //
 // Complete Language Grammar
 //
 //      program                 : statement* EOF
-//      statement               : declaration_stm | expression_stm | block_stm
+//      statement               : comment_stm | declaration_stm | expression_stm | block_stm
+//      comment_stm             : "comment" statement*
 //      block_stm               : "scope" statement* "endscope" ;
 //      declaration_stm         : "variable" IDENTIFIER expression ( expression )* ;
 //      expression_stm          : expression ;
@@ -485,6 +512,7 @@ enum class symbol_type : uint32_t
 
 struct symbol
 {
+    uint32_t depth_defined;
     symbol_type type;
     token *token;
 };
@@ -512,17 +540,20 @@ parser_environment_push_scope(environment *env)
     new_scope->parent_scope = env->active_scope;
     new_scope->depth = new_scope->parent_scope->depth + 1;
     env->active_scope = new_scope;
+
 }
 
 static inline void
 parser_environment_pop_scope(environment *env)
 {
+
     scope *parent = env->active_scope->parent_scope;
     scope *current = env->active_scope;
     env->active_scope = parent;
     assert(parent != NULL); // We should never have a null scope, global must persist.
     current->~scope(); // Required for placement new due to std::unordered_map...
-    free(current);
+    memory_free(current);
+
 }
 
 static inline symbol*
@@ -552,6 +583,12 @@ parser_environment_get_symbol(environment *env, token *identifier)
 
 }
 
+static inline bool
+parser_environment_symbol_inside_active_scope(environment *env, symbol *sym)
+{
+    return (env->active_scope->depth == sym->depth_defined);
+}
+
 static inline symbol*
 parser_environment_insert_symbol(environment *env, token *identifier)
 {
@@ -564,7 +601,13 @@ parser_environment_insert_symbol(environment *env, token *identifier)
     }
 
     scope *current_scope = env->active_scope;
-    current_scope->table[key] = { symbol_type::UNINITIALIZED, identifier };
+    current_scope->table[key] = 
+    {   
+        env->active_scope->depth,
+        symbol_type::UNINITIALIZED, 
+        identifier
+    };
+
     return &current_scope->table.at(key);
 
 }
@@ -580,6 +623,7 @@ parser_environment_insert_symbol(environment *env, token *identifier)
 
 struct parser
 {
+    bool errored;
     size_t current;
     array<token> *tokens;
     memory_arena *arena;
@@ -597,6 +641,13 @@ parser_validate_token(parser *state, token_type type)
     }
     return (current_type == type);
 
+}
+
+static inline bool
+parser_check_token(parser *state, token_type type)
+{
+    token_type current_type = (*state->tokens)[state->current].type;
+    return (current_type == type);
 }
 
 static inline bool
@@ -640,6 +691,27 @@ parser_get_previous_token(parser *state)
 {
     token* previous_token = &(*state->tokens)[state->current - 1];
     return previous_token;
+}
+
+
+static inline void
+parser_synchronize_state(parser *state)
+{
+
+    // Move forward until we synchronize to a valid position.
+    token_type current_type = (*state->tokens)[state->current].type;
+    while (current_type != token_type::SEMICOLON &&
+           current_type != token_type::END_OF_FILE)
+    {
+        state->current += 1;
+        current_type = (*state->tokens)[state->current].type;
+    }
+
+    // If we hit a semicolon, move passed it.
+    if (current_type == token_type::SEMICOLON)
+        state->current++;
+
+    return;
 }
 
 static inline expression*
@@ -722,6 +794,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
 
             expression *expr = parser_recursively_descend_expression(state,
                     expression_type::EQUALITY);
+            propagate_on_error(expr);
 
             if (parser_match_token(state, token_type::ASSIGNMENT))
             {
@@ -937,6 +1010,14 @@ parser_recursively_descend_statement(parser *state, statement_type level)
         case statement_type::STATEMENT:
         {
             
+            // Comment statements.
+            if (parser_check_token(state, token_type::COMMENT_BLOCK))
+            {
+                statement *stm = parser_recursively_descend_statement(state, 
+                        statement_type::COMMENT_STATEMENT);
+                return stm;
+            }
+
             // Declaration statements.
             if (parser_match_token(state, token_type::VARIABLE))
             {
@@ -948,6 +1029,13 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             // Block statements.
             if (parser_match_token(state, token_type::SCOPE))
             {
+                
+                if (!parser_consume_token(state, token_type::SEMICOLON))
+                {
+                    parser_display_error(parser_get_previous_token(state),
+                            "Expected semicolon at end of scope declaration.");
+                    propagate_on_error(NULL);
+                }
 
                 statement *stm = parser_recursively_descend_statement(state,
                         statement_type::BLOCK_STATEMENT);
@@ -959,6 +1047,17 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             statement *stm = parser_recursively_descend_statement(state, 
                     statement_type::EXPRESSION_STATEMENT);
             return stm;
+
+        } break;
+
+        case statement_type::COMMENT_STATEMENT:
+        {
+
+            statement *comment_statement = memory_arena_push_type(state->arena, statement);
+            comment_statement->node_type = ast_node_type::COMMENT_STATEMENT;
+            comment_statement->comment_statement.comment = parser_consume_token(state,
+                    token_type::COMMENT_BLOCK);
+            return comment_statement;
 
         } break;
 
@@ -977,10 +1076,20 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             symbol *sym = parser_environment_get_symbol(&state->global_environment, identifier);
             if (sym != NULL)
             {
-                parser_display_error(parser_get_current_token(state), 
-                        "Variable redeclared within current scope.");
-                propagate_on_error(NULL);
+                if (parser_environment_symbol_inside_active_scope(
+                        &state->global_environment, sym))
+                {
+                    parser_display_error(parser_get_current_token(state), 
+                            "Variable redeclared within current scope.");
+                    propagate_on_error(NULL);
+                }
+                else 
+                {
+                    parser_display_warning(parser_get_current_token(state),
+                            "Variable declaration shadows outer scope declaration.");
+                }
             }
+
             sym = parser_environment_insert_symbol(&state->global_environment, identifier);
 
             expression *size = parser_recursively_descend_expression(state,
@@ -1046,8 +1155,59 @@ parser_recursively_descend_statement(parser *state, statement_type level)
         case statement_type::BLOCK_STATEMENT:
         {
 
-            assert(!"No implementation");
-            return NULL;
+            // Block statements basically just recurse until we reach
+            // the appropriate ENDSCOPE flag; any errors require synchronization
+            // here, rather than propagating errors further up the recursion chain.
+            statement *stm = memory_arena_push_type(state->arena, statement);
+            stm->node_type = ast_node_type::BLOCK_STATEMENT;
+
+            // When we encountered a block statement, we need to push a new scope
+            // onto the environment.
+            parser_environment_push_scope(&state->global_environment);
+
+            while (!parser_match_token(state, token_type::ENDSCOPE))
+            {
+                statement *scope_stm = parser_recursively_descend_statement(state,
+                        statement_type::STATEMENT);
+
+                if (scope_stm == NULL)
+                {
+                    state->errored = true;
+                    parser_synchronize_state(state); 
+                    continue;
+                }
+
+                // NOTE(Chris): We don't actually have to allocate anything for
+                //              the node, we can simply just set the data pointer
+                //              to our statement.
+                llnode *stm_node = linked_list_push_node(&stm->block_statement.statements, 
+                        state->arena);
+                stm_node->data = scope_stm;
+                
+            }
+
+            if (parser_check_token(state, token_type::END_OF_FILE))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Unexpected end-of-file, unmatched SCOPE declaration?");
+                return NULL;
+            }
+
+            if (!parser_match_token(state, token_type::SEMICOLON))
+            {
+                // NOTE(Chris): We didn't hit EOF, which means that match_token actually
+                //              reached ENDSCOPE, not EOF. Despite the lack of semicolon,
+                //              we probably still want to pop the scope so further errors
+                //              don't occur due to strange scopey behaviors.
+                parser_environment_pop_scope(&state->global_environment);
+                parser_display_error(parser_get_current_token(state),
+                        "Expected semicolon at end of statement.");
+                return NULL;
+            }
+
+            parser_environment_pop_scope(&state->global_environment);
+
+            return stm;
 
         } break;
 
@@ -1068,38 +1228,17 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             statement *stm = memory_arena_push_type(state->arena, statement);
             stm->expression_statement.expr = expr;
             stm->node_type = ast_node_type::EXPRESSION_STATEMENT;
-
-            
-        
+       
             return stm;
 
         } break;
 
     };
 
+    assert(!"Unreachable condition, all statements should be caught.");
     printf("Unrecognized symbol in statement.\n");
     return NULL;
 
-}
-
-static inline void
-parser_synchronize_state(parser *state)
-{
-
-    // Move forward until we synchronize to a valid position.
-    token_type current_type = (*state->tokens)[state->current].type;
-    while (current_type != token_type::SEMICOLON &&
-           current_type != token_type::END_OF_FILE)
-    {
-        state->current += 1;
-        current_type = (*state->tokens)[state->current].type;
-    }
-
-    // If we hit a semicolon, move passed it.
-    if (current_type == token_type::SEMICOLON)
-        state->current++;
-
-    return;
 }
 
 bool
@@ -1111,13 +1250,13 @@ parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *st
     assert(arena != NULL);
 
     parser parser_state = {};
+    parser_state.errored = false;
     parser_state.tokens = tokens;
     parser_state.current = 0;
     parser_state.arena = arena;
     parser_state.global_environment.active_scope = 
         &parser_state.global_environment.global_scope;
 
-    bool encountered_error = false;
     while ((*tokens)[parser_state.current].type != token_type::END_OF_FILE)
     {
 
@@ -1126,7 +1265,7 @@ parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *st
 
         if (current_statement == NULL)
         {
-            encountered_error = true;
+            parser_state.errored = true;
             parser_synchronize_state(&parser_state); 
             continue;
         }
@@ -1135,7 +1274,7 @@ parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *st
 
     };
 
-    return (!encountered_error);
+    return (!parser_state.errored);
 
 };
 
@@ -1226,6 +1365,16 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
 
         } break;
 
+        case ast_node_type::COMMENT_STATEMENT:
+        {
+            printf("\n");
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("/*");
+            string comment_string = parser_token_to_string(stm->comment_statement.comment);
+            printf("%s", comment_string.str());
+            printf("*/\n");
+        } break;
+
         case ast_node_type::DECLARATION_STATEMENT:
         {
 
@@ -1245,6 +1394,25 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
             printf(" %s()", variable_name.str());
 
             printf(";\n");
+
+        } break;
+
+        case ast_node_type::BLOCK_STATEMENT:
+        {
+
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("{\n");
+            llnode *current_node = stm->block_statement.statements.head;
+            while (current_node != NULL)
+            {
+                statement *current = (statement*)current_node->data;
+                parser_ast_traversal_print_statement(current, depth + 4);
+                current_node = current_node->next;
+            }
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("}\n");
 
         } break;
 

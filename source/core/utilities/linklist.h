@@ -3,22 +3,43 @@
 #include <core/definitions.h>
 #include <core/utilities/allocator.h>
 
-struct snode
+struct llnode
 {
-    snode   *next;
-    void    *data;
+    llnode *next    = NULL;
+    llnode *prev    = NULL;
+    void   *data    = NULL;
 };
 
-struct singly_linked_list
+struct linked_list
 {
-    snode *root;
-    snode *last;
+    llnode *head    = NULL;
+    llnode *tail    = NULL;
+    uint64_t count  = NULL;
 };
 
-inline snode* 
-single_linked_list_append_node(singly_linked_list *list, memory_arena *arena)
+inline llnode*
+linked_list_push_node(linked_list *list, memory_arena *arena)
 {
-    
+
+    llnode *instance = memory_arena_push_type(arena, llnode);
+
+    if (list->head == NULL)
+    {
+        list->head = instance;   
+        list->tail = instance;
+    }
+
+    else
+    {
+        instance->next = NULL;
+        instance->prev = list->tail;
+        list->tail->next = instance;
+        list->tail = instance;
+        list->count++;
+    }
+
+    return instance;
+
 }
 
 #endif

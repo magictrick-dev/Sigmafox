@@ -1,12 +1,40 @@
+{ Testing standard variable declaration. }
 variable test_variable 4;
 
+{ Testing array variable declaration. }
 variable foo 4 32;
 variable bar 4 32 16;
 variable baz 4 32 16 8;
 variable bax 4 32 16 8 4;
 
+{ Testing variable assignment. }
 variable number_a 4;
 variable number_b 4;
 variable number_c 4;
+number_a := 3;
+number_b := 7;
 
 number_c := number_a + number_b;
+
+{ Testing variable scopes. }
+scope;
+
+    { Inner scope only. }
+    variable inner_scope_a 4;
+    variable inner_scope_b 4;
+    variable inner_scope_sum 4;
+    inner_scope_sum := inner_scope_a + inner_scope_b;
+
+    { Outer scope usage with inner scope useage. }
+    variable outer_inner_sum 4;
+    outer_inner_sum := number_a + inner_scope_a;
+
+    { Overwriting outer scope. } { Commented out. }
+    { variable number_b 4; }
+    { number_b := 10; }
+
+endscope;
+
+{ Testing error conditions. } { Commented out. }
+{ inner_scope_a := 20; }
+
