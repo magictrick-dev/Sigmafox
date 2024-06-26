@@ -10,105 +10,9 @@
 #define SIGMAFOX_COMPILER_PARSER_H 
 #include <core/utilities.h>
 #include <core/definitions.h>
+#include <compiler/token.h>
 
 #define PARSER_VARIABLE_MAX_DIMENSIONS 4
-
-// --- Tokenizer ---------------------------------------------------------------
-//
-// The list of definitions regarding the tokenizer stage of the parser.
-//
-
-enum class token_type
-{
-
-    // Symbols:
-    COMMENT_BLOCK,          // { ... }
-    LEFT_PARENTHESIS,       // (
-    RIGHT_PARENTHESIS,      // )
-    SEMICOLON,              // ;
-    ASSIGNMENT,             // :=
-    PLUS,                   // +
-    MINUS,                  // -
-    MULTIPLY,               // *
-    DIVISION,               // /
-    POWER,                  // ^
-    LESS_THAN,              // <
-    LESS_THAN_EQUALS,       // <=
-    GREATER_THAN,           // >
-    GREATER_THAN_EQUALS,    // >=
-    EQUALS,                 // =
-    NOT_EQUALS,             // #
-    CONCAT,                 // &
-    EXTRACT,                // |
-    DERIVATION,             // %
-
-    // Definables: 
-    IDENTIFIER,
-    STRING,                 // '', single quotes only.
-    NUMBER,
-
-    // Keywords: 
-    BEGIN,      
-    END,
-    ENDPROCEDURE,
-    ENDFUNCTION,
-    ENDIF,
-    ENDWHILE,
-    ENDLOOP,
-    ENDPLOOP,
-    ENDFIT,
-    ENDSCOPE,
-    FIT,        
-    FUNCTION,   
-    IF,         
-    INCLUDE,
-    LOOP,       
-    PLOOP,      
-    PROCEDURE,  
-    READ,
-    SAVE,
-    SCOPE,
-    VARIABLE,
-    WHILE,      
-    WRITE,
-
-    // Special:
-    UNDEFINED,
-    END_OF_FILE,
-    END_OF_LINE,
-
-};
-
-struct token
-{
-    const char *source;
-    const char *location;
-    size_t offset_from_start;
-    size_t offset_from_line;
-    size_t length;
-    size_t line;
-    token_type type;
-};
-
-bool    parser_tokenize_source_file(const char *file, const char *source,
-            array<token> *tokens, array<token> *errors);
-string  parser_token_to_string(token *instance);
-string  parser_token_type_to_string(token *instance);
-
-// --- AST ---------------------------------------------------------------------
-//
-// The collection of definitions for the AST portion of the parser. When a node
-// is created, it either contains 0, 1, or 2 branch nodes (ternary is not supported).
-// We combine this functionality into a single ast_node structure with unioned nodes.
-// Data orientation is only relavent during traversal time, and in such cases the
-// type of node is known.
-//
-// When an AST is generated, you can optionally create an allocation list. This
-// allocation list allows for easy-deallocation of the AST without having to write
-// a traversal routine to do so.
-//
-// The parser will return false if there are any syntax errors.
-//
 
 enum class statement_type
 {
@@ -219,6 +123,9 @@ struct statement
     };
 
 };
+
+bool    parser_tokenize_source_file(const char *file, const char *source,
+            array<token> *tokens, array<token> *errors);
 
 bool parser_generate_abstract_syntax_tree(array<token> *tokens, 
         array<statement*> *statements, memory_arena *arena);

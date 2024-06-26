@@ -1,84 +1,76 @@
 #ifndef SIGMAFOX_COMPILER_TOKEN_H
 #define SIGMAFOX_COMPILER_TOKEN_H
-#include <core/utilities.h>
 #include <core/definitions.h>
 
-enum token_type
+enum class token_type
 {
 
-    // Symbols:
-    COMMENT_BLOCK,          // { ... }
-    LEFT_PARENTHESIS,       // (
-    RIGHT_PARENTHESIS,      // )
-    SEMICOLON,              // ;
-    ASSIGNMENT,             // :=
-    PLUS,                   // +
-    MINUS,                  // -
-    MULTIPLY,               // *
-    DIVISION,               // /
-    POWER,                  // ^
-    LESS_THAN,              // <
-    LESS_THAN_EQUALS,       // <=
-    GREATER_THAN,           // >
-    GREATER_THAN_EQUALS,    // >=
-    EQUALS,                 // =
-    NOT_EQUALS,             // #
-    CONCAT,                 // &
-    EXTRACT,                // |
-    DERIVATION,             // %
+    COMMENT_BLOCK,   
+    LEFT_PARENTHESIS, 
+    RIGHT_PARENTHESIS, 
+    SEMICOLON, 
+    ASSIGNMENT, 
+    PLUS,       
+    MINUS,       
+    MULTIPLY,     
+    DIVISION,      
+    POWER,          
+    LESS_THAN,       
+    LESS_THAN_EQUALS, 
+    GREATER_THAN,      
+    GREATER_THAN_EQUALS,
+    EQUALS,            
+    NOT_EQUALS,         
+    CONCAT,              
+    EXTRACT,              
+    DERIVATION,            
 
-    // Definables: 
     IDENTIFIER,
-    STRING,                 // '', single quotes only.
+    STRING,                 
     NUMBER,
 
-    // Keywords: 
     BEGIN,      
     END,
-    PROCEDURE,  
     ENDPROCEDURE,
-    FUNCTION,   
     ENDFUNCTION,
-    IF,         
     ENDIF,
-    WHILE,      
     ENDWHILE,
-    LOOP,       
     ENDLOOP,
-    PLOOP,      
     ENDPLOOP,
-    FIT,        
     ENDFIT,
-    VARIABLE,
-    WRITE,
+    ENDSCOPE,
+    FIT,        
+    FUNCTION,   
+    IF,         
+    INCLUDE,
+    LOOP,       
+    PLOOP,      
+    PROCEDURE,  
     READ,
     SAVE,
-    INCLUDE,
+    SCOPE,
+    VARIABLE,
+    WHILE,      
+    WRITE,
 
-    // Special:
-    PRINT,
     UNDEFINED,
     END_OF_FILE,
     END_OF_LINE,
 
 };
 
-struct token
+typedef struct token
 {
     const char *source;
+    const char *location;
     size_t offset;
     size_t length;
-    size_t line;
-    uint32_t type;
-};
+    token_type type;
+} token;
 
-inline string
-token_to_string(token instance)
-{
-    string result(instance.length + 1);
-    for (size_t idx = 0; idx < instance.length; ++idx)
-        result[idx] = instance.source[instance.offset + idx];
-    return result;
-}
+uint64_t token_copy_string(token *identifier, char *buffer, uint64_t buffer_size, uint64_t write_offset);
+//uint64_t token_copy_string_type(token *identifier, char *buffer, uint64_t buffer_size, uint64_t write_offset);
+uint32_t token_line_number(token *identifier);
+uint32_t token_column_number(token *identifier);
 
 #endif

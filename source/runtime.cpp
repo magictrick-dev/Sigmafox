@@ -101,14 +101,12 @@ environment_runtime()
     if (!scan_status)
     {
 
-        for (size_t idx = 0; idx < error_list.size(); ++idx)
-            print_symbol_error(state->source_files[0], &error_list[idx]);
-
+        printf("Unable to tokenize source file.\n");
         return STATUS_CODE_SUCCESS;
 
     }
 
-#if 1
+#if 0
     // We will print the list of tokens our for now, but this is temporary.
     printf("------------------------------------------------------------\n");
     printf("                Tokenization Results\n");
