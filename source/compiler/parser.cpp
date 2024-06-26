@@ -45,11 +45,6 @@ struct scanner
 static inline bool
 scanner_is_eof(scanner *state)
 {
-#if 0 
-    bool eof_marker =  (state->source[state->step] == '\0'   ||
-                        state->source[state->step] == '\13'  ||
-                        state->source[state->step] == '\10');
-#endif
     bool eof_marker = (state->source[state->step] == '\0');
     return eof_marker;
 }
@@ -149,9 +144,6 @@ scanner_validate_identifier_type(token *current_token)
         list_initialized = true;
     }
 
-    // NOTE(Chris): String compares are somewhat expensive, so the trick is to
-    //              reduce the amount of compares by alphabetizing into buckets
-    //              and searching that way.
     for (size_t idx = 0; idx < 23; ++idx)
     {
         if (strcmp(keyword_list[idx], token_string_buffer) == 0)
@@ -465,7 +457,7 @@ static inline void
 parser_environment_push_scope(environment *env)
 {
 
-    scope *new_scope = memory_alloc_type(scope);
+    scope *new_scope = memory_allocate_type(scope);
     new (new_scope) scope;
     new_scope->parent_scope = env->active_scope;
     new_scope->depth = new_scope->parent_scope->depth + 1;
@@ -482,7 +474,7 @@ parser_environment_pop_scope(environment *env)
     env->active_scope = parent;
     assert(parent != NULL); // We should never have a null scope, global must persist.
     current->~scope(); // Required for placement new due to std::unordered_map...
-    memory_free(current);
+    memory_release(current);
 
 }
 

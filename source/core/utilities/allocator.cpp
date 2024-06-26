@@ -1,18 +1,9 @@
-#include <cstdlib>
-#include <cassert>
-#include <cstdint>
+#include <stdlib.h>
 #include <core/utilities/allocator.h>
 
-// --- Sigmafox General Allocator ----------------------------------------------
+// --- Malloc/Free Wrapper -----------------------------------------------------
 //
-// The allocation_head sits behind a user's allocation. Therefore, the true
-// allocation size of the request size + the header size. When a free is called,
-// we look backwards and inspect the data there. We can ensure that the data is
-// valid by checking to see if the start pointer matches the user pointer.
-//
-// When we free, we first zero out size and start from the head and then call free.
-// This prevents stagnant pointers from being valid outside the context of the free
-// should the OS continue to hold the page the memory allocation came from.
+// The malloc/free wrapper adds tracking information to allocations.
 //
 
 static size_t allocation_total_allocated    = 0;
@@ -21,6 +12,21 @@ static size_t allocation_alloc_calls        = 0;
 static size_t allocation_free_calls         = 0;
 static size_t allocation_peak_useage        = 0;
 static size_t allocation_useage             = 0;
+
+typedef struct
+memory_alloc_stats
+{
+    size_t memory_allocated;
+    size_t memory_freed;
+    size_t alloc_calls;
+    size_t free_calls;
+    size_t peak_useage;
+    size_t current_useage;
+} memory_alloc_stats;
+
+static void* tracked_memory_alloc(size_t size);
+static void  tracked_memory_free(void *ptr);
+static bool  tracked_memory_statistics(memory_alloc_stats *stats);
 
 typedef struct
 allocation_head
@@ -43,8 +49,8 @@ allocator_get_allocation_head(void *user_ptr)
     return head;
 }
 
-void*
-memory_alloc(size_t request_size)
+static void*
+tracked_memory_alloc(size_t request_size)
 {
 
     void* user_buffer = NULL;
@@ -76,8 +82,8 @@ memory_alloc(size_t request_size)
 
 }
 
-void
-memory_free(void *user_ptr)
+static void
+tracked_memory_free(void *user_ptr)
 {
 
     void* free_ptr = user_ptr;
@@ -103,8 +109,8 @@ memory_free(void *user_ptr)
 
 }
 
-bool
-memory_statistics(memory_alloc_stats *stats)
+static bool
+tracked_memory_statistics(memory_alloc_stats *stats)
 {
 
 #   if defined(SIGMAFOX_DEBUG_BUILD)
@@ -133,3 +139,90 @@ memory_statistics(memory_alloc_stats *stats)
     return true;
 
 }
+
+// --- Allocator Interface -----------------------------------------------------
+//
+// The allocator interface uses the above tracked allocator as the default
+// interface if not memory allocator is pushed onto the stack.
+//
+
+typedef struct allocator_stack
+{
+    memory_allocator    default_allocator;
+    memory_allocator   *active_allocator;
+} allocator_stack;
+
+static allocator_stack allocator_stack_state;
+
+void                 
+memory_push_allocator(memory_allocator *allocator)
+{
+    
+    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    allocator->parent_allocator = current_allocator;
+    allocator->default_allocator = &allocator_stack_state.default_allocator;
+
+    allocator_stack_state.active_allocator = current_allocator;
+
+}
+
+memory_allocator*    
+memory_pop_allocator()
+{
+
+    // NOTE(Chris): If the current allocator is null, then there is no allocator
+    //              to pop from the stack, meaning it is just the default allocator.
+    //              This is an error, so we will assert here.
+    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    assert(current_allocator != NULL);
+
+    allocator_stack_state.active_allocator = current_allocator->parent_allocator;
+    return current_allocator; // In case we want to pop and *then* push again.
+
+}
+
+memory_allocator*    
+memory_get_current_allocator_context()
+{
+    
+    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    return current_allocator;
+
+}
+
+void
+memory_initialize_allocator_context()
+{
+ 
+    // NOTE(Chris): The default allocator is set as the active allocator.
+    allocator_stack_state.active_allocator = &allocator_stack_state.default_allocator;
+
+    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    current_allocator->user_defined = NULL;
+    current_allocator->parent_allocator = NULL;
+    current_allocator->default_allocator = NULL;
+    current_allocator->memory_allocate = tracked_memory_alloc;
+    current_allocator->memory_release = tracked_memory_free;
+
+}
+
+void*                
+memory_allocate(uint64_t size)
+{
+    
+    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    void *result = current_allocator->memory_allocate(size);
+    return result;
+
+}
+
+void                 
+memory_release(void *ptr)
+{
+
+    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    current_allocator->memory_release(ptr);
+    return;
+
+}
+

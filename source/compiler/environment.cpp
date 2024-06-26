@@ -31,7 +31,7 @@ symbol*
 environment_symbol_add(environment *env, void* identifier)
 {
 
-
+    symbol_table *active_table = env->active_table;
 
 }
 

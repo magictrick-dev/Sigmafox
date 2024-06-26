@@ -47,7 +47,7 @@ array()
 {
     this->buffer_size = 4;
     this->buffer_commit = 0;
-    this->buffer_pointer = memory_alloc_array(type, 4);
+    this->buffer_pointer = memory_allocate_array(type, 4);
 }
 
 template <typename type> array<type>::
@@ -70,7 +70,7 @@ template <typename type> array<type>::
     
     // Clears the array (invokes required destructors).
     this->clear();
-    memory_free(this->buffer_pointer);
+    memory_release(this->buffer_pointer);
 
 }
 
@@ -111,11 +111,11 @@ resize(size_t size)
 
     // Allocate a new buffer and copy old buffer to this buffer up to the
     // amount that is actually committed.
-    type *fresh_buffer = memory_alloc_array(type, size);
+    type *fresh_buffer = memory_allocate_array(type, size);
     memcpy(fresh_buffer, this->buffer_pointer, sizeof(type) * buffer_commit);
 
     // Free the old buffer.
-    memory_free(this->buffer_pointer);
+    memory_release(this->buffer_pointer);
     this->buffer_pointer = fresh_buffer;
     this->buffer_size = size;
 
