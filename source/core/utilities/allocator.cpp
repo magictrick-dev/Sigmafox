@@ -148,8 +148,8 @@ tracked_memory_statistics(memory_alloc_stats *stats)
 
 typedef struct allocator_stack
 {
-    memory_allocator    default_allocator;
-    memory_allocator   *active_allocator;
+    memory_allocator_context    default_allocator;
+    memory_allocator_context   *active_allocator;
 } allocator_stack;
 
 static allocator_stack allocator_stack_state;
@@ -158,7 +158,7 @@ void
 memory_push_allocator(memory_allocator *allocator)
 {
     
-    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
     allocator->parent_allocator = current_allocator;
     allocator->default_allocator = &allocator_stack_state.default_allocator;
 
@@ -166,14 +166,14 @@ memory_push_allocator(memory_allocator *allocator)
 
 }
 
-memory_allocator*    
+memory_allocator_context*
 memory_pop_allocator()
 {
 
     // NOTE(Chris): If the current allocator is null, then there is no allocator
     //              to pop from the stack, meaning it is just the default allocator.
     //              This is an error, so we will assert here.
-    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
     assert(current_allocator != NULL);
 
     allocator_stack_state.active_allocator = current_allocator->parent_allocator;
@@ -185,7 +185,7 @@ memory_allocator*
 memory_get_current_allocator_context()
 {
     
-    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
     return current_allocator;
 
 }
