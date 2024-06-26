@@ -35,6 +35,8 @@ add_executable(Sigmafox
     "source/runtime.h"
     "source/runtime.cpp"
 
+    "source/compiler/token.h"
+    "source/compiler/token.cpp"
     "source/compiler/parser.h"
     "source/compiler/parser.cpp"
     
@@ -43,7 +45,6 @@ add_executable(Sigmafox
 
     "source/core/utilities.h"
     "source/core/utilities/array.h"
-    "source/core/utilities/string.h"
     "source/core/utilities/allocator.h"
     "source/core/utilities/allocator.cpp"
 

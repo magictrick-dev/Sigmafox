@@ -10,8 +10,9 @@ static inline void
 parser_display_error(token *location, const char *reason)
 {
     
-    printf("%s(%lld,%lld) ERROR: %s\n", location->location, location->line,
-            location->offset_from_start - location->offset_from_line + 1, reason);
+    uint32_t column = token_column_number(location);
+    uint32_t line = token_line_number(location);
+    printf("%s(%d,%d) ERROR: %s\n", location->location, line, column, reason);
 
 }
 
@@ -19,86 +20,11 @@ static inline void
 parser_display_warning(token *location, const char *reason)
 {
 
-    printf("%s(%lld,%lld) WARNING: %s\n", location->location, location->line,
-            location->offset_from_start - location->offset_from_line + 1, reason);
+    uint32_t column = token_column_number(location);
+    uint32_t line = token_line_number(location);
+    printf("%s(%d,%d) WARNING: %s\n", location->location, line, column, reason);
 
 }
-
-// --- Token Helper Functions --------------------------------------------------
-//
-// A set of helper functions regarding tokens.
-//
-
-string  
-parser_token_to_string(token *instance)
-{
-    string result(instance->length + 1);
-    for (size_t idx = 0; idx < instance->length; ++idx)
-        result[idx] = instance->source[instance->offset_from_start + idx];
-    return result;
-}
-
-string  
-parser_token_type_to_string(token *instance)
-{
-
-    switch (instance->type)
-    {
-
-        case token_type::COMMENT_BLOCK: return "comment_block";          
-        case token_type::LEFT_PARENTHESIS: return "left_parenthesis";      
-        case token_type::RIGHT_PARENTHESIS: return "right_parenthesis";    
-        case token_type::SEMICOLON: return "semicolon";           
-        case token_type::ASSIGNMENT: return "assignment";         
-        case token_type::PLUS: return "plus";              
-        case token_type::MINUS: return "minus";            
-        case token_type::MULTIPLY: return "multiply";        
-        case token_type::DIVISION: return "division";       
-        case token_type::POWER: return "power";         
-        case token_type::LESS_THAN: return "less_than";             
-        case token_type::LESS_THAN_EQUALS: return "less_than_equals";     
-        case token_type::GREATER_THAN: return "greater_than";        
-        case token_type::GREATER_THAN_EQUALS: return "greater_than_equals"; 
-        case token_type::EQUALS: return "equals";             
-        case token_type::NOT_EQUALS: return "not_equals";        
-        case token_type::CONCAT: return "concat";           
-        case token_type::EXTRACT: return "extract";         
-        case token_type::DERIVATION: return "derivation";     
-        case token_type::IDENTIFIER: return "identifier";
-        case token_type::STRING: return "string";   
-        case token_type::NUMBER: return "number";
-        case token_type::BEGIN: return "begin";      
-        case token_type::END: return "end";
-        case token_type::PROCEDURE: return "procedure";  
-        case token_type::ENDPROCEDURE: return "endprocedure";
-        case token_type::FUNCTION: return "function";   
-        case token_type::ENDFUNCTION: return "endfunction";
-        case token_type::IF: return "if";         
-        case token_type::ENDIF: return "endif";
-        case token_type::WHILE: return "while";      
-        case token_type::ENDWHILE: return "endwhile";
-        case token_type::LOOP: return "loop";       
-        case token_type::ENDLOOP: return "endloop";
-        case token_type::PLOOP: return "ploop";      
-        case token_type::ENDPLOOP: return "endploop";
-        case token_type::FIT: return "fit";        
-        case token_type::ENDFIT: return "endfit";
-        case token_type::VARIABLE: return "variable";
-        case token_type::WRITE: return "write";
-        case token_type::READ: return "read";
-        case token_type::SAVE: return "save";
-        case token_type::INCLUDE: return "include";
-        case token_type::SCOPE: return "scope";
-        case token_type::ENDSCOPE: return "endscope";
-        case token_type::UNDEFINED: return "undefined";
-        case token_type::END_OF_FILE: return "end_of_file";
-        case token_type::END_OF_LINE: return "end_of_line";
-        default: return "unset conversion";
-
-    }
-
-}
-
 
 // --- Source File Scanner -----------------------------------------------------
 //
@@ -119,11 +45,6 @@ struct scanner
 static inline bool
 scanner_is_eof(scanner *state)
 {
-#if 0 
-    bool eof_marker =  (state->source[state->step] == '\0'   ||
-                        state->source[state->step] == '\13'  ||
-                        state->source[state->step] == '\10');
-#endif
     bool eof_marker = (state->source[state->step] == '\0');
     return eof_marker;
 }
@@ -155,9 +76,15 @@ static inline token_type
 scanner_validate_identifier_type(token *current_token)
 {
     
-    string current = parser_token_to_string(current_token);
-    current.to_uppercase();
-    
+    // Copy in the string token from the source file.
+    char token_string_buffer[260];
+    uint64_t write_size = token_copy_string(current_token, token_string_buffer, 260, 0);
+    assert(write_size == current_token->length);
+
+    // Force the string to lowercase for the check.
+    for (size_t idx = 0; idx < write_size; ++idx)
+        token_string_buffer[idx] = toupper(token_string_buffer[idx]);
+
     // NOTE(Chris): This is a strong candidate for a hashmap, but for now we can
     //              use a good ol' fashion double table array. We statically store
     //              this and let the first pass lazy-initialize.
@@ -217,12 +144,9 @@ scanner_validate_identifier_type(token *current_token)
         list_initialized = true;
     }
 
-    // NOTE(Chris): String compares are somewhat expensive, so the trick is to
-    //              reduce the amount of compares by alphabetizing into buckets
-    //              and searching that way.
     for (size_t idx = 0; idx < 23; ++idx)
     {
-        if (keyword_list[idx] == current)
+        if (strcmp(keyword_list[idx], token_string_buffer) == 0)
             return type_list[idx];
     }
 
@@ -238,10 +162,8 @@ scanner_create_token(scanner *state, token_type type)
     token result = {};
     result.source               = state->source;
     result.location             = state->file;
-    result.offset_from_start    = state->start;
-    result.offset_from_line     = state->line_offset;
+    result.offset               = state->start;
     result.length               = state->step - state->start;
-    result.line                 = state->line;
     result.type                 = type;
 
     if (type == token_type::IDENTIFIER)
@@ -535,7 +457,7 @@ static inline void
 parser_environment_push_scope(environment *env)
 {
 
-    scope *new_scope = memory_alloc_type(scope);
+    scope *new_scope = memory_allocate_type(scope);
     new (new_scope) scope;
     new_scope->parent_scope = env->active_scope;
     new_scope->depth = new_scope->parent_scope->depth + 1;
@@ -552,7 +474,7 @@ parser_environment_pop_scope(environment *env)
     env->active_scope = parent;
     assert(parent != NULL); // We should never have a null scope, global must persist.
     current->~scope(); // Required for placement new due to std::unordered_map...
-    memory_free(current);
+    memory_release(current);
 
 }
 
@@ -563,7 +485,7 @@ parser_environment_get_symbol(environment *env, token *identifier)
     std::string key;
     for (size_t idx = 0; idx < identifier->length; ++idx)
     {
-        char c = *(identifier->source + identifier->offset_from_start + idx);
+        char c = *(identifier->source + identifier->offset + idx);
         key += c;
     }
 
@@ -596,7 +518,7 @@ parser_environment_insert_symbol(environment *env, token *identifier)
     std::string key;
     for (size_t idx = 0; idx < identifier->length; ++idx)
     {
-        char c = *(identifier->source + identifier->offset_from_start + idx);
+        char c = *(identifier->source + identifier->offset + idx);
         key += c;
     }
 
@@ -1289,6 +1211,8 @@ static inline void
 parser_ast_traversal_print_expression(expression *expr)
 {
 
+    char token_string_buffer[512];
+
     switch (expr->node_type)
     {
 
@@ -1297,8 +1221,8 @@ parser_ast_traversal_print_expression(expression *expr)
             
             parser_ast_traversal_print_expression(expr->binary_expression.left);
 
-            string operation_string = parser_token_to_string(expr->binary_expression.literal);
-            printf(" %s ", operation_string.str());
+            token_copy_string(expr->binary_expression.literal, token_string_buffer, 260, 0);
+            printf(" %s ", token_string_buffer);
 
             parser_ast_traversal_print_expression(expr->binary_expression.right);
 
@@ -1307,8 +1231,8 @@ parser_ast_traversal_print_expression(expression *expr)
         case ast_node_type::UNARY_EXPRESSION:
         {
 
-            string operation_string = parser_token_to_string(expr->unary_expression.literal);
-            printf("%s", operation_string.str());
+            token_copy_string(expr->unary_expression.literal, token_string_buffer, 260, 0);
+            printf("%s", token_string_buffer);
 
             parser_ast_traversal_print_expression(expr->unary_expression.primary);
 
@@ -1316,8 +1240,8 @@ parser_ast_traversal_print_expression(expression *expr)
 
         case ast_node_type::ASSIGNMENT_EXPRESSION:
         {
-            string identifier = parser_token_to_string(expr->assignment_expression.identifier);
-            printf("%s = ", identifier.str());
+            token_copy_string(expr->assignment_expression.identifier, token_string_buffer, 260, 0);
+            printf("%s = ", token_string_buffer);
 
             parser_ast_traversal_print_expression(expr->assignment_expression.assignment);
         } break;
@@ -1336,8 +1260,8 @@ parser_ast_traversal_print_expression(expression *expr)
         case ast_node_type::LITERAL_EXPRESSION:
         {
 
-            string literal_string = parser_token_to_string(expr->unary_expression.literal);
-            printf("%s", literal_string.str());
+            token_copy_string(expr->unary_expression.literal, token_string_buffer, 260, 0);
+            printf("%s", token_string_buffer);
 
         } break;
 
@@ -1350,6 +1274,8 @@ parser_ast_traversal_print_expression(expression *expr)
 static inline void
 parser_ast_traversal_print_statement(statement *stm, size_t depth)
 {
+
+    char token_string_buffer[512];
 
     switch (stm->node_type)
     {
@@ -1370,8 +1296,8 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
             printf("\n");
             for (size_t idx = 0; idx < depth; ++idx) printf(" ");
             printf("/*");
-            string comment_string = parser_token_to_string(stm->comment_statement.comment);
-            printf("%s", comment_string.str());
+            token_copy_string(stm->comment_statement.comment, token_string_buffer, 512, 0);
+            printf("%s", token_string_buffer);
             printf("*/\n");
         } break;
 
@@ -1390,8 +1316,8 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
 
             printf(">");
 
-            string variable_name = parser_token_to_string(stm->declaration_statement.identifier);
-            printf(" %s()", variable_name.str());
+            token_copy_string(stm->declaration_statement.identifier, token_string_buffer, 512, 0);
+            printf(" %s()", token_string_buffer);
 
             printf(";\n");
 

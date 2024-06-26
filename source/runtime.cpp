@@ -1,3 +1,29 @@
+// --- Runtime Environment -----------------------------------------------------
+//
+// The runtime environment is where the magic happens.
+//
+// TODO(Chris): In no particular order...
+//
+//      1.  Decouple any C++ language dependencies to C. This means any placement
+//          new operators need to be removed in favor of good ol' fashioned memory
+//          management routines. Much of this is already abstracted away.
+//
+//      2.  Implement an efficient hashing routine as well as a C-style hashmap
+//          so that we can speed up our symbol-table searches.
+//
+//      3.  A C-style string utility library to make it easier to generate and copy
+//          strings out to memory.
+//
+//      4.  Memory copy and memory set routines. This will be important to have
+//          towards the file-generation process since we're basically doing large
+//          quantities of memory copies.
+//
+//      5.  A platform multithreading library. This will help in a number of areas
+//          to improve performance where parallelism is possible. The most obvious
+//          area to consider is the tokenization routine which can easily parallized
+//          based on the number of files submitted at compile time.
+//
+
 #include <runtime.h>
 
 #include <platform/fileio.h>
@@ -12,8 +38,8 @@
 typedef struct
 environment_state
 {
-    array<string>   source_files;
-    memory_arena    primary_store;
+    array<const char*>  source_files;
+    memory_arena        primary_store;
 } environment_state;
 
 static environment_state *state = NULL;
@@ -32,7 +58,7 @@ environment_initialize(int argument_count, char ** argument_list)
     // Initialize environment state first. We need to use placement new here
     // because our tracked allocator doesn't manually invoke and cascade constructors
     // for us, hence the strange "new" syntax below.
-    state = new (memory_alloc_type(environment_state)) environment_state;
+    state = new (memory_allocate_type(environment_state)) environment_state;
     if (state == NULL) return STATUS_CODE_ALLOC_FAIL;
 
     // Allocate our primary store, ensure allocation success and then inspect
@@ -58,7 +84,7 @@ environment_initialize(int argument_count, char ** argument_list)
             return STATUS_CODE_NO_FILE;
         }
 
-        state->source_files.push({argument_list[idx]});
+        state->source_files.push(argument_list[idx]);
 
     }
 
@@ -81,10 +107,14 @@ environment_runtime()
     assert(state != NULL);
 
     // Pull the first source file into memory.
-    size_t source_size = fileio_file_size(state->source_files[0].str());
-    string source_file(source_size + 1);
-    fileio_file_read(state->source_files[0].str(), source_file.buffer(), 
-            source_size, source_size + 1);
+    size_t source_size = fileio_file_size(state->source_files[0]);
+    char *source_buffer = memory_allocate_array(char, source_size + 1);
+    fileio_file_read(state->source_files[0], source_buffer, source_size, source_size + 1);
+    source_buffer[source_size] = '\0'; // Null-terminate.
+    // TODO(Chris): Since decoupling from C++, we're dealing with raw c-strings
+    //              once again. This can be a bit error prone (which prompted this
+    //              comment). We will need to write a helper library to ensure that
+    //              we have better interfacing with strings in a C-style manner.
 
     // --- Scanning Phase ------------------------------------------------------
     //
@@ -96,19 +126,17 @@ environment_runtime()
     array<token> token_list;
     array<token> error_list;
 
-    bool scan_status = parser_tokenize_source_file(state->source_files[0].str(), 
-            source_file.str(), &token_list, &error_list);
+    bool scan_status = parser_tokenize_source_file(state->source_files[0], 
+            source_buffer, &token_list, &error_list);
     if (!scan_status)
     {
 
-        for (size_t idx = 0; idx < error_list.size(); ++idx)
-            print_symbol_error(state->source_files[0], &error_list[idx]);
-
+        printf("Unable to tokenize source file.\n");
         return STATUS_CODE_SUCCESS;
 
     }
 
-#if 1
+#if 0
     // We will print the list of tokens our for now, but this is temporary.
     printf("------------------------------------------------------------\n");
     printf("                Tokenization Results\n");
@@ -148,6 +176,7 @@ environment_runtime()
 
     // Frees the AST from memory.
     //parser_ast_free_traversal(ast_root);
+    memory_release(source_buffer);
 
     return STATUS_CODE_SUCCESS;
 
@@ -166,6 +195,6 @@ environment_shutdown(int status_code)
     // Free the environment state. Since environment state may contain C++
     // datatypes, we need manually invoke the destructor on the structure.
     state->~environment_state();
-    if (state != NULL) memory_free(state);
+    if (state != NULL) memory_release(state);
 
 }
