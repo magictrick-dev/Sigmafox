@@ -45,6 +45,7 @@ add_executable(Sigmafox
 
     "source/core/utilities.h"
     "source/core/utilities/array.h"
+    "source/core/utilities/hashtable.h"
     "source/core/utilities/allocator.h"
     "source/core/utilities/allocator.cpp"
 

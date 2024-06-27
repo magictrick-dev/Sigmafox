@@ -124,11 +124,32 @@ struct statement
 
 };
 
-bool    parser_tokenize_source_file(const char *file, const char *source,
+bool parser_tokenize_source_file(const char *file, const char *source,
             array<token> *tokens, array<token> *errors);
-
 bool parser_generate_abstract_syntax_tree(array<token> *tokens, 
         array<statement*> *statements, memory_arena *arena);
 void parser_ast_traversal_print(array<statement*> *statements);
+
+// --- Tokenizer ---------------------------------------------------------------
+//
+// The tokenizer's responsibility is to take the raw textual input from a source
+// file and categorize each lexeme into its grammatical representation. The tokenizer
+// works in linear order, and therefore it can be used to tokenize an entire source
+// file at once, or to collect a token one at a time. The AST can use this one
+// at a time functionality to fetch tokens as they're needed, storing them as
+// required since most tokens do not need to persist.
+//
+
+typedef struct tokenizer
+{
+    const char *source;
+    const char *filename;
+    uint64_t    step;
+    uint64_t    offset;
+} tokenizer;
+
+void    parser_tokenizer_initialize(tokenizer *state, const char *source, const char *filename);
+bool    parser_tokenizer_consume_token(tokenizer *state, token *instance);
+bool    parser_tokenizer_consume_all_tokens(tokenizer *state, token *tokens, uint64_t *count);
 
 #endif

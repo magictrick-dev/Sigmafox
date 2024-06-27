@@ -4,7 +4,23 @@
 #include <stack>
 #include <unordered_map>
 
+// --- Error Handling ----------------------------------------------------------
+//
+// Although in its infancy, error handling is an important part of the parser that
+// needs to be done with some care to ensure consistency with each error being
+// displayed to the user. For now, we just let things go since we're in the
+// early stages.
+//
+
 #define propagate_on_error(exp) if ((exp) == NULL) return NULL
+
+#define ERROR_CODE_TOKENIZER_UNDEFINED_SYMBOL       "0x0001000A"
+#define ERROR_CODE_TOKENIZER_EOL_REACH              "0x0001000B"
+#define ERROR_CODE_TOKENIZER_EOF_REACH              "0x0001000C"
+#define ERROR_CODE_SYNTAX_NO_SEMICOLON              "0x001000A0"
+#define ERROR_CODE_SYNTAX_UNEXPECTED_SYMBOL         "0x001000B0"
+#define ERROR_CODE_SYNTAX_MISSING_SYMBOL            "0x001000C0"
+#define ERROR_CODE_SYNTAX_INVALID_EXPRESSION        "0x01000A00"
 
 static inline void
 parser_display_error(token *location, const char *reason)
@@ -28,8 +44,11 @@ parser_display_warning(token *location, const char *reason)
 
 // --- Source File Scanner -----------------------------------------------------
 //
-// Sequentially scans a source file by inspecting leading characters and properly
-// matching expressions into tokens.
+// The legacy method for tokenizing source files. It works by linearly going
+// through the source file and peeling out a token given its valid and fits
+// the syntax of the language.
+//
+// It uses array<type> to store this data, a C++ class being phased out.
 //
 
 struct scanner
@@ -72,7 +91,7 @@ scanner_peek(scanner *state)
     return current;
 }
 
-static inline token_type
+static inline uint32_t
 scanner_validate_identifier_type(token *current_token)
 {
     
@@ -375,6 +394,252 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 
 }
 
+// --- Tokenizer ---------------------------------------------------------------
+//
+// The tokenizer converts raw strings from a source file into tokens. The init
+// procedure ensures that the tokenizer is set to a valid state.
+//
+
+static inline void
+parser_tokenizer_initialize_token(tokenizer *state, token *instance, uint32_t type)
+{
+
+    instance->type      = type;
+    instance->source    = state->source;
+    instance->location  = state->filename;
+    instance->offset    = state->offset;
+    instance->length    = state->step - state->offset;
+    return;
+
+}
+
+static inline bool
+parser_tokenizer_is_eof(tokenizer *state)
+{
+
+    bool result = (state->source[state->step] == '\0');
+    return result;
+
+}
+
+static inline bool
+parser_tokenizer_is_lc(tokenizer *state)
+{
+
+    bool result (state->source[state->step] == '\r' ||
+                 state->source[state->step] == '\n');
+    return result;
+
+}
+
+static inline char
+parser_tokenizer_advance(tokenizer *state)
+{
+
+    char result = state->source[state->step];
+    state->step++;
+    return result;
+
+}
+
+static inline char
+parser_tokenizer_peek(tokenizer *state)
+{
+
+    char result = state->source[state->step];
+    return result;
+
+}
+
+static inline bool
+parser_tokenizer_scan_for_symbols(tokenizer *state, token *instance)
+{
+
+
+    char c = parser_tokenizer_advance(state);
+    switch (c)
+    {
+
+        // Single symbol conditions.
+        case '(':
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::LEFT_PARENTHESIS);
+            return true;
+        } break;
+
+        case ')': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::RIGHT_PARENTHESIS);
+            return true;
+        } break;
+
+        case ';': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::SEMICOLON);
+            return true;
+        } break;
+
+        case '+': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::PLUS);
+            return true;
+        } break;
+
+        case '-': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::MINUS);
+            return true;
+        } break;
+
+        case '*': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::MULTIPLY);
+            return true;
+        } break;
+
+        case '/': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::DIVISION);
+            return true;
+        } break;
+
+        case '^': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::POWER);
+            return true;
+        } break;
+
+        case '=': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::EQUALS);
+            return true;
+        } break;
+
+        case '#': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::NOT_EQUALS);
+            return true;
+        } break;
+
+        case '&': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::CONCAT);
+            return true;
+        } break;
+
+        case '|': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::EXTRACT);
+            return true;
+        } break;
+
+        case '%': 
+        {
+            parser_tokenizer_initialize_token(state, instance, token_type::DERIVATION);
+            return true;
+        } break;
+
+    }
+
+    return false;
+
+}
+
+static inline bool
+parser_tokenizer_scan_for_comments(tokenizer *state, token *instance)
+{
+
+    assert(!"No implementation.");
+    return false;
+
+}
+
+static inline bool
+parser_tokenizer_scan_for_strings(tokenizer *state, token *instance)
+{
+
+    assert(!"No implementation.");
+    return false;
+
+}
+
+static inline bool
+parser_tokenizer_scan_for_numbers(tokenizer *state, token *instance)
+{
+
+    assert(!"No implementation.");
+    return false;
+
+}
+
+static inline bool
+parser_tokenizer_scan_for_identifiers(tokenizer *state, token *instance)
+{
+
+    assert(!"No implementation.");
+    return false;
+
+}
+
+static void
+parser_tokenizer_scan(tokenizer *state, token *instance)
+{
+
+    instance->type = token_type::UNDEFINED;
+    if (!parser_tokenizer_is_eof(state))
+    {
+
+        // Scan for a token match.
+        if (parser_tokenizer_scan_for_symbols(state, instance))     return;
+        if (parser_tokenizer_scan_for_comments(state, instance))    return;
+        if (parser_tokenizer_scan_for_strings(state, instance))     return;
+        if (parser_tokenizer_scan_for_numbers(state, instance))     return;
+        if (parser_tokenizer_scan_for_identifiers(state, instance)) return;
+
+        // Generate an error token since we couldn't match a token.
+        parser_tokenizer_initialize_token(state, instance, token_type::UNDEFINED);
+        parser_display_error(instance, "Unrecognize symbol in source.");
+
+        // Update the offset to the current step for the next scan.
+        state->offset = state->step;
+
+    }
+
+}
+
+void
+parser_tokenizer_initialize(tokenizer *state, const char *source, const char *filename)
+{
+
+    assert(state != NULL);
+    state->source   = source;
+    state->filename = filename;
+    state->step     = 0;
+    state->offset   = 0;
+    return;
+
+}
+
+bool    
+parser_tokenizer_consume_token(tokenizer *state, token *instance)
+{
+
+    if (parser_tokenizer_is_eof(state)) false;
+    parser_tokenizer_scan(state, instance);
+
+    bool result = (instance->type != token_type::UNDEFINED);
+    return result;
+
+}
+
+bool    
+parser_tokenizer_consume_all_tokens(tokenizer *state, token *tokens, uint64_t *count)
+{
+
+    assert(!"No implementation.");
+    return false;
+}
+
 // --- Abstract Syntax Tree ----------------------------------------------------
 //
 // An abstract syntax tree takes the set of linear tokens and composes them into
@@ -556,7 +821,7 @@ static inline bool
 parser_validate_token(parser *state, token_type type)
 {
     
-    token_type current_type = (*state->tokens)[state->current].type;
+    uint32_t current_type = (*state->tokens)[state->current].type;
     if (current_type == token_type::END_OF_FILE) 
     {
         return false;
@@ -568,7 +833,7 @@ parser_validate_token(parser *state, token_type type)
 static inline bool
 parser_check_token(parser *state, token_type type)
 {
-    token_type current_type = (*state->tokens)[state->current].type;
+    uint32_t current_type = (*state->tokens)[state->current].type;
     return (current_type == type);
 }
 
@@ -621,7 +886,7 @@ parser_synchronize_state(parser *state)
 {
 
     // Move forward until we synchronize to a valid position.
-    token_type current_type = (*state->tokens)[state->current].type;
+    uint32_t current_type = (*state->tokens)[state->current].type;
     while (current_type != token_type::SEMICOLON &&
            current_type != token_type::END_OF_FILE)
     {
