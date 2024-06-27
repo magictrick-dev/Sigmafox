@@ -38,10 +38,10 @@ typedef struct memory_allocator_context
 
 memory_allocator_context*   memory_pop_allocator();
 memory_allocator_context*   memory_get_current_allocator_context();
-void        memory_initialize_allocator_context();
-void        memory_push_allocator(memory_allocator_context *allocator);
-void*       memory_allocate(uint64_t size);
-void        memory_release(void *ptr);
+void                        memory_initialize_allocator_context();
+void                        memory_push_allocator(memory_allocator_context *allocator);
+void*                       memory_allocate(uint64_t size);
+void                        memory_release(void *ptr);
 
 #define memory_allocate_type(type) ((type*)memory_allocate(sizeof(type)))
 #define memory_allocate_array(type, size) ((type*)memory_allocate(sizeof(type)*size))

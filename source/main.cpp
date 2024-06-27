@@ -23,4 +23,9 @@ main(int argc, char ** argv)
     int runtime_code = environment_runtime();
     environment_shutdown(runtime_code);
 
+    // Before shutting down, we manually pop all the allocators off the stack
+    // so that they properly invoke any cleanup events before shutdown.
+    while (memory_get_current_allocator_context() != NULL)
+        memory_pop_allocator();
+
 }
