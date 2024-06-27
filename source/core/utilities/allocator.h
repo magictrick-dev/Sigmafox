@@ -39,7 +39,7 @@ typedef struct memory_allocator_context
 memory_allocator_context*   memory_pop_allocator();
 memory_allocator_context*   memory_get_current_allocator_context();
 void        memory_initialize_allocator_context();
-void        memory_push_allocator(memory_allocator *allocator);
+void        memory_push_allocator(memory_allocator_context *allocator);
 void*       memory_allocate(uint64_t size);
 void        memory_release(void *ptr);
 

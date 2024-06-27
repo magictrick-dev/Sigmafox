@@ -140,6 +140,17 @@ tracked_memory_statistics(memory_alloc_stats *stats)
 
 }
 
+static void
+tracked_memory_on_context_pop(void)
+{
+    
+    memory_alloc_stats stats;
+    bool matched_allocs = tracked_memory_statistics(&stats);
+
+
+
+}
+
 // --- Allocator Interface -----------------------------------------------------
 //
 // The allocator interface uses the above tracked allocator as the default
@@ -155,7 +166,7 @@ typedef struct allocator_stack
 static allocator_stack allocator_stack_state;
 
 void                 
-memory_push_allocator(memory_allocator *allocator)
+memory_push_allocator(memory_allocator_context *allocator)
 {
     
     memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
@@ -163,6 +174,9 @@ memory_push_allocator(memory_allocator *allocator)
     allocator->default_allocator = &allocator_stack_state.default_allocator;
 
     allocator_stack_state.active_allocator = current_allocator;
+    
+    if (allocator->on_context_push)
+        allocator->on_context_push();
 
 }
 
@@ -176,12 +190,15 @@ memory_pop_allocator()
     memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
     assert(current_allocator != NULL);
 
+    if (current_allocator->on_context_pop)
+        current_allocator->on_context_pop();
+
     allocator_stack_state.active_allocator = current_allocator->parent_allocator;
     return current_allocator; // In case we want to pop and *then* push again.
 
 }
 
-memory_allocator*    
+memory_allocator_context*
 memory_get_current_allocator_context()
 {
     
@@ -197,12 +214,12 @@ memory_initialize_allocator_context()
     // NOTE(Chris): The default allocator is set as the active allocator.
     allocator_stack_state.active_allocator = &allocator_stack_state.default_allocator;
 
-    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
+    memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
     current_allocator->user_defined = NULL;
     current_allocator->parent_allocator = NULL;
     current_allocator->default_allocator = NULL;
-    current_allocator->memory_allocate = tracked_memory_alloc;
-    current_allocator->memory_release = tracked_memory_free;
+    current_allocator->allocate = tracked_memory_alloc;
+    current_allocator->release = tracked_memory_free;
 
 }
 
@@ -210,8 +227,8 @@ void*
 memory_allocate(uint64_t size)
 {
     
-    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
-    void *result = current_allocator->memory_allocate(size);
+    memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
+    void *result = current_allocator->allocate(size);
     return result;
 
 }
@@ -220,8 +237,8 @@ void
 memory_release(void *ptr)
 {
 
-    memory_allocator *current_allocator = allocator_stack_state.active_allocator;
-    current_allocator->memory_release(ptr);
+    memory_allocator_context *current_allocator = allocator_stack_state.active_allocator;
+    current_allocator->release(ptr);
     return;
 
 }
