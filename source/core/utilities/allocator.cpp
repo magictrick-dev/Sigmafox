@@ -151,12 +151,12 @@ tracked_memory_on_context_pop(void)
     printf("------------------------------------------------------------\n");
     printf("                Malloc/Free Statistics\n");
     printf("------------------------------------------------------------\n");
-    printf("Total memory allocated:     %lld bytes.\n", stats.memory_allocated);
-    printf("Total memory released:      %lld bytes.\n", stats.memory_freed);
-    printf("Peak memory allocated:      %lld bytes.\n", stats.memory_freed);
-    printf("Current memory used:        %lld bytes.\n", stats.current_useage);
-    printf("Calls to malloc():          %lld.\n", stats.alloc_calls);
-    printf("Calls to free():            %lld.\n", stats.free_calls);
+    printf("    Total memory allocated  :   %lld bytes.\n", stats.memory_allocated);
+    printf("    Total memory released   :   %lld bytes.\n", stats.memory_freed);
+    printf("    Peak memory allocated   :   %lld bytes.\n", stats.memory_freed);
+    printf("    Current memory used     :   %lld bytes.\n", stats.current_useage);
+    printf("    Calls to malloc()       :   %lld.\n", stats.alloc_calls);
+    printf("    Calls to free()         :   %lld.\n", stats.free_calls);
 
 
 }

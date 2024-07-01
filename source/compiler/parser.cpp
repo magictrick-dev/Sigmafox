@@ -400,6 +400,56 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 // procedure ensures that the tokenizer is set to a valid state.
 //
 
+static hash_table identifier_map;
+static inline void
+parser_tokenizer_initialize_identifier_map(hash_table *identifier_map)
+{
+
+    assert(identifier_map != NULL);
+
+    // Create the hash table.
+    hash_table_create(identifier_map, sizeof(uint32_t), 64, .65f, hash_function_fnv1a);
+
+    // Store the entries using an absolutely atrocious pointer-dereferencing technique.
+    *(hash_table_insert_type(identifier_map, "BEGIN", uint32_t))          = token_type::BEGIN;
+    *(hash_table_insert_type(identifier_map, "END", uint32_t))            = token_type::END;
+    *(hash_table_insert_type(identifier_map, "ENDPROCEDURE", uint32_t))   = token_type::ENDPROCEDURE;
+    *(hash_table_insert_type(identifier_map, "ENDFUNCTION", uint32_t))    = token_type::ENDFUNCTION;
+    *(hash_table_insert_type(identifier_map, "ENDIF", uint32_t))          = token_type::ENDIF;
+    *(hash_table_insert_type(identifier_map, "ENDWHILE", uint32_t))       = token_type::ENDWHILE;
+    *(hash_table_insert_type(identifier_map, "ENDLOOP", uint32_t))        = token_type::ENDLOOP;
+    *(hash_table_insert_type(identifier_map, "ENDPLOOP", uint32_t))       = token_type::ENDPLOOP;
+    *(hash_table_insert_type(identifier_map, "ENDFIT", uint32_t))         = token_type::ENDFIT;
+    *(hash_table_insert_type(identifier_map, "ENDSCOPE", uint32_t))       = token_type::ENDSCOPE;
+    *(hash_table_insert_type(identifier_map, "FIT", uint32_t))            = token_type::FIT;
+    *(hash_table_insert_type(identifier_map, "FUNCTION", uint32_t))       = token_type::FUNCTION;
+    *(hash_table_insert_type(identifier_map, "IF", uint32_t))             = token_type::IF;
+    *(hash_table_insert_type(identifier_map, "INCLUDE", uint32_t))        = token_type::INCLUDE;
+    *(hash_table_insert_type(identifier_map, "LOOP", uint32_t))           = token_type::LOOP;
+    *(hash_table_insert_type(identifier_map, "PLOOP", uint32_t))          = token_type::PLOOP;
+    *(hash_table_insert_type(identifier_map, "PROCEDURE", uint32_t))      = token_type::PROCEDURE;
+    *(hash_table_insert_type(identifier_map, "READ", uint32_t))           = token_type::READ;
+    *(hash_table_insert_type(identifier_map, "SAVE", uint32_t))           = token_type::SAVE;
+    *(hash_table_insert_type(identifier_map, "SCOPE", uint32_t))          = token_type::SCOPE;
+    *(hash_table_insert_type(identifier_map, "VARIABLE", uint32_t))       = token_type::VARIABLE;
+    *(hash_table_insert_type(identifier_map, "WHILE", uint32_t))          = token_type::WHILE;
+    *(hash_table_insert_type(identifier_map, "WRITE", uint32_t))          = token_type::WRITE;
+    
+
+}
+
+static inline uint32_t
+parser_tokenizer_validate_identifier_type(token *instance)
+{
+
+    char identifier_string[260];
+    token_copy_string(instance, identifier_string, 260, 0);
+    uint32_t *type = hash_table_find_type(&identifier_map, identifier_string, uint32_t);
+    if (type != NULL) return *type;
+    return instance->type;
+
+}
+
 static inline void
 parser_tokenizer_initialize_token(tokenizer *state, token *instance, uint32_t type)
 {
