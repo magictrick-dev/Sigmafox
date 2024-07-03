@@ -1,5 +1,6 @@
 #include <cstdio>
 #include <compiler/parser.h>
+#include <compiler/environment.h>
 #include <string>
 #include <stack>
 #include <unordered_map>
@@ -731,7 +732,7 @@ parser_tokenizer_consume_all_tokens(tokenizer *state, token *tokens, uint64_t *c
 //      primary                 : NUMBER | STRING | identifier | "(" expression ")"
 // 
 
-
+/*
 // --- Environments ------------------------------------------------------------
 //
 // Environments contain the symbol table? We're using C++ maps for this, but we
@@ -857,6 +858,7 @@ parser_environment_insert_symbol(environment *env, token *identifier)
 // ultimately redundant.
 //
 // -----------------------------------------------------------------------------
+*/
 
 struct parser
 {
@@ -1190,7 +1192,7 @@ parser_recursively_descend_expression(parser *state, expression_type level)
                 // If the symbol is an identifier, verify its in the symbol table.
                 if (literal->type == token_type::IDENTIFIER)
                 {
-                    symbol *sym = parser_environment_get_symbol(&state->global_environment, literal);
+                    symbol *sym = environment_get_symbol(&state->global_environment, literal);
                     if (sym == NULL)
                     {
                         parser_display_error(literal, "Undefined identifier in expression.");
@@ -1310,11 +1312,10 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             }
 
             // Ensure the identifier isn't already declared in the current scope.
-            symbol *sym = parser_environment_get_symbol(&state->global_environment, identifier);
+            symbol *sym = environment_get_symbol(&state->global_environment, identifier);
             if (sym != NULL)
             {
-                if (parser_environment_symbol_inside_active_scope(
-                        &state->global_environment, sym))
+                if (sym->depth == state->global_environment.depth)
                 {
                     parser_display_error(parser_get_current_token(state), 
                             "Variable redeclared within current scope.");
@@ -1327,7 +1328,7 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                 }
             }
 
-            sym = parser_environment_insert_symbol(&state->global_environment, identifier);
+            sym = environment_add_symbol(&state->global_environment, identifier);
 
             expression *size = parser_recursively_descend_expression(state,
                     expression_type::EXPRESSION);
@@ -1400,7 +1401,7 @@ parser_recursively_descend_statement(parser *state, statement_type level)
 
             // When we encountered a block statement, we need to push a new scope
             // onto the environment.
-            parser_environment_push_scope(&state->global_environment);
+            environment_push_table(&state->global_environment);
 
             while (!parser_match_token(state, token_type::ENDSCOPE))
             {
@@ -1436,13 +1437,13 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                 //              reached ENDSCOPE, not EOF. Despite the lack of semicolon,
                 //              we probably still want to pop the scope so further errors
                 //              don't occur due to strange scopey behaviors.
-                parser_environment_pop_scope(&state->global_environment);
+                environment_pop_table(&state->global_environment);
                 parser_display_error(parser_get_current_token(state),
                         "Expected semicolon at end of statement.");
                 return NULL;
             }
 
-            parser_environment_pop_scope(&state->global_environment);
+            environment_pop_table(&state->global_environment);
 
             return stm;
 
@@ -1491,8 +1492,7 @@ parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *st
     parser_state.tokens = tokens;
     parser_state.current = 0;
     parser_state.arena = arena;
-    parser_state.global_environment.active_scope = 
-        &parser_state.global_environment.global_scope;
+    environment_push_table(&parser_state.global_environment);
 
     while ((*tokens)[parser_state.current].type != token_type::END_OF_FILE)
     {
@@ -1511,6 +1511,7 @@ parser_generate_abstract_syntax_tree(array<token> *tokens, array<statement*> *st
 
     };
 
+    environment_pop_table(&parser_state.global_environment);
     return (!parser_state.errored);
 
 };

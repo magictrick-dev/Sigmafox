@@ -46,14 +46,14 @@
 #define SIGMAFOX_COMPILER_ENVIRONMENT_H
 #include <core/definitions.h>
 #include <core/utilities.h>
-#include <core/compiler/token.h>
+#include <compiler/token.h>
 
 typedef enum symbol_type : uint32_t
 {
-    UNINITIALIZED   = 0,
-    BOOLEAN         = 1,
-    REAL            = 2,
-    STRING          = 3,
+    STYPE_UNINITIALIZED   = 0,
+    STYPE_BOOLEAN         = 1,
+    STYPE_REAL            = 2,
+    STYPE_STRING          = 3,
 } symbol_type;
 
 typedef struct symbol
@@ -66,21 +66,19 @@ typedef struct symbol
 typedef struct symbol_table
 {
     uint32_t depth;
-    symbol_table *parent_table;
-    linked_list symbols;
+    hash_table symbols;
+    symbol_table *parent;
 } symbol_table;
 
 typedef struct environment
 {
-    symbol_table global_symbol_table;
-    symbol_table *active_table;
+    symbol_table *current_table = NULL;
+    uint32_t depth;
 } environment;
 
-void        environment_scope_push(environment *env);
-void        environment_scope_pop(environment *env);
-
-symbol*     environment_symbol_add(environment *env, void* identifier);
-symbol*     environment_symbol_search(environment *env, void* identifier);
-bool        environment_symbol_active(environment *env, void* identifier);
+void    environment_push_table(environment *env);
+void    environment_pop_table(environment *env);
+symbol* environment_get_symbol(environment *env, token *identifier);
+symbol* environment_add_symbol(environment *env, token *identifier);
 
 #endif
