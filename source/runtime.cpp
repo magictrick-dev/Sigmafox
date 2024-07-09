@@ -32,6 +32,7 @@
 #include <core/utilities.h>
 #include <core/definitions.h>
 
+#include <compiler/scanner.h>
 #include <compiler/parser.h>
 #include <compiler/printing.h>
 
@@ -163,7 +164,7 @@ environment_runtime()
     array<token> token_list;
     array<token> error_list;
 
-    bool scan_status = parser_tokenize_source_file(state->source_files[0], 
+    bool scan_status = scanner_tokenize_source_file(state->source_files[0], 
             source_buffer, &token_list, &error_list);
     if (!scan_status)
     {
