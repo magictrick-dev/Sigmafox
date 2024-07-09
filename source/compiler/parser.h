@@ -21,6 +21,7 @@ enum class statement_type
     EXPRESSION_STATEMENT,
     BLOCK_STATEMENT,
     DECLARATION_STATEMENT,
+    WHILE_STATEMENT,
 };
 
 enum class expression_type 
@@ -49,6 +50,7 @@ enum class ast_node_type
     DECLARATION_STATEMENT,
     BLOCK_STATEMENT,
     ASSIGNMENT_STATEMENT,
+    WHILE_STATEMENT,
 
 };
 
@@ -114,6 +116,12 @@ struct statement
         {
             linked_list statements;
         } block_statement;
+
+        struct while_statement
+        {
+            linked_list statements;
+            expression *check;
+        } while_statement;
 
         struct comment_statement
         {

@@ -402,6 +402,7 @@ parser_tokenize_source_file(const char *source_name, const char *source_file,
 //
 
 static hash_table identifier_map;
+
 static inline void
 parser_tokenizer_initialize_identifier_map(hash_table *identifier_map)
 {
@@ -711,12 +712,28 @@ parser_tokenizer_consume_all_tokens(tokenizer *state, token *tokens, uint64_t *c
 //      block_stm:      Block statements push a new scope onto the environment.
 //                      The scope pops when the appropriate "endscope" is encountered.
 //
+//      while_stm:      The while loop follows traditional while-loop functionality
+//                      by evaluating the truthy expressions.
+//
+//      loop_stm:       The syntax is strange, but expression 1 is the initial state,
+//                      and expression 2 is the ending state, where the identifier is set
+//                      to expression 1 and incremented by 1 (or the optional incremental expression)
+//                      until it reaches expression 2. Loops can not prematurely exit,
+//                      therefore, at the end of each iteration, it must reset the step
+//                      to its initial value. Loops always iterate n-time, however big it
+//                      was initially defined to be. The generating syntax needs to
+//                      mimmick this behavior.
+//
 // Complete Language Grammar
 //
 //      program                 : statement* EOF
-//      statement               : comment_stm | declaration_stm | expression_stm | block_stm
+//      statement               : comment_stm | declaration_stm | expression_stm | block_stm |
+//                                while_stm | loop_stm
 //      comment_stm             : "comment" statement*
 //      block_stm               : "scope" statement* "endscope" ;
+//      while_stm               : "while" expression ; statement* "endwhile" ;
+//      loop_stm                : "loop" identifier expression expression ( expression )? ; 
+//                                statement* "endwhile" ;
 //      declaration_stm         : "variable" IDENTIFIER expression ( expression )* ;
 //      expression_stm          : expression ;
 //
@@ -731,134 +748,6 @@ parser_tokenizer_consume_all_tokens(tokenizer *state, token *tokens, uint64_t *c
 //      unary                   : ( "-" ) unary | primary
 //      primary                 : NUMBER | STRING | identifier | "(" expression ")"
 // 
-
-/*
-// --- Environments ------------------------------------------------------------
-//
-// Environments contain the symbol table? We're using C++ maps for this, but we
-// will probably want a custom hashing routine to handle this. There's a good chance
-// STL hashing routine isn't the fastest or least-resist to collisions, but for now
-// it is the most performant option.
-//
-
-enum class symbol_type : uint32_t
-{
-    UNINITIALIZED,
-    REAL,
-    STRING,
-};
-
-struct symbol
-{
-    uint32_t depth_defined;
-    symbol_type type;
-    token *token;
-};
-
-struct scope
-{
-    uint32_t depth;
-
-    std::unordered_map<std::string, symbol> table;
-    scope *parent_scope;
-};
-
-struct environment
-{
-    scope   global_scope;
-    scope  *active_scope;
-};
-
-static inline void
-parser_environment_push_scope(environment *env)
-{
-
-    scope *new_scope = memory_allocate_type(scope);
-    new (new_scope) scope;
-    new_scope->parent_scope = env->active_scope;
-    new_scope->depth = new_scope->parent_scope->depth + 1;
-    env->active_scope = new_scope;
-
-}
-
-static inline void
-parser_environment_pop_scope(environment *env)
-{
-
-    scope *parent = env->active_scope->parent_scope;
-    scope *current = env->active_scope;
-    env->active_scope = parent;
-    assert(parent != NULL); // We should never have a null scope, global must persist.
-    current->~scope(); // Required for placement new due to std::unordered_map...
-    memory_release(current);
-
-}
-
-static inline symbol*
-parser_environment_get_symbol(environment *env, token *identifier)
-{
-
-    std::string key;
-    for (size_t idx = 0; idx < identifier->length; ++idx)
-    {
-        char c = *(identifier->source + identifier->offset + idx);
-        key += c;
-    }
-
-    // Start at top-level scope and search for symbol.
-    scope *current_scope = env->active_scope;
-    while (current_scope != NULL)
-    {
-        auto search = current_scope->table.find(key); // ew, auto
-        if (search != current_scope->table.end())
-            return &search->second;
-
-        current_scope = current_scope->parent_scope;
-    }
-
-    // If we didn't find it, we automatically return NULL.
-    return NULL;
-
-}
-
-static inline bool
-parser_environment_symbol_inside_active_scope(environment *env, symbol *sym)
-{
-    return (env->active_scope->depth == sym->depth_defined);
-}
-
-static inline symbol*
-parser_environment_insert_symbol(environment *env, token *identifier)
-{
-
-    std::string key;
-    for (size_t idx = 0; idx < identifier->length; ++idx)
-    {
-        char c = *(identifier->source + identifier->offset + idx);
-        key += c;
-    }
-
-    scope *current_scope = env->active_scope;
-    current_scope->table[key] = 
-    {   
-        env->active_scope->depth,
-        symbol_type::UNINITIALIZED, 
-        identifier
-    };
-
-    return &current_scope->table.at(key);
-
-}
-
-//
-// We will need to abstract some of this code out or refactor the connectedness
-// between the scanner routine and the parser. As it turns out, we only look at
-// the current token and the previous token and we store the ones that need to
-// persist as pointer into the token list; this means that the token list is
-// ultimately redundant.
-//
-// -----------------------------------------------------------------------------
-*/
 
 struct parser
 {
@@ -1269,15 +1158,25 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             if (parser_match_token(state, token_type::SCOPE))
             {
                 
+                statement *stm = parser_recursively_descend_statement(state,
+                        statement_type::BLOCK_STATEMENT);
+                return stm;
+
+            }
+
+            // Loop statements.
+            if (parser_match_token(state, token_type::WHILE))
+            {
+
                 if (!parser_consume_token(state, token_type::SEMICOLON))
                 {
                     parser_display_error(parser_get_previous_token(state),
                             "Expected semicolon at end of scope declaration.");
                     propagate_on_error(NULL);
                 }
-
+                
                 statement *stm = parser_recursively_descend_statement(state,
-                        statement_type::BLOCK_STATEMENT);
+                        statement_type::WHILE_STATEMENT);
                 return stm;
 
             }
@@ -1404,6 +1303,73 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             environment_push_table(&state->global_environment);
 
             while (!parser_match_token(state, token_type::ENDSCOPE))
+            {
+                statement *scope_stm = parser_recursively_descend_statement(state,
+                        statement_type::STATEMENT);
+
+                if (scope_stm == NULL)
+                {
+                    state->errored = true;
+                    parser_synchronize_state(state); 
+                    continue;
+                }
+
+                // NOTE(Chris): We don't actually have to allocate anything for
+                //              the node, we can simply just set the data pointer
+                //              to our statement.
+                llnode *stm_node = linked_list_push_node(&stm->block_statement.statements, 
+                        state->arena);
+                stm_node->data = scope_stm;
+                
+            }
+
+            if (parser_check_token(state, token_type::END_OF_FILE))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Unexpected end-of-file, unmatched SCOPE declaration?");
+                return NULL;
+            }
+
+            if (!parser_match_token(state, token_type::SEMICOLON))
+            {
+                // NOTE(Chris): We didn't hit EOF, which means that match_token actually
+                //              reached ENDSCOPE, not EOF. Despite the lack of semicolon,
+                //              we probably still want to pop the scope so further errors
+                //              don't occur due to strange scopey behaviors.
+                environment_pop_table(&state->global_environment);
+                parser_display_error(parser_get_current_token(state),
+                        "Expected semicolon at end of statement.");
+                return NULL;
+            }
+
+            environment_pop_table(&state->global_environment);
+
+            return stm;
+
+        } break;
+
+        case statement_type::WHILE_STATEMENT:
+        {
+
+            statement *stm = memory_arena_push_type(state->arena, statement);
+            stm->node_type = ast_node_type::WHILE_STATEMENT;
+            environment_push_table(&state->global_environment);
+
+            // Check expression.
+            expression *eval = parser_recursively_descend_expression(state, 
+                    expression_type::EXPRESSION);
+            propagate_on_error(eval);
+            stm->while_statement.check = eval;
+
+            // Following is a semicolon.
+            if (!parser_consume_token(state, token_type::SEMICOLON))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Expected semicolon at end of scope declaration.");
+                propagate_on_error(NULL);
+            }
+
+            while (!parser_match_token(state, token_type::ENDWHILE))
             {
                 statement *scope_stm = parser_recursively_descend_statement(state,
                         statement_type::STATEMENT);
