@@ -35,6 +35,23 @@ scope;
 
 endscope;
 
+{ Now testing loop syntax. }
+variable loop_start 4;
+variable loop_end 4;
+loop_start := 0;
+loop_end := 10;
+
+{ NOTE(Chris): The bracketing is not required. }
+while loop_start < loop_end;
+    
+    { Print or do something here. }
+    variable foobar 4;
+    foobar := loop_start * 2;
+
+    loop_start := loop_start + 1;
+
+endwhile;
+
 { Testing error conditions. } { Commented out. }
 { inner_scope_a := 20; }
 

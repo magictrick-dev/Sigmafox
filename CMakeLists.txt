@@ -39,12 +39,16 @@ add_executable(Sigmafox
     "source/compiler/token.cpp"
     "source/compiler/parser.h"
     "source/compiler/parser.cpp"
+    "source/compiler/environment.h"
+    "source/compiler/environment.cpp"
     
     "source/platform/fileio.h"
     "source/platform/system.h"
 
     "source/core/utilities.h"
     "source/core/utilities/array.h"
+    "source/core/utilities/hashtable.h"
+    "source/core/utilities/hashtable.cpp"
     "source/core/utilities/allocator.h"
     "source/core/utilities/allocator.cpp"
 

@@ -151,12 +151,12 @@ tracked_memory_on_context_pop(void)
     printf("------------------------------------------------------------\n");
     printf("                Malloc/Free Statistics\n");
     printf("------------------------------------------------------------\n");
-    printf("Total memory allocated:     %lld bytes.\n", stats.memory_allocated);
-    printf("Total memory released:      %lld bytes.\n", stats.memory_freed);
-    printf("Peak memory allocated:      %lld bytes.\n", stats.memory_freed);
-    printf("Current memory used:        %lld bytes.\n", stats.current_useage);
-    printf("Calls to malloc():          %lld.\n", stats.alloc_calls);
-    printf("Calls to free():            %lld.\n", stats.free_calls);
+    printf("    Total memory allocated  :   %lld bytes.\n", stats.memory_allocated);
+    printf("    Total memory released   :   %lld bytes.\n", stats.memory_freed);
+    printf("    Peak memory allocated   :   %lld bytes.\n", stats.memory_freed);
+    printf("    Current memory used     :   %lld bytes.\n", stats.current_useage);
+    printf("    Calls to malloc()       :   %lld.\n", stats.alloc_calls);
+    printf("    Calls to free()         :   %lld.\n", stats.free_calls);
 
 
 }
@@ -248,3 +248,80 @@ memory_release(void *ptr)
 
 }
 
+// --- Memory Arena ------------------------------------------------------------o
+//
+// 
+//
+
+void*    
+memory_arena_push(memory_arena *arena, uint64_t size)
+{
+    assert(arena != NULL);
+    assert(arena->buffer != NULL);
+    assert(arena->commit + size <= arena->size);
+
+    void *result = (uint8_t*)arena->buffer + arena->commit;
+    arena->commit += size;
+    return result;
+
+}
+
+void     
+memory_arena_pop(memory_arena *arena, uint64_t size)
+{
+
+    assert(arena != NULL);
+    assert(arena->commit - size == 0); // Pop and push mismatch.
+    arena->commit -= size;
+
+}
+
+uint64_t
+memory_arena_save_state(memory_arena *arena)
+{
+
+    assert(arena != NULL);
+    size_t result = arena->commit;
+    return result;
+
+}
+
+void     
+memory_arena_restore_state(memory_arena *arena, uint64_t state)
+{
+
+    assert(arena != NULL);
+    arena->commit = state;
+    return;
+
+}
+
+static void*
+memory_arena_context_allocate(uint64_t size)
+{
+
+    memory_allocator_context *context = memory_get_current_allocator_context();   
+    memory_arena *arena = (memory_arena*)context->user_defined;
+    void *buffer = memory_arena_push(arena, size);
+    return buffer;
+
+}
+
+static void
+memory_arena_context_free(void *ptr)
+{
+    return;
+}
+
+void
+memory_arena_create_and_set_context(memory_allocator_context *context, memory_arena *arena)
+{
+
+    context->user_defined       = arena;
+    context->allocate           = memory_arena_context_allocate;
+    context->release            = memory_arena_context_free;
+    context->on_context_push    = NULL;
+    context->on_context_pop     = NULL;
+    memory_push_allocator(context);
+
+}

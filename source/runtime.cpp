@@ -106,6 +106,43 @@ environment_runtime()
     // Ensure that state is valid when we reach runtime.
     assert(state != NULL);
 
+#if 0
+    hash_table test_table;
+    uint64_t entry_size = sizeof(int);  // Entry size will evaluate to 8-bytes, plus 8-bytes for header.
+                                        // So, each stride is 16-bytes, so size is 16 * 32 = 512
+
+    hash_table_create(&test_table, entry_size, 32, HASH_TABLE_DEFAULT_LF, hash_function_fnv1a);
+
+    {
+        int *entry1 = hash_table_insert_type(&test_table, "hello", int);
+        *entry1 = 10;
+        int *entry2 = hash_table_insert_type(&test_table, "world", int);
+        *entry2 = 20;
+        int *entry3 = hash_table_insert_type(&test_table, "foo", int);
+        *entry3 = 30;
+        int *entry4 = hash_table_insert_type(&test_table, "bar", int);
+        *entry4 = 40;
+        int *entry5 = hash_table_insert_type(&test_table, "baz", int);
+        *entry5 = 50;
+        int *en    int *entry1 = hash_table_find_type(&test_table, "hello", int);
+        assert(entry1 != NULL); printf("The number is: %d.\n", *entry1);
+        int *entry2 = hash_table_find_type(&test_table, "world", int);
+        assert(entry2 != NULL); printf("The number is: %d.\n", *entry2);
+        int *entry3 = hash_table_find_type(&test_table, "foo", int);
+        assert(entry3 != NULL); printf("The number is: %d.\n", *entry3);
+        int *entry4 = hash_table_find_type(&test_table, "bar", int);
+        assert(entry4 != NULL); printf("The number is: %d.\n", *entry4);
+        int *entry5 = hash_table_find_type(&test_table, "baz", int);
+        assert(entry5 != NULL); printf("The number is: %d.\n", *entry5);
+        int *entry6 = hash_table_find_type(&test_table, "bax", int);
+        assert(entry6 != NULL); printf("The number is: %d.\n", *entry6);
+    }
+
+    hash_table_release(&test_table);
+#endif
+
+#if 1
+
     // Pull the first source file into memory.
     size_t source_size = fileio_file_size(state->source_files[0]);
     char *source_buffer = memory_allocate_array(char, source_size + 1);
@@ -177,6 +214,7 @@ environment_runtime()
     // Frees the AST from memory.
     //parser_ast_free_traversal(ast_root);
     memory_release(source_buffer);
+#endif
 
     return STATUS_CODE_SUCCESS;
 

@@ -49,8 +49,9 @@ void                        memory_release(void *ptr);
 // --- Memory Arena ------------------------------------------------------------
 //
 // A monotonic stack allocator designed for speed and efficiency. Arenas should be
-// allocated via the system's virtual allocation utility. The interfacing functions
-// for allocator context assume that all calls to free are do-nothing.
+// allocated via the system's virtual allocation utility. You can use an arena as-is
+// or create and set it as a context to use the memory_allocate/memory_release functions
+// on the arena after setting its context.
 //
 
 #define memory_arena_push_type(arena, type) (type*)memory_arena_push(arena, sizeof(type))
@@ -59,52 +60,15 @@ void                        memory_release(void *ptr);
 struct memory_arena
 {
     void *buffer;
-    size_t size;
-    size_t commit;
+    uint64_t size;
+    uint64_t commit;
 };
 
-inline void*    
-memory_arena_push(memory_arena *arena, size_t size)
-{
-    assert(arena != NULL);
-    assert(arena->buffer != NULL);
-    assert(arena->commit + size <= arena->size);
-
-    void *result = (uint8_t*)arena->buffer + arena->commit;
-    arena->commit += size;
-    return result;
-
-}
-
-inline void     
-memory_arena_pop(memory_arena *arena, size_t size)
-{
-
-    assert(arena != NULL);
-    assert(arena->commit - size == 0); // Pop and push mismatch.
-    arena->commit -= size;
-
-}
-
-inline size_t   
-memory_arena_save_state(memory_arena *arena)
-{
-
-    assert(arena != NULL);
-    size_t result = arena->commit;
-    return result;
-
-}
-
-inline void     
-memory_arena_restore_state(memory_arena *arena, size_t state)
-{
-
-    assert(arena != NULL);
-    arena->commit = state;
-    return;
-
-}
+void*       memory_arena_push(memory_arena *arena, uint64_t size);
+void        memory_arena_pop(memory_arena *arena, uint64_t size);
+uint64_t    memory_arena_save_state(memory_arena *arena);
+void        memory_arena_restore_state(memory_arena *arena, uint64_t state);
+void        memory_arena_create_and_set_context(memory_allocator_context *context, memory_arena *arena);
 
 
 #endif

@@ -2,7 +2,7 @@
 #define SIGMAFOX_COMPILER_TOKEN_H
 #include <core/definitions.h>
 
-enum class token_type
+typedef enum token_type : uint32_t 
 {
 
     COMMENT_BLOCK,   
@@ -57,7 +57,7 @@ enum class token_type
     END_OF_FILE,
     END_OF_LINE,
 
-};
+} token_type;
 
 typedef struct token
 {
@@ -65,7 +65,7 @@ typedef struct token
     const char *location;
     size_t offset;
     size_t length;
-    token_type type;
+    uint32_t type;
 } token;
 
 uint64_t token_copy_string(token *identifier, char *buffer, uint64_t buffer_size, uint64_t write_offset);
