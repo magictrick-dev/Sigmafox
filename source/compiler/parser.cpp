@@ -1157,6 +1157,13 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             // Block statements.
             if (parser_match_token(state, token_type::SCOPE))
             {
+
+                if (!parser_consume_token(state, token_type::SEMICOLON))
+                {
+                    parser_display_error(parser_get_previous_token(state),
+                            "Expected semicolon at end of scope declaration.");
+                    propagate_on_error(NULL);
+                }
                 
                 statement *stm = parser_recursively_descend_statement(state,
                         statement_type::BLOCK_STATEMENT);
@@ -1167,14 +1174,7 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             // Loop statements.
             if (parser_match_token(state, token_type::WHILE))
             {
-
-                if (!parser_consume_token(state, token_type::SEMICOLON))
-                {
-                    parser_display_error(parser_get_previous_token(state),
-                            "Expected semicolon at end of scope declaration.");
-                    propagate_on_error(NULL);
-                }
-                
+              
                 statement *stm = parser_recursively_descend_statement(state,
                         statement_type::WHILE_STATEMENT);
                 return stm;
@@ -1384,7 +1384,7 @@ parser_recursively_descend_statement(parser *state, statement_type level)
                 // NOTE(Chris): We don't actually have to allocate anything for
                 //              the node, we can simply just set the data pointer
                 //              to our statement.
-                llnode *stm_node = linked_list_push_node(&stm->block_statement.statements, 
+                llnode *stm_node = linked_list_push_node(&stm->while_statement.statements, 
                         state->arena);
                 stm_node->data = scope_stm;
                 
@@ -1400,7 +1400,7 @@ parser_recursively_descend_statement(parser *state, statement_type level)
             if (!parser_match_token(state, token_type::SEMICOLON))
             {
                 // NOTE(Chris): We didn't hit EOF, which means that match_token actually
-                //              reached ENDSCOPE, not EOF. Despite the lack of semicolon,
+                //              reached ENDWHILE, not EOF. Despite the lack of semicolon,
                 //              we probably still want to pop the scope so further errors
                 //              don't occur due to strange scopey behaviors.
                 environment_pop_table(&state->global_environment);
@@ -1612,6 +1612,30 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
             for (size_t idx = 0; idx < depth; ++idx) printf(" ");
             printf("{\n");
             llnode *current_node = stm->block_statement.statements.head;
+            while (current_node != NULL)
+            {
+                statement *current = (statement*)current_node->data;
+                parser_ast_traversal_print_statement(current, depth + 4);
+                current_node = current_node->next;
+            }
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("}\n");
+
+        } break;
+
+        case ast_node_type::WHILE_STATEMENT:
+        {
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("while (");
+            parser_ast_traversal_print_expression(stm->while_statement.check);
+            printf(")\n");
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("{\n");
+
+            llnode *current_node = stm->while_statement.statements.head;
             while (current_node != NULL)
             {
                 statement *current = (statement*)current_node->data;
