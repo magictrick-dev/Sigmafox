@@ -71,3 +71,10 @@ endloop;
 { Testing error conditions. } { Commented out. }
 { inner_scope_a := 20; }
 
+if loop_start < loop_end;
+    loop_start := loop_end;
+    variable foobar 4;
+    foobar := loop_end * ((16 / 2) / 2);
+endif;
+
+{ This is a comment. }

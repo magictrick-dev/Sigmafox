@@ -107,6 +107,8 @@ scanner_validate_identifier_type(token *current_token)
         type_list[21] = token_type::WHILE;
         keyword_list[22] = "WRITE";
         type_list[22] = token_type::WRITE;
+        keyword_list[23] = "ELSEIF";
+        type_list[23] = token_type::ELSEIF;
 
         list_initialized = true;
     }

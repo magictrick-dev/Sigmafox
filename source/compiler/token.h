@@ -30,6 +30,7 @@ typedef enum token_type : uint32_t
     NUMBER,
 
     BEGIN,      
+    ELSEIF,
     END,
     ENDPROCEDURE,
     ENDFUNCTION,

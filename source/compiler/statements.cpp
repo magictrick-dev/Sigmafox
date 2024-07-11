@@ -28,6 +28,14 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
                 return stm;
             }
 
+            // If statements.
+            if (parser_match_token(state, token_type::IF))
+            {
+                statement *stm = parser_recursively_descend_statement(state,
+                        statement_type::IF_STATEMENT);
+                return stm;
+            }
+
             // Block statements.
             if (parser_match_token(state, token_type::SCOPE))
             {
@@ -234,6 +242,96 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
 
             environment_pop_table(&state->global_environment);
 
+            return stm;
+
+        } break;
+
+        case statement_type::IF_STATEMENT:
+        {
+
+            statement *stm = memory_arena_push_type(state->arena, statement);
+            stm->node_type = ast_node_type::IF_STATEMENT;
+            environment_push_table(&state->global_environment);
+
+            // Check expression.
+            expression *check = parser_recursively_descend_expression(state,
+                    expression_type::EXPRESSION);
+            propagate_on_error(check);
+            stm->if_statement.if_check = check;
+
+            // Following is a semicolon.
+            if (!parser_consume_token(state, token_type::SEMICOLON))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Expected semicolon at end of scope declaration.");
+                propagate_on_error(NULL);
+            }
+
+            while (!parser_match_token(state, token_type::ENDIF) &&
+                   !parser_match_token(state, token_type::ELSEIF))
+            {
+
+                statement *scope_stm = parser_recursively_descend_statement(state,
+                        statement_type::STATEMENT);
+
+                if (scope_stm == NULL)
+                {
+                    state->errored = true;
+                    parser_synchronize_state(state); 
+                    continue;
+                }
+
+                // NOTE(Chris): We don't actually have to allocate anything for
+                //              the node, we can simply just set the data pointer
+                //              to our statement.
+                llnode *stm_node = linked_list_push_node(&stm->if_statement.if_block, 
+                        state->arena);
+                stm_node->data = scope_stm;
+                
+
+            }
+
+            if (parser_check_token(state, token_type::END_OF_FILE))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Unexpected end-of-file, unmatched ENDIF declaration?");
+                return NULL;
+            }
+
+
+            while (parser_check_token(state, token_type::ELSEIF))
+            {
+                
+                statement *else_stm = parser_recursively_descend_statement(state,
+                        statement_type::ELSEIF_STATEMENT);
+                propagate_on_error(else_stm);
+            
+                llnode *stm_node = linked_list_push_node(&stm->if_statement.elseif_statements,
+                        state->arena);
+                stm_node->data = else_stm;
+
+            }
+
+            if (parser_check_token(state, token_type::END_OF_FILE))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Unexpected end-of-file, unmatched ENDIF declaration?");
+                return NULL;
+            }
+
+            if (!parser_match_token(state, token_type::SEMICOLON))
+            {
+                // NOTE(Chris): We didn't hit EOF, which means that match_token actually
+                //              reached ENDWHILE, not EOF. Despite the lack of semicolon,
+                //              we probably still want to pop the scope so further errors
+                //              don't occur due to strange scopey behaviors.
+                environment_pop_table(&state->global_environment);
+                parser_display_error(parser_get_current_token(state),
+                        "Expected semicolon at end of statement.");
+                return NULL;
+            }
+
+            environment_pop_table(&state->global_environment);
             return stm;
 
         } break;

@@ -55,8 +55,8 @@ struct statement
         struct if_statement
         {
             expression *if_check;
-            linked_list if_block;
-            linked_list elseif_statements;
+            linked_list if_block; // Statements
+            linked_list elseif_statements; // elseif_statementnodes
         } if_statement;
 
         struct elseif_statement

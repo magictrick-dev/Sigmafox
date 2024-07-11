@@ -35,7 +35,7 @@ enum class ast_node_type
     WHILE_STATEMENT,
     FOR_STATEMENT,
     IF_STATEMENT,
-
+    ELSEIF_STATEMENT,
 };
 
 enum class expression_type 
@@ -60,6 +60,7 @@ enum class statement_type
     WHILE_STATEMENT,
     FOR_STATEMENT,
     IF_STATEMENT,
+    ELSEIF_STATEMENT,
 };
 
 
