@@ -32,7 +32,8 @@
 #include <core/utilities.h>
 #include <core/definitions.h>
 
-#include <compiler/parser.h>
+#include <compiler/scanner.h>
+#include <compiler/ast.h>
 #include <compiler/printing.h>
 
 typedef struct
@@ -163,7 +164,7 @@ environment_runtime()
     array<token> token_list;
     array<token> error_list;
 
-    bool scan_status = parser_tokenize_source_file(state->source_files[0], 
+    bool scan_status = scanner_tokenize_source_file(state->source_files[0], 
             source_buffer, &token_list, &error_list);
     if (!scan_status)
     {
@@ -194,8 +195,7 @@ environment_runtime()
     printf("         Parser to Transpilation Print Results\n");
     printf("------------------------------------------------------------\n");
     array<statement*> program;   
-    bool parser_valid = parser_generate_abstract_syntax_tree(&token_list,
-            &program, &state->primary_store);
+    bool parser_valid = parse_tokens(&token_list, &program, &state->primary_store);
     if (parser_valid)
     {
         parser_ast_traversal_print(&program);

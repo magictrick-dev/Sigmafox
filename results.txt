@@ -1,55 +1,4 @@
 ------------------------------------------------------------
-                Tokenization Results
-------------------------------------------------------------
-.\tests\parse_test.fox(1, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(1, 9): Token identifier encountered: 'test_variable'
-.\tests\parse_test.fox(1, 23): Token number encountered: '4'
-.\tests\parse_test.fox(1, 24): Token semicolon encountered: ';'
-.\tests\parse_test.fox(3, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(3, 9): Token identifier encountered: 'foo'
-.\tests\parse_test.fox(3, 13): Token number encountered: '4'
-.\tests\parse_test.fox(3, 15): Token number encountered: '32'
-.\tests\parse_test.fox(3, 17): Token semicolon encountered: ';'
-.\tests\parse_test.fox(4, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(4, 9): Token identifier encountered: 'bar'
-.\tests\parse_test.fox(4, 13): Token number encountered: '4'
-.\tests\parse_test.fox(4, 15): Token number encountered: '32'
-.\tests\parse_test.fox(4, 18): Token number encountered: '16'
-.\tests\parse_test.fox(4, 20): Token semicolon encountered: ';'
-.\tests\parse_test.fox(5, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(5, 9): Token identifier encountered: 'baz'
-.\tests\parse_test.fox(5, 13): Token number encountered: '4'
-.\tests\parse_test.fox(5, 15): Token number encountered: '32'
-.\tests\parse_test.fox(5, 18): Token number encountered: '16'
-.\tests\parse_test.fox(5, 21): Token number encountered: '8'
-.\tests\parse_test.fox(5, 22): Token semicolon encountered: ';'
-.\tests\parse_test.fox(6, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(6, 9): Token identifier encountered: 'bax'
-.\tests\parse_test.fox(6, 13): Token number encountered: '4'
-.\tests\parse_test.fox(6, 15): Token number encountered: '32'
-.\tests\parse_test.fox(6, 18): Token number encountered: '16'
-.\tests\parse_test.fox(6, 21): Token number encountered: '8'
-.\tests\parse_test.fox(6, 23): Token number encountered: '4'
-.\tests\parse_test.fox(6, 24): Token semicolon encountered: ';'
-.\tests\parse_test.fox(8, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(8, 9): Token identifier encountered: 'number_a'
-.\tests\parse_test.fox(8, 18): Token number encountered: '4'
-.\tests\parse_test.fox(8, 19): Token semicolon encountered: ';'
-.\tests\parse_test.fox(9, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(9, 9): Token identifier encountered: 'number_b'
-.\tests\parse_test.fox(9, 18): Token number encountered: '4'
-.\tests\parse_test.fox(9, 19): Token semicolon encountered: ';'
-.\tests\parse_test.fox(10, 0): Token variable encountered: 'variable'
-.\tests\parse_test.fox(10, 9): Token identifier encountered: 'number_c'
-.\tests\parse_test.fox(10, 18): Token number encountered: '4'
-.\tests\parse_test.fox(10, 19): Token semicolon encountered: ';'
-.\tests\parse_test.fox(12, 0): Token identifier encountered: 'number_c'
-.\tests\parse_test.fox(12, 9): Token assignment encountered: ':='
-.\tests\parse_test.fox(12, 12): Token identifier encountered: 'number_a'
-.\tests\parse_test.fox(12, 21): Token plus encountered: '+'
-.\tests\parse_test.fox(12, 23): Token identifier encountered: 'number_b'
-.\tests\parse_test.fox(12, 31): Token semicolon encountered: ';'
-------------------------------------------------------------
          Parser to Transpilation Print Results
 ------------------------------------------------------------
 #include <iostream>
@@ -58,25 +7,75 @@
 int
 main(int argc, char ** argv)
 {
+
+    /* Testing standard variable declaration. */
     sigmafox::dynamic<4> test_variable();
+
+    /* Testing array variable declaration. */
     sigmafox::dynamic<4, 32> foo();
     sigmafox::dynamic<4, 32, 16> bar();
     sigmafox::dynamic<4, 32, 16, 8> baz();
     sigmafox::dynamic<4, 32, 16, 8, 4> bax();
+
+    /* Testing variable assignment. */
     sigmafox::dynamic<4> number_a();
     sigmafox::dynamic<4> number_b();
     sigmafox::dynamic<4> number_c();
+    number_a = 3;
+    number_b = 7;
     number_c = number_a + number_b;
+
+    /* Testing variable scopes. */
+    {
+
+        /* Inner scope only. */
+        sigmafox::dynamic<4> inner_scope_a();
+        sigmafox::dynamic<4> inner_scope_b();
+        sigmafox::dynamic<4> inner_scope_sum();
+        inner_scope_sum = inner_scope_a + inner_scope_b;
+
+        /* Outer scope usage with inner scope useage. */
+        sigmafox::dynamic<4> outer_inner_sum();
+        outer_inner_sum = number_a + inner_scope_a;
+
+        /* Overwriting outer scope. */
+
+        /* Commented out. */
+
+        /* variable number_b 4; */
+
+        /* number_b := 10; */
+    }
+
+    /* Now testing loop syntax. */
+    sigmafox::dynamic<4> loop_start();
+    sigmafox::dynamic<4> loop_end();
+    loop_start = 0;
+    loop_end = 10;
+
+    /* NOTE(Chris): The bracketing is not required. */
+    while (loop_start < loop_end)
+    {
+
+        /* Print or do something here. */
+        sigmafox::dynamic<4> foobar();
+        foobar = loop_start * 2;
+        loop_start = loop_start + 1;
+    }
+
+    /* Testing error conditions. */
+
+    /* Commented out. */
+
+    /* inner_scope_a := 20; */
 }
 
-
 ------------------------------------------------------------
-              Runtime Debug Diagnostics
+                Malloc/Free Statistics
 ------------------------------------------------------------
-      Current Allocation Useage   : 0 bytes
-      Peak Allocation Useage      : 6117 bytes
-      Allocation Size Total       : 25032 bytes
-      Free Size Total             : 25032 bytes
-      Allocation Calls            : 628
-      Free Calls                  : 628
-------------------------------------------------------------
+    Total memory allocated  :   26442 bytes.
+    Total memory released   :   25930 bytes.
+    Peak memory allocated   :   25930 bytes.
+    Current memory used     :   512 bytes.
+    Calls to malloc()       :   70.
+    Calls to free()         :   51.

@@ -37,10 +37,18 @@ add_executable(Sigmafox
 
     "source/compiler/token.h"
     "source/compiler/token.cpp"
+    "source/compiler/scanner.h"
+    "source/compiler/scanner.cpp"
     "source/compiler/parser.h"
     "source/compiler/parser.cpp"
     "source/compiler/environment.h"
     "source/compiler/environment.cpp"
+    "source/compiler/expressions.h"
+    "source/compiler/expressions.cpp"
+    "source/compiler/statements.h"
+    "source/compiler/statements.cpp"
+    "source/compiler/ast.h"
+    "source/compiler/ast.cpp"
     
     "source/platform/fileio.h"
     "source/platform/system.h"
