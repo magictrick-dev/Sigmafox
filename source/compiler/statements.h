@@ -43,6 +43,15 @@ struct statement
             expression *check;
         } while_statement;
 
+        struct for_statement
+        {
+            token *identifier;
+            expression *start;
+            expression *end;
+            expression *increment;
+            linked_list statements;
+        } for_statement;
+
         struct if_statement
         {
             expression *if_check;

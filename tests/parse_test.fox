@@ -52,6 +52,22 @@ while loop_start < loop_end;
 
 endwhile;
 
+{ Various loop tests. }
+loop index 0 10;
+
+    variable foobar 4;
+    foobar := index * 2;
+
+endloop;
+
+{ Speaking the magical incantation to invoke weird loop behavior. }
+loop index 0 10 (4 / 2);
+    
+    variable foobar 4;
+    foobar := index * (3 * 1 * 2);
+
+endloop;
+
 { Testing error conditions. } { Commented out. }
 { inner_scope_a := 20; }
 

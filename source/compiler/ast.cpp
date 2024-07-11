@@ -211,6 +211,52 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
 
         } break;
 
+        case ast_node_type::FOR_STATEMENT:
+        {
+
+            token_copy_string(stm->for_statement.identifier, token_string_buffer, 512, 0);
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("for (");
+            printf("sigmafox::dynamic<4> %s = ", token_string_buffer);
+            parser_ast_traversal_print_expression(stm->for_statement.start);
+            printf("; %s < ", token_string_buffer);
+            parser_ast_traversal_print_expression(stm->for_statement.end);
+            printf("; ");
+
+            if (stm->for_statement.increment == NULL)
+            {
+                printf("%s += 1)\n", token_string_buffer);
+            }
+            else
+            {
+                printf("%s += ", token_string_buffer);
+                parser_ast_traversal_print_expression(stm->for_statement.increment);
+                printf(")\n");
+            }
+
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("{\n");
+
+            for (size_t idx = 0; idx < depth + 4; ++idx) printf(" ");
+            printf("sigmafox::dynamic<4> __loop_index_cache = %s;\n", token_string_buffer);
+
+            llnode *current_node = stm->for_statement.statements.head;
+            while (current_node != NULL)
+            {
+                statement *current = (statement*)current_node->data;
+                parser_ast_traversal_print_statement(current, depth + 4);
+                current_node = current_node->next;
+            }
+
+            for (size_t idx = 0; idx < depth + 4; ++idx) printf(" ");
+            printf("%s = __loop_index_cache;\n", token_string_buffer);
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("}\n");
+
+        } break;
+
         default:
         {
             assert(!"Uncaught AST traversal method.\n");

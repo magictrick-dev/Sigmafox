@@ -53,7 +53,7 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
                 return stm;
             }
 
-            // Loop statements.
+            // While statements.
             if (parser_match_token(state, token_type::WHILE))
             {
               
@@ -61,6 +61,14 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
                         statement_type::WHILE_STATEMENT);
                 return stm;
 
+            }
+
+            // For statements.
+            if (parser_match_token(state, token_type::LOOP))
+            {
+                statement *stm = parser_recursively_descend_statement(state,
+                        statement_type::FOR_STATEMENT);
+                return stm;
             }
 
             // Expression statements.
@@ -283,6 +291,96 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
             {
                 // NOTE(Chris): We didn't hit EOF, which means that match_token actually
                 //              reached ENDWHILE, not EOF. Despite the lack of semicolon,
+                //              we probably still want to pop the scope so further errors
+                //              don't occur due to strange scopey behaviors.
+                environment_pop_table(&state->global_environment);
+                parser_display_error(parser_get_current_token(state),
+                        "Expected semicolon at end of statement.");
+                return NULL;
+            }
+
+            environment_pop_table(&state->global_environment);
+
+            return stm;
+
+        } break;
+
+        case statement_type::FOR_STATEMENT:
+        {
+
+            statement *stm = memory_arena_push_type(state->arena, statement);
+            stm->node_type = ast_node_type::FOR_STATEMENT;
+            environment_push_table(&state->global_environment);
+
+            // Initial identifier name.
+            token *identifier = parser_consume_token(state, token_type::IDENTIFIER);
+            propagate_on_error(identifier);
+            symbol *loop_variable = environment_add_symbol(&state->global_environment, identifier);
+
+            // Get the start.
+            expression *start = parser_recursively_descend_expression(state,
+                    expression_type::EXPRESSION);
+            propagate_on_error(start);
+
+            // Get the end.
+            expression *end = parser_recursively_descend_expression(state,
+                    expression_type::EXPRESSION);
+            propagate_on_error(end);
+
+            // There is an optional increment we need to check for.
+            expression *increment = NULL;
+            if (!parser_check_token(state, token_type::SEMICOLON))
+            {
+                increment = parser_recursively_descend_expression(state,
+                        expression_type::EXPRESSION);
+                propagate_on_error(increment);
+            }
+
+            // Following is a semicolon.
+            if (!parser_consume_token(state, token_type::SEMICOLON))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Expected semicolon at end of scope declaration.");
+                propagate_on_error(NULL);
+            }
+
+            stm->for_statement.identifier = identifier;
+            stm->for_statement.start = start;
+            stm->for_statement.end = end;
+            stm->for_statement.increment = increment;
+
+            while (!parser_match_token(state, token_type::ENDLOOP))
+            {
+                statement *scope_stm = parser_recursively_descend_statement(state,
+                        statement_type::STATEMENT);
+
+                if (scope_stm == NULL)
+                {
+                    state->errored = true;
+                    parser_synchronize_state(state); 
+                    continue;
+                }
+
+                // NOTE(Chris): We don't actually have to allocate anything for
+                //              the node, we can simply just set the data pointer
+                //              to our statement.
+                llnode *stm_node = linked_list_push_node(&stm->for_statement.statements, 
+                        state->arena);
+                stm_node->data = scope_stm;
+                
+            }
+
+            if (parser_check_token(state, token_type::END_OF_FILE))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Unexpected end-of-file, unmatched SCOPE declaration?");
+                return NULL;
+            }
+
+            if (!parser_match_token(state, token_type::SEMICOLON))
+            {
+                // NOTE(Chris): We didn't hit EOF, which means that match_token actually
+                //              reached ENDLOOP, not EOF. Despite the lack of semicolon,
                 //              we probably still want to pop the scope so further errors
                 //              don't occur due to strange scopey behaviors.
                 environment_pop_table(&state->global_environment);

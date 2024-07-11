@@ -33,6 +33,7 @@ enum class ast_node_type
     BLOCK_STATEMENT,
     ASSIGNMENT_STATEMENT,
     WHILE_STATEMENT,
+    FOR_STATEMENT,
     IF_STATEMENT,
 
 };
@@ -57,6 +58,7 @@ enum class statement_type
     BLOCK_STATEMENT,
     DECLARATION_STATEMENT,
     WHILE_STATEMENT,
+    FOR_STATEMENT,
     IF_STATEMENT,
 };
 

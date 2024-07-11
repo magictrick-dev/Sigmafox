@@ -123,7 +123,8 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
 
                 token *operation = &(*state->tokens)[state->current - 1];
 
-                expression *right = parser_recursively_descend_expression(state, expression_type::COMPARISON);
+                expression *right = parser_recursively_descend_expression(state,
+                        expression_type::COMPARISON);
                 propagate_on_error(right);
 
                 expression *branch = parser_allocate_binary_node(expr, right, operation, state->arena);
@@ -259,7 +260,8 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
 
                 // We need to manually adjust the node type to grouping, as it carries
                 // meaning for the transpilation process.
-                expression *group = parser_recursively_descend_expression(state, expression_type::EXPRESSION);
+                expression *group = parser_recursively_descend_expression(state,
+                        expression_type::EXPRESSION);
                 propagate_on_error(group);
 
                 if (!parser_match_token(state, token_type::RIGHT_PARENTHESIS))
