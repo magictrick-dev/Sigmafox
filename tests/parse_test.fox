@@ -71,3 +71,15 @@ endloop;
 { Testing error conditions. } { Commented out. }
 { inner_scope_a := 20; }
 
+{ Conditionals, if and elseif. }
+if loop_start < loop_end;
+    loop_start := loop_end;
+    variable foobar 4;
+    foobar := loop_end * ((16 / 2) / 2);
+elseif loop_start > loop_end;
+    loop_start := loop_end;
+    variable foobar 4;
+    foobar := loop_end + 4 * (16 / 4 / 2);
+endif;
+
+{ This is a comment. }

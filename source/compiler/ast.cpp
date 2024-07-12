@@ -187,6 +187,63 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
 
         } break;
 
+        case ast_node_type::IF_STATEMENT:
+        {
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("if (");
+            parser_ast_traversal_print_expression(stm->if_statement.if_check);
+            printf(")\n");
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("{\n");
+
+            llnode *current_node = stm->if_statement.if_block.head;
+            while (current_node != NULL)
+            {
+                statement *current = (statement*)current_node->data;
+                parser_ast_traversal_print_statement(current, depth + 4);
+                current_node = current_node->next;
+            }
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("}\n");
+
+            llnode *elseifs = stm->if_statement.elseif_statements.head;
+            while (elseifs != NULL)
+            {
+                statement *current = (statement*)elseifs->data;
+                parser_ast_traversal_print_statement(current, depth);
+                elseifs = elseifs->next;
+            }
+
+        } break;
+
+        case ast_node_type::ELSEIF_STATEMENT:
+        {
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("else if (");
+            parser_ast_traversal_print_expression(stm->elseif_statement.elseif_check);
+            printf(")\n");
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("{\n");
+
+            llnode *current_node = stm->elseif_statement.elseif_block.head;
+            while (current_node != NULL)
+            {
+                statement *current = (statement*)current_node->data;
+                parser_ast_traversal_print_statement(current, depth + 4);
+                current_node = current_node->next;
+            }
+
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("}\n");
+        
+
+        } break;
+
         case ast_node_type::WHILE_STATEMENT:
         {
 

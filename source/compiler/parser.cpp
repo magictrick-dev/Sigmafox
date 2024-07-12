@@ -102,8 +102,8 @@ parser_display_warning(token *location, const char *reason)
 //      while_stm               : "while" expression ; statement* "endwhile" ;
 //      loop_stm                : "loop" identifier expression expression ( expression )? ; 
 //                                statement* "endwhile" ;
-//      if_stm                  : "if" expression ; statement* (elseif_stm)? "endif" ;
-//      elseif_stm              : "elseif" expression ; statement* (elseif_stm)?
+//      if_stm                  : "if" expression ; statement* (elseif_stm)* "endif" ;
+//      elseif_stm              : "elseif" expression ; statement*
 //      declaration_stm         : "variable" IDENTIFIER expression ( expression )* ;
 //      expression_stm          : expression ;
 //
