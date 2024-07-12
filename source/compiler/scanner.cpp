@@ -113,7 +113,7 @@ scanner_validate_identifier_type(token *current_token)
         list_initialized = true;
     }
 
-    for (size_t idx = 0; idx < 23; ++idx)
+    for (size_t idx = 0; idx < 24; ++idx)
     {
         if (strcmp(keyword_list[idx], token_string_buffer) == 0)
             return type_list[idx];

@@ -267,9 +267,17 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
                 propagate_on_error(NULL);
             }
 
-            while (!parser_match_token(state, token_type::ENDIF) &&
-                   !parser_match_token(state, token_type::ELSEIF))
+            while (true)
             {
+
+                uint32_t elseif_type = token_type::ELSEIF;
+                uint32_t current_type = parser_get_current_token(state)->type;
+                bool matched_endif  = parser_match_token(state, token_type::ENDIF);
+                bool matched_elseif = parser_match_token(state, token_type::ELSEIF);
+                if (matched_endif || matched_elseif)
+                {
+                    break;
+                }
 
                 statement *scope_stm = parser_recursively_descend_statement(state,
                         statement_type::STATEMENT);
@@ -291,24 +299,16 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
 
             }
 
-            if (parser_check_token(state, token_type::END_OF_FILE))
+            while ((parser_get_previous_token(state))->type == token_type::ELSEIF)
             {
-                parser_display_error(parser_get_previous_token(state),
-                        "Unexpected end-of-file, unmatched ENDIF declaration?");
-                return NULL;
-            }
 
-
-            while (parser_check_token(state, token_type::ELSEIF))
-            {
-                
-                statement *else_stm = parser_recursively_descend_statement(state,
+                statement *elseif_stm = parser_recursively_descend_statement(state,
                         statement_type::ELSEIF_STATEMENT);
-                propagate_on_error(else_stm);
-            
-                llnode *stm_node = linked_list_push_node(&stm->if_statement.elseif_statements,
+                propagate_on_error(elseif_stm);
+
+                llnode *else_node = linked_list_push_node(&stm->if_statement.elseif_statements,
                         state->arena);
-                stm_node->data = else_stm;
+                else_node->data = elseif_stm;
 
             }
 
@@ -328,6 +328,63 @@ parser_recursively_descend_statement(parser_state *state, statement_type level)
                 environment_pop_table(&state->global_environment);
                 parser_display_error(parser_get_current_token(state),
                         "Expected semicolon at end of statement.");
+                return NULL;
+            }
+
+            environment_pop_table(&state->global_environment);
+            return stm;
+
+        } break;
+
+        case statement_type::ELSEIF_STATEMENT:
+        {
+
+            statement *stm = memory_arena_push_type(state->arena, statement);
+            stm->node_type = ast_node_type::ELSEIF_STATEMENT;
+            environment_push_table(&state->global_environment);
+
+            // Check expression.
+            expression *check = parser_recursively_descend_expression(state,
+                    expression_type::EXPRESSION);
+            propagate_on_error(check);
+            stm->elseif_statement.elseif_check = check;
+
+            // Following is a semicolon.
+            if (!parser_consume_token(state, token_type::SEMICOLON))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Expected semicolon at end of scope declaration.");
+                propagate_on_error(NULL);
+            }
+
+            while (!parser_match_token(state, token_type::ENDIF) &&
+                   !parser_match_token(state, token_type::ELSEIF))
+            {
+
+                statement *scope_stm = parser_recursively_descend_statement(state,
+                        statement_type::STATEMENT);
+
+                if (scope_stm == NULL)
+                {
+                    state->errored = true;
+                    parser_synchronize_state(state); 
+                    continue;
+                }
+
+                // NOTE(Chris): We don't actually have to allocate anything for
+                //              the node, we can simply just set the data pointer
+                //              to our statement.
+                llnode *stm_node = linked_list_push_node(&stm->elseif_statement.elseif_block, 
+                        state->arena);
+                stm_node->data = scope_stm;
+                
+
+            }
+
+            if (parser_check_token(state, token_type::END_OF_FILE))
+            {
+                parser_display_error(parser_get_previous_token(state),
+                        "Unexpected end-of-file, unmatched ENDIF declaration?");
                 return NULL;
             }
 

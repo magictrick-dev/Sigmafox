@@ -24,11 +24,9 @@ typedef enum token_type : uint32_t
     CONCAT,              
     EXTRACT,              
     DERIVATION,            
-
     IDENTIFIER,
     STRING,                 
     NUMBER,
-
     BEGIN,      
     ELSEIF,
     END,
