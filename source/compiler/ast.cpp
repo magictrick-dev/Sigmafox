@@ -26,8 +26,7 @@ parse_tokens(array<token> *tokens, array<statement*> *statements, memory_arena *
     while ((*tokens)[state.current].type != token_type::END_OF_FILE)
     {
 
-        statement *current_statement = parser_recursively_descend_statement(&state,
-                statement_type::STATEMENT);
+        statement *current_statement = parser_recursively_descend_statement(&state);
 
         if (current_statement == NULL)
         {
