@@ -1,6 +1,7 @@
 ------------------------------------------------------------
          Parser to Transpilation Print Results
 ------------------------------------------------------------
+.\tests\parse_test.fox(81,22) WARNING: Variable declaration shadows outer scope declaration.
 #include <iostream>
 #include <sigmafox/core.h>
 
@@ -63,19 +64,61 @@ main(int argc, char ** argv)
         loop_start = loop_start + 1;
     }
 
+    /* Various loop tests. */
+    for (sigmafox::dynamic<4> index = 0; index < 10; index += 1)
+    {
+        sigmafox::dynamic<4> __loop_index_cache = index;
+        sigmafox::dynamic<4> foobar();
+        foobar = index * 2;
+        index = __loop_index_cache;
+    }
+
+    /* Speaking the magical incantation to invoke weird loop behavior. */
+    for (sigmafox::dynamic<4> index = 0; index < 10; index += ( 4 / 2 ))
+    {
+        sigmafox::dynamic<4> __loop_index_cache = index;
+        sigmafox::dynamic<4> foobar();
+        foobar = index * ( 3 * 1 * 2 );
+        index = __loop_index_cache;
+    }
+
     /* Testing error conditions. */
 
     /* Commented out. */
 
     /* inner_scope_a := 20; */
+
+    /* Conditionals, if and elseif. */
+    if (loop_start < loop_end)
+    {
+        loop_start = loop_end;
+        sigmafox::dynamic<4> foobar();
+        foobar = loop_end * ( ( 16 / 2 ) / 2 );
+    }
+    else if (loop_start > loop_end)
+    {
+        loop_start = loop_end;
+        sigmafox::dynamic<4> foobar();
+        foobar = loop_end + 4 * ( 16 / 4 / 2 );
+    }
+
+    /* Finally, procedures. */
+    void add_numbers(sigmafox::dynamic<4> &a, sigmafox::dynamic<4> &b, sigmafox::dynamic<4> &out)
+    {
+        sigmafox::dynamic<4> result();
+        result = a + b;
+        out = result;
+    }
+
+    /* This is a comment. */
 }
 
 ------------------------------------------------------------
                 Malloc/Free Statistics
 ------------------------------------------------------------
-    Total memory allocated  :   26442 bytes.
-    Total memory released   :   25930 bytes.
-    Peak memory allocated   :   25930 bytes.
-    Current memory used     :   512 bytes.
-    Calls to malloc()       :   70.
-    Calls to free()         :   51.
+    Total memory allocated  :   53467 bytes.
+    Total memory released   :   52436 bytes.
+    Peak memory allocated   :   52436 bytes.
+    Current memory used     :   1031 bytes.
+    Calls to malloc()       :   123.
+    Calls to free()         :   82.

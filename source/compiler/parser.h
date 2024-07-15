@@ -36,6 +36,7 @@ enum class ast_node_type
     FOR_STATEMENT,
     IF_STATEMENT,
     ELSEIF_STATEMENT,
+    PROCEDURE_STATEMENT,
 };
 
 enum class expression_type 
@@ -61,6 +62,7 @@ enum class statement_type
     FOR_STATEMENT,
     IF_STATEMENT,
     ELSEIF_STATEMENT,
+    PROCEDURE_STATEMENT,
 };
 
 
@@ -96,5 +98,126 @@ void    parser_synchronize_state(parser_state *state);
 
 void    parser_display_error(token *location, const char *reason);
 void    parser_display_warning(token *location, const char *reason);
+
+
+struct expression
+{
+
+    ast_node_type node_type;
+ 
+    union
+    {
+
+        struct binary_expression
+        {
+            expression *left;
+            expression *right;
+            token *literal;
+        } binary_expression;
+
+        struct unary_expression
+        {
+            expression *primary;
+            token *literal;
+        } unary_expression;
+
+        struct assignment_expression
+        {
+            expression *assignment;
+            token *identifier;
+        } assignment_expression;
+
+    };
+
+};
+
+struct statement
+{
+    ast_node_type node_type;
+
+    union
+    {
+
+        struct expression_statement
+        {
+            expression *expr;
+        } expression_statement;
+
+        struct declaration_statement
+        {
+            token *identifier;
+            expression *size;
+
+            size_t dimension_count;
+            expression* dimensions[PARSER_VARIABLE_MAX_DIMENSIONS];
+        } declaration_statement;
+
+        struct assignment_statement
+        {
+            token *identifier;
+            expression *value;
+        } assignment_statement;
+
+        struct block_statement
+        {
+            linked_list statements;
+        } block_statement;
+
+        struct while_statement
+        {
+            linked_list statements;
+            expression *check;
+        } while_statement;
+
+        struct for_statement
+        {
+            token *identifier;
+            expression *start;
+            expression *end;
+            expression *increment;
+            linked_list statements;
+        } for_statement;
+
+        struct if_statement
+        {
+            expression *if_check;
+            linked_list if_block; // Statements
+            linked_list elseif_statements; // elseif_statementnodes
+        } if_statement;
+
+        struct elseif_statement
+        {
+            expression *elseif_check;
+            linked_list elseif_block;
+        } elseif_statement;
+
+        struct comment_statement
+        {
+            token *comment;
+        } comment_statement;
+
+        struct procedure_statement
+        {
+            token *identifier;              // Name of procedure.
+            linked_list statements;         // Statement body.
+            linked_list parameter_names;    // Parameter names.
+        } procedure_statement;
+
+    };
+
+};
+
+statement* parser_create_comment_statement(parser_state *state);
+statement* parser_create_declaration_statement(parser_state *state);
+statement* parser_create_block_statement(parser_state *state);
+statement* parser_create_if_statement(parser_state *state);
+statement* parser_create_elseif_statement(parser_state *state);
+statement* parser_create_while_statement(parser_state *state);
+statement* parser_create_for_statement(parser_state *state);
+statement* parser_create_expression_statement(parser_state *state);
+
+statement*  parser_recursively_descend_statement(parser_state *state);
+expression* parser_recursively_descend_expression(parser_state *state, expression_type level);
+
 
 #endif

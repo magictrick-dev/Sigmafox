@@ -82,4 +82,11 @@ elseif loop_start > loop_end;
     foobar := loop_end + 4 * (16 / 4 / 2);
 endif;
 
+{ Finally, procedures. }
+procedure add_numbers a b out;
+    variable result 4;
+    result := a + b;
+    out := result;
+endprocedure;
+
 { This is a comment. }

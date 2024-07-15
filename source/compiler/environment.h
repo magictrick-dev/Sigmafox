@@ -54,6 +54,7 @@ typedef enum symbol_type : uint32_t
     STYPE_BOOLEAN         = 1,
     STYPE_REAL            = 2,
     STYPE_STRING          = 3,
+    STYPE_PROCEDURE       = 4,
 } symbol_type;
 
 typedef struct symbol
@@ -72,13 +73,14 @@ typedef struct symbol_table
 
 typedef struct environment
 {
+    symbol_table *global_table = NULL;
     symbol_table *current_table = NULL;
     uint32_t depth;
 } environment;
 
 void    environment_push_table(environment *env);
 void    environment_pop_table(environment *env);
-symbol* environment_get_symbol(environment *env, token *identifier);
-symbol* environment_add_symbol(environment *env, token *identifier);
+symbol* environment_get_symbol(environment *env, token *identifier, bool global);
+symbol* environment_add_symbol(environment *env, token *identifier, bool global);
 
 #endif
