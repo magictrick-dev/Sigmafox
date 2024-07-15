@@ -210,6 +210,11 @@ parser_synchronize_state(parser_state *state)
 }
 
 // --- Expressions -------------------------------------------------------------
+//
+// Expressions utilitize the full recursive descent pattern in order to ensure
+// proper conformance to the language grammar. Reference the grammar outlined
+// above for more information on how the traversal works.
+// 
 
 static inline expression*
 parser_allocate_binary_node(expression *left, expression *right, token *literal, memory_arena *arena)
@@ -451,7 +456,7 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
                 // If the symbol is an identifier, verify its in the symbol table.
                 if (literal->type == token_type::IDENTIFIER)
                 {
-                    symbol *sym = environment_get_symbol(&state->global_environment, literal);
+                    symbol *sym = environment_get_symbol(&state->global_environment, literal, false);
                     if (sym == NULL)
                     {
                         parser_display_error(literal, "Undefined identifier in expression.");
@@ -530,7 +535,7 @@ parser_create_declaration_statement(parser_state *state)
     }
 
     // Ensure the identifier isn't already declared in the current scope.
-    symbol *sym = environment_get_symbol(&state->global_environment, identifier);
+    symbol *sym = environment_get_symbol(&state->global_environment, identifier, false);
     if (sym != NULL)
     {
         if (sym->depth == state->global_environment.depth)
@@ -546,7 +551,7 @@ parser_create_declaration_statement(parser_state *state)
         }
     }
 
-    sym = environment_add_symbol(&state->global_environment, identifier);
+    sym = environment_add_symbol(&state->global_environment, identifier, false);
 
     expression *size = parser_recursively_descend_expression(state,
             expression_type::EXPRESSION);
@@ -820,7 +825,6 @@ parser_create_elseif_statement(parser_state *state)
 
 }
 
-
 statement* 
 parser_create_while_statement(parser_state *state)
 {
@@ -899,7 +903,7 @@ parser_create_for_statement(parser_state *state)
     // Initial identifier name.
     token *identifier = parser_consume_token(state, token_type::IDENTIFIER);
     propagate_on_error(identifier);
-    symbol *loop_variable = environment_add_symbol(&state->global_environment, identifier);
+    symbol *loop_variable = environment_add_symbol(&state->global_environment, identifier, false);
 
     // Get the start.
     expression *start = parser_recursively_descend_expression(state,
@@ -979,6 +983,110 @@ parser_create_for_statement(parser_state *state)
 }
 
 statement* 
+parser_create_procedure_statement(parser_state *state)
+{
+
+    statement *stm = memory_arena_push_type(state->arena, statement);
+    stm->node_type = ast_node_type::PROCEDURE_STATEMENT;
+    environment_push_table(&state->global_environment);
+
+    // Initial identifier name.
+    token *identifier = parser_consume_token(state, token_type::IDENTIFIER);
+    propagate_on_error(identifier);
+    stm->procedure_statement.identifier = identifier;
+    
+    while (!parser_check_token(state, token_type::SEMICOLON))
+    {
+
+        token *parameter = parser_consume_token(state, token_type::IDENTIFIER);
+        propagate_on_error(identifier);
+
+        llnode *param_node = linked_list_push_node(&stm->procedure_statement.parameter_names,
+                state->arena);
+        param_node->data = parameter;
+
+        // Add params to scope.
+        symbol *param_sym = environment_get_symbol(&state->global_environment,
+                parameter, false);
+        if (param_sym != NULL)
+        {
+            parser_display_error(parameter, "Parameter redefinition in procedure def.");
+            environment_pop_table(&state->global_environment);
+            propagate_on_error(NULL);
+        }
+
+        param_sym = environment_add_symbol(&state->global_environment,
+                parameter, false);
+
+    }
+
+    // Following is a semicolon.
+    if (!parser_consume_token(state, token_type::SEMICOLON))
+    {
+        parser_display_error(parser_get_previous_token(state),
+                "Expected semicolon at end of scope declaration.");
+        propagate_on_error(NULL);
+    }
+
+    while (!parser_match_token(state, token_type::ENDPROCEDURE))
+    {
+        statement *scope_stm = parser_recursively_descend_statement(state);
+
+        if (scope_stm == NULL)
+        {
+            state->errored = true;
+            parser_synchronize_state(state); 
+            continue;
+        }
+
+        // NOTE(Chris): We don't actually have to allocate anything for
+        //              the node, we can simply just set the data pointer
+        //              to our statement.
+        llnode *stm_node = linked_list_push_node(&stm->procedure_statement.statements, 
+                state->arena);
+        stm_node->data = scope_stm;
+        
+    }
+
+    if (parser_check_token(state, token_type::END_OF_FILE))
+    {
+        parser_display_error(parser_get_previous_token(state),
+                "Unexpected end-of-file, unmatched SCOPE declaration?");
+        return NULL;
+    }
+
+    if (!parser_match_token(state, token_type::SEMICOLON))
+    {
+        // NOTE(Chris): We didn't hit EOF, which means that match_token actually
+        //              reached ENDWHILE, not EOF. Despite the lack of semicolon,
+        //              we probably still want to pop the scope so further errors
+        //              don't occur due to strange scopey behaviors.
+        environment_pop_table(&state->global_environment);
+        parser_display_error(parser_get_current_token(state),
+                "Expected semicolon at end of statement.");
+        return NULL;
+    }
+
+    environment_pop_table(&state->global_environment);
+
+    // Insert the procedure into the global scope.
+    symbol *proc_symbol = environment_get_symbol(&state->global_environment,
+            identifier, true);
+    if (proc_symbol != NULL)
+    {
+        parser_display_error(identifier, "Procedure redefinition.");
+        environment_pop_table(&state->global_environment);
+        propagate_on_error(NULL);
+    }
+
+    proc_symbol = environment_add_symbol(&state->global_environment,
+            identifier, true);
+
+    return stm;
+
+}
+
+statement* 
 parser_create_expression_statement(parser_state *state)
 {
 
@@ -1028,6 +1136,9 @@ parser_recursively_descend_statement(parser_state *state)
     // Loop statements.
     if (parser_match_token(state, token_type::LOOP))
         return parser_create_for_statement(state);
+
+    if (parser_match_token(state, token_type::PROCEDURE))
+        return parser_create_procedure_statement(state);
 
     // Expression statements.
     return parser_create_expression_statement(state);

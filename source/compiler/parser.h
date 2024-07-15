@@ -36,6 +36,7 @@ enum class ast_node_type
     FOR_STATEMENT,
     IF_STATEMENT,
     ELSEIF_STATEMENT,
+    PROCEDURE_STATEMENT,
 };
 
 enum class expression_type 
@@ -61,6 +62,7 @@ enum class statement_type
     FOR_STATEMENT,
     IF_STATEMENT,
     ELSEIF_STATEMENT,
+    PROCEDURE_STATEMENT,
 };
 
 
@@ -193,6 +195,13 @@ struct statement
         {
             token *comment;
         } comment_statement;
+
+        struct procedure_statement
+        {
+            token *identifier;              // Name of procedure.
+            linked_list statements;         // Statement body.
+            linked_list parameter_names;    // Parameter names.
+        } procedure_statement;
 
     };
 

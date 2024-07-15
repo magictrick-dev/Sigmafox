@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <compiler/ast.h>
 #include <compiler/parser.h>
+#include <compiler/generation.h>
 
 // --- AST Parse Routine -------------------------------------------------------
 //
-//eParses and constructs the AST, returning back the list of statements generated
+// Parses and constructs the AST, returning back the list of statements generated
 // from the tree.
 //
 
@@ -22,6 +23,7 @@ parse_tokens(array<token> *tokens, array<statement*> *statements, memory_arena *
     state.current = 0;
     state.arena = arena;
     environment_push_table(&state.global_environment);
+    state.global_environment.global_table = state.global_environment.current_table;
 
     while ((*tokens)[state.current].type != token_type::END_OF_FILE)
     {
@@ -313,6 +315,39 @@ parser_ast_traversal_print_statement(statement *stm, size_t depth)
 
         } break;
 
+        case ast_node_type::PROCEDURE_STATEMENT:
+        {
+
+            token_copy_string(stm->procedure_statement.identifier, token_string_buffer, 512, 0);
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("void %s(", token_string_buffer);
+
+            llnode *param_node = stm->procedure_statement.parameter_names.head;
+            while (param_node != NULL)
+            {
+                token_copy_string((token*)param_node->data, token_string_buffer, 512, 0);
+                printf("sigmafox::dynamic<4> &%s", token_string_buffer);
+                if (param_node->next != NULL) printf(", ");
+                param_node = param_node->next;
+            }
+
+            printf(")\n");
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("{\n");
+
+            llnode *current_node = stm->procedure_statement.statements.head;
+            while (current_node != NULL)
+            {
+                statement *current = (statement*)current_node->data;
+                parser_ast_traversal_print_statement(current, depth + 4);
+                current_node = current_node->next;
+            }
+            
+            for (size_t idx = 0; idx < depth; ++idx) printf(" ");
+            printf("}\n");
+
+        } break;
+
         default:
         {
             assert(!"Uncaught AST traversal method.\n");
@@ -342,3 +377,20 @@ parser_ast_traversal_print(array<statement*> *statements)
 
 }
 
+// --- Source File Generation --------------------------------------------------
+//
+// Generates the source file from the provided AST.
+//
+
+typedef struct main_source_layout
+{
+    source_layout declaration_body;
+    source_layout entry_body;
+    source_layout definition_body;
+} main_source_layout;
+
+void
+parser_generate_source(array<statement*> *statements, memory_arena *arena)
+{
+
+}

@@ -31,7 +31,7 @@ environment_pop_table(environment *env)
 }
 
 symbol* 
-environment_get_symbol(environment *env, token *identifier)
+environment_get_symbol(environment *env, token *identifier, bool global)
 {
 
     uint64_t token_length = identifier->length + 1;
@@ -40,6 +40,7 @@ environment_get_symbol(environment *env, token *identifier)
 
     symbol *result = NULL; 
     symbol_table *current_table = env->current_table;
+    if (global == true) current_table = env->global_table;
     while (current_table != NULL)
     {
 
@@ -56,7 +57,7 @@ environment_get_symbol(environment *env, token *identifier)
 }
 
 symbol* 
-environment_add_symbol(environment *env, token *identifier)
+environment_add_symbol(environment *env, token *identifier, bool global)
 {
 
     uint64_t token_length = identifier->length + 1;
@@ -64,6 +65,7 @@ environment_add_symbol(environment *env, token *identifier)
     token_copy_string(identifier, token_buffer, token_length, 0);
 
     symbol_table *current_table = env->current_table;
+    if (global == true) current_table = env->global_table;
     assert(current_table != NULL);
 
     symbol *new_symbol = hash_table_insert_type(&current_table->symbols, token_buffer, symbol);
