@@ -37,6 +37,7 @@ enum class ast_node_type
     IF_STATEMENT,
     ELSEIF_STATEMENT,
     PROCEDURE_STATEMENT,
+    INVOKEPROC_STATEMENT,
 };
 
 enum class expression_type 
@@ -50,21 +51,6 @@ enum class expression_type
     UNARY,
     PRIMARY
 };
-
-enum class statement_type
-{
-    STATEMENT,
-    COMMENT_STATEMENT,
-    EXPRESSION_STATEMENT,
-    BLOCK_STATEMENT,
-    DECLARATION_STATEMENT,
-    WHILE_STATEMENT,
-    FOR_STATEMENT,
-    IF_STATEMENT,
-    ELSEIF_STATEMENT,
-    PROCEDURE_STATEMENT,
-};
-
 
 typedef struct parser_state
 {
@@ -126,6 +112,12 @@ struct expression
             expression *assignment;
             token *identifier;
         } assignment_expression;
+
+        struct call_expression
+        {
+            token *identifier;
+            linked_list parameter_expressions;
+        } call_expression;
 
     };
 
@@ -215,6 +207,7 @@ statement* parser_create_elseif_statement(parser_state *state);
 statement* parser_create_while_statement(parser_state *state);
 statement* parser_create_for_statement(parser_state *state);
 statement* parser_create_expression_statement(parser_state *state);
+statement* parser_create_procedure_statement(parser_state *state);
 
 statement*  parser_recursively_descend_statement(parser_state *state);
 expression* parser_recursively_descend_expression(parser_state *state, expression_type level);

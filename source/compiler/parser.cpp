@@ -85,9 +85,6 @@ parser_display_warning(token *location, const char *reason)
 //                      this. This behavior itself is fine since procedures don't exist
 //                      in mathematical expressions.
 //
-//      invokeproc_stm: Evaluate identifier to determine if it is procedure, validate
-//                      procedure arity.
-//
 // Complete Language Grammar
 //
 //      program                 : statement* EOF
@@ -96,14 +93,13 @@ parser_display_warning(token *location, const char *reason)
 //      comment_stm             : "comment" statement*
 //      procedure_stm           : "procedure" identifier (identifier*) ";"
 //                                statement* "endprocedure" ;
-//      invokeproc_stm          : identifier (identifier*) ;
 //      block_stm               : "scope" statement* "endscope" ;
 //      while_stm               : "while" expression ; statement* "endwhile" ;
 //      loop_stm                : "loop" identifier expression expression ( expression )? ; 
 //                                statement* "endwhile" ;
 //      if_stm                  : "if" expression ; statement* (elseif_stm)* "endif" ;
 //      elseif_stm              : "elseif" expression ; statement*
-//      declaration_stm         : "variable" IDENTIFIER expression ( expression )* ;
+//      declaration_stm         : "variable" identifier expression ( expression )* ;
 //      expression_stm          : expression ;
 //
 // Expression Grammar
@@ -114,9 +110,10 @@ parser_display_warning(token *location, const char *reason)
 //      comparison              : term ( ( "<" | ">" | "<=" | ">=" ) term )*
 //      term                    : factor ( ( "+" | "-" ) factor )*
 //      factor                  : unary ( ( "*" | "/" ) unary )*
-//      unary                   : ( "-" ) unary | primary
+//      unary                   : ( "-" ) unary | call
+//      call                    : primary ( "(" arguments? ")" )?
+//      arguments               : expression ( "," expression )*
 //      primary                 : NUMBER | STRING | identifier | "(" expression ")"
-// 
 //
 // Grammar TODO List:
 //
@@ -252,6 +249,15 @@ parser_allocate_assignment_node(token *identifier, expression *assignment, memor
 }
 
 static inline expression*
+parser_allocator_call_node(token *identifier, memory_arena *arena)
+{
+    expression *expr = memory_arena_push_type(arena, expression);
+    expr->node_type = ast_node_type::CALL_EXPRESSION;
+    expr->assignment_expression.identifier = identifier;
+    return expr;
+}
+
+static inline expression*
 parser_allocate_grouping_node(expression *primary, memory_arena *arena)
 {
 
@@ -331,6 +337,7 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
 
             expression *expr = parser_recursively_descend_expression(state,
                     expression_type::COMPARISON);
+            propagate_on_error(expr);
 
             while (parser_match_token(state, token_type::EQUALS) ||
                    parser_match_token(state, token_type::NOT_EQUALS))
@@ -356,6 +363,7 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
 
             expression *expr = parser_recursively_descend_expression(state,
                     expression_type::TERM);
+            propagate_on_error(expr);
 
             while (parser_match_token(state, token_type::LESS_THAN) ||
                    parser_match_token(state, token_type::LESS_THAN_EQUALS) ||
@@ -380,6 +388,7 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
         case expression_type::TERM:
         {
             expression *expr = parser_recursively_descend_expression(state, expression_type::FACTOR);
+            propagate_on_error(expr);
 
             while (parser_match_token(state, token_type::PLUS) ||
                    parser_match_token(state, token_type::MINUS))
@@ -402,6 +411,7 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
         case expression_type::FACTOR:
         {
             expression *expr = parser_recursively_descend_expression(state, expression_type::UNARY);
+            propagate_on_error(expr);
 
             while (parser_match_token(state, token_type::MULTIPLY) ||
                    parser_match_token(state, token_type::DIVISION))
@@ -437,8 +447,21 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
 
             }
 
-            expression *expr = parser_recursively_descend_expression(state, expression_type::PRIMARY);
+            expression *expr = parser_recursively_descend_expression(state, expression_type::CALL);
             return expr;
+
+        } break;
+
+        case expression_type::CALL:
+        {
+
+            expression *expr = parser_recursively_descend_expression(state, expression_type::PRIMARY);
+            propagate_on_error(expr);
+
+            if (parser_match_token(state, token_type::LEFT_PARENTHESIS))
+            {
+                
+            }
 
         } break;
 
