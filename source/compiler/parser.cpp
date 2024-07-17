@@ -447,7 +447,7 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
 
             }
 
-            expression *expr = parser_recursively_descend_expression(state, expression_type::CALL);
+            expression *expr = parser_recursively_descend_expression(state, expression_type::PRIMARY);
             return expr;
 
         } break;
@@ -458,10 +458,12 @@ parser_recursively_descend_expression(parser_state *state, expression_type level
             expression *expr = parser_recursively_descend_expression(state, expression_type::PRIMARY);
             propagate_on_error(expr);
 
+#if 0
             if (parser_match_token(state, token_type::LEFT_PARENTHESIS))
             {
                 
             }
+#endif
 
         } break;
 
