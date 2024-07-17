@@ -45,6 +45,8 @@ add_executable(Sigmafox
     "source/compiler/environment.cpp"
     "source/compiler/ast.h"
     "source/compiler/ast.cpp"
+    "source/compiler/rparser.h"
+    "source/compiler/rparser.c"
     
     "source/platform/fileio.h"
     "source/platform/system.h"
