@@ -115,6 +115,7 @@ source_tokenizer_match_newline(source_tokenizer *tokenizer, source_token *token)
     char current = source_tokenizer_peek(tokenizer, 0);
     if (current == '\n')
     {
+        source_tokenizer_consume(tokenizer, 1);
         source_tokenizer_set_token(tokenizer, token, TOKEN_NEW_LINE);
         source_tokenizer_synchronize(tokenizer);
         return true;
@@ -133,6 +134,8 @@ source_tokenizer_match_comments(source_tokenizer *tokenizer, source_token *token
     {
 
         source_tokenizer_consume(tokenizer, 1);
+        source_tokenizer_synchronize(tokenizer);
+
         while (source_tokenizer_peek(tokenizer, 0) != '}' &&
               !source_tokenizer_eof(tokenizer))
         {
@@ -168,12 +171,178 @@ b32
 source_tokenizer_match_symbols(source_tokenizer *tokenizer, source_token *token)
 {
 
+    char peek = source_tokenizer_peek(tokenizer, 0);
+    switch (peek)
+    {
+        case '(':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_LEFT_PARENTHESIS);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case ')':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_RIGHT_PARENTHESIS);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+        
+        case ';':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_SEMICOLON);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '+':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_PLUS);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '-':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_MINUS);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+        
+        case '*':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_STAR);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '/':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_FORWARD_SLASH);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '^':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_CARROT);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '=':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_EQUALS);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '#':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_HASH);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+        
+        case '&':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_AMPERSAND);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '|':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_PIPE);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '%':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_PERCENT);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
+
+        case '<':
+        {
+            char follower = source_tokenizer_peek(tokenizer, 1);
+
+            if (follower == '=')
+            {
+                source_tokenizer_consume(tokenizer, 2);
+                source_tokenizer_set_token(tokenizer, token, TOKEN_LESS_THAN_EQUALS);
+                source_tokenizer_synchronize(tokenizer);
+                return true;
+            }
+            
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_LESS_THAN);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+
+        } break;
+
+        case '>':
+        {
+            char follower = source_tokenizer_peek(tokenizer, 1);
+
+            if (follower == '=')
+            {
+                source_tokenizer_consume(tokenizer, 2);
+                source_tokenizer_set_token(tokenizer, token, TOKEN_GREATER_THAN_EQUALS);
+                source_tokenizer_synchronize(tokenizer);
+                return true;
+            }
+            
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_GREATER_THAN);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+
+        } break;
+
+        case ':':
+        {
+            
+            char follower = source_tokenizer_peek(tokenizer, 1);
+            if (follower == '=')
+            {
+                source_tokenizer_consume(tokenizer, 2);
+                source_tokenizer_set_token(tokenizer, token, TOKEN_COLON_EQUALS);
+                source_tokenizer_synchronize(tokenizer);
+                return true;
+            }
+
+            return false;
+
+        } break;
+
+
+    };
+
     return false;
 }
 
 b32     
 source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
 {
+
+
 
     return false;
 }
@@ -208,7 +377,9 @@ source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token
     }
 
     // Match any cases and return on success.
+    if (source_tokenizer_match_newline(tokenizer, token)) return;
     if (source_tokenizer_match_comments(tokenizer, token)) return;
+    if (source_tokenizer_match_symbols(tokenizer, token)) return;
     
     // If we didn't return, then we know no cases matches, consume one token and
     // generate an undefined token.
