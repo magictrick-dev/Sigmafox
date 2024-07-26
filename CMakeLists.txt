@@ -6,7 +6,7 @@ cmake_minimum_required(VERSION 3.21)
 # Additionally, you can toggle the debug flag for production builds as well.
 #
 
-project(Sigmafox)
+project(Sigmafox C CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
 add_compile_definitions(SIGMAFOX_DEBUG_BUILD=1)
 
@@ -20,8 +20,8 @@ add_compile_definitions(SIGMAFOX_DEBUG_BUILD=1)
 set(PLATFORM_FILES)
 if (WIN32)
     set(PLATFORM_FILES
-        "source/platform/win32/fileio.cpp"
-        "source/platform/win32/system.cpp"
+        "source/platform/win32/fileio.c"
+        "source/platform/win32/system.c"
     )
 endif (WIN32)
 
@@ -31,20 +31,10 @@ endif (WIN32)
 #
  
 add_executable(Sigmafox
-    "source/main.cpp"
+    "source/main.c"
     "source/runtime.h"
-    "source/runtime.cpp"
+    "source/runtime.c"
 
-    "source/compiler/token.h"
-    "source/compiler/token.cpp"
-    "source/compiler/scanner.h"
-    "source/compiler/scanner.cpp"
-    "source/compiler/parser.h"
-    "source/compiler/parser.cpp"
-    "source/compiler/environment.h"
-    "source/compiler/environment.cpp"
-    "source/compiler/ast.h"
-    "source/compiler/ast.cpp"
     "source/compiler/rparser.h"
     "source/compiler/rparser.c"
     
@@ -52,11 +42,10 @@ add_executable(Sigmafox
     "source/platform/system.h"
 
     "source/core/utilities.h"
-    "source/core/utilities/array.h"
     "source/core/utilities/hashtable.h"
-    "source/core/utilities/hashtable.cpp"
+    "source/core/utilities/hashtable.c"
     "source/core/utilities/allocator.h"
-    "source/core/utilities/allocator.cpp"
+    "source/core/utilities/allocator.c"
 
     ${PLATFORM_FILES}
 )

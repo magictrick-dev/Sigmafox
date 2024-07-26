@@ -4,25 +4,25 @@
 
 typedef struct hash_table_entry
 {
-    uint32_t hash;
-    uint32_t tag;
+    u32 hash;
+    u32 tag;
 } hash_table_entry;
 
 static inline void*
-hash_table_insert_at_hash(hash_table *table, uint32_t hash)
+hash_table_insert_at_hash(hash_table *table, u32 hash)
 {
 
-    uint64_t probe = hash % table->entries_total;
+    u64 probe = hash % table->entries_total;
 
     // NOTE(Chris): We know that the table will never fill since we determine a
     //              specified load factor that indicates when a table should be
     //              resized. Therefore, it's okay to busy-spin this loop since it
     //              eventually fall out if the load-factor is correctly set up.
-    bool collision_encountered = false;
+    b32 collision_encountered = false;
     while (true)
     {
 
-        hash_table_entry *entry = (hash_table_entry*)((uint8_t*)table->entries_array + 
+        hash_table_entry *entry = (hash_table_entry*)((u8*)table->entries_array + 
                 (table->entry_stride * probe));
 
         if (entry->tag == HASH_TABLE_TAG_NULL)
@@ -30,7 +30,7 @@ hash_table_insert_at_hash(hash_table *table, uint32_t hash)
             entry->tag = HASH_TABLE_TAG_VALID;
             entry->hash = hash;
             table->entries_current++;
-            return (uint8_t*)entry + table->entry_block_offset;
+            return (u8*)entry + table->entry_block_offset;
         }
         
         // NOTE(Chris): Collision search refers to the number of collisions encountered
@@ -52,19 +52,19 @@ hash_table_insert_at_hash(hash_table *table, uint32_t hash)
 }
 
 static inline void*
-hash_table_find_at_hash(hash_table *table, uint32_t hash)
+hash_table_find_at_hash(hash_table *table, u32 hash)
 {
 
-    uint64_t probe = hash % table->entries_total;  
-    uint64_t search_count = 0;
+    u64 probe = hash % table->entries_total;  
+    u64 search_count = 0;
     while (search_count < table->entries_total)
     {
         
-        hash_table_entry *entry = (hash_table_entry*)((uint8_t*)table->entries_array + 
+        hash_table_entry *entry = (hash_table_entry*)((u8*)table->entries_array + 
                 (table->entry_stride * probe));
 
         if (entry->tag == HASH_TABLE_TAG_VALID && entry->hash == hash)
-            return (uint8_t*)entry + table->entry_block_offset;
+            return (u8*)entry + table->entry_block_offset;
 
         search_count++;
     }
@@ -74,7 +74,7 @@ hash_table_find_at_hash(hash_table *table, uint32_t hash)
 }
 
 void
-hash_table_resize(hash_table *table, uint64_t size)
+hash_table_resize(hash_table *table, u64 size)
 {
 
     assert(table != NULL);
@@ -86,12 +86,12 @@ hash_table_resize(hash_table *table, uint64_t size)
             table->load_factor_limit, table->hash_algorithm);
     
     // Now insert each valid entry into the new entries array.
-    for (uint64_t index = 0; index < table->entries_total; ++index)
+    for (u64 index = 0; index < table->entries_total; ++index)
     {
 
         hash_table_entry *entry = (hash_table_entry*)((uint8_t*)table->entries_array + 
                 (table->entry_stride * index));
-        void *old_entry_block = (uint8_t*)entry + table->entry_block_offset;
+        void *old_entry_block = (u8*)entry + table->entry_block_offset;
 
         if (entry->tag == HASH_TABLE_TAG_VALID)
         {
@@ -101,65 +101,49 @@ hash_table_resize(hash_table *table, uint64_t size)
 
     }
 
-    memory_release(table->entries_array);
+    free(table->entries_array);
     *table = overwritting_table;
 
 }
 
 void*
-hash_table_insert_entry(hash_table *table, const char *key)
+hash_table_insert_entry(hash_table *table, cc64 key)
 {
 
     assert(table != NULL);
     assert(table->entries_array != NULL); // Ensures initialization.
 
-    float current_load = (float)table->entries_current / (float)table->entries_total;
+    r32 current_load = (r32)table->entries_current / (r32)table->entries_total;
     if (current_load >= table->load_factor_limit) 
         hash_table_resize(table, table->entries_total * 2);
 
-    uint32_t hash = table->hash_algorithm(key, strlen(key));
+    u32 hash = table->hash_algorithm(key, strlen(key));
     void *entry_block = hash_table_insert_at_hash(table, hash);
     return entry_block;
 
 }
 
 void*       
-hash_table_find_entry(hash_table *table, const char *key)
+hash_table_find_entry(hash_table *table, cc64 key)
 {
 
-    uint32_t hash = table->hash_algorithm(key, strlen(key));
+    u32 hash = table->hash_algorithm(key, strlen(key));
     void *result = hash_table_find_at_hash(table, hash);
 
     return result;
 }
 
-/*
-// TODO(Chris): We will implement these as we need them, after testing.
-
 void        
-hash_table_remove_entry(hash_table *table, const char *key)
-{
-
-}
-
-void*       
-hash_table_iterate_entries(hash_table *table, void *next)
-{
-    return NULL;
-}
-*/
-
-void        
-hash_table_create(hash_table *table, uint32_t entry_block_size, uint32_t initial_capacity,
-        float load_factor_limit, hashing_method_fptr hash_func)
+hash_table_create(hash_table *table, u32 entry_block_size, u32 initial_capacity,
+        r32 load_factor_limit, hashing_method_fptr hash_func)
 {
 
     assert(table != NULL);
     assert((load_factor_limit < 1.0f) && (load_factor_limit > 0.0f));
 
-    uint64_t header_size = sizeof(hash_table_entry) + (sizeof(hash_table_entry) % 8);
-    uint64_t block_size = entry_block_size + (entry_block_size % 8);
-    uint64_t entry_size = header_size + block_size;
+    u64 header_size = sizeof(hash_table_entry) + (sizeof(hash_table_entry) % 8);
+    u64 block_size = entry_block_size + (entry_block_size % 8);
+    u64 entry_size = header_size + block_size;
 
     table->entries_total            = initial_capacity;
     table->entries_current          = 0;
@@ -171,15 +155,15 @@ hash_table_create(hash_table *table, uint32_t entry_block_size, uint32_t initial
     table->load_factor_limit        = load_factor_limit;
     table->hash_algorithm           = hash_func;
 
-    void *hash_buffer = memory_allocate(entry_size * initial_capacity);
+    void *hash_buffer = malloc(initial_capacity * entry_size);
     table->entries_array = hash_buffer;
 
     // Initialize all entries within the table.
-    for (size_t index = 0; index < table->entries_total; ++index)
+    for (u64 index = 0; index < table->entries_total; ++index)
     {
         
-        uint64_t data_offset = table->entry_stride * index;
-        hash_table_entry *entry = (hash_table_entry*)((uint8_t*)table->entries_array + data_offset);
+        u64 data_offset = table->entry_stride * index;
+        hash_table_entry *entry = (hash_table_entry*)((u8*)table->entries_array + data_offset);
         entry->hash = HASH_TABLE_TAG_NULL;
         entry->tag  = HASH_TABLE_TAG_NULL;
 
@@ -192,7 +176,7 @@ void
 hash_table_release(hash_table *table)
 {
     assert(table != NULL);
-    memory_release(table->entries_array);
+    free(table->entries_array);
     table->entries_array = NULL;
 }
 
@@ -204,16 +188,16 @@ hash_table_release(hash_table *table)
 #define FNV1A_OFFSET_BASIS  0x811C9DC5
 #define FNV1A_PRIME         0x01000193
 
-uint32_t    
-hash_function_fnv1a(const void *buffer, uint64_t buffer_size)
+u32
+hash_function_fnv1a(const void *buffer, u64 buffer_size)
 {
 
-    uint32_t hash = FNV1A_OFFSET_BASIS;
+    u32 hash = FNV1A_OFFSET_BASIS;
 
-    for (uint64_t byte_index = 0; byte_index < buffer_size; ++byte_index)
+    for (u64 byte_index = 0; byte_index < buffer_size; ++byte_index)
     {
 
-        hash ^= *((uint8_t*)buffer + byte_index);
+        hash ^= *((u8*)buffer + byte_index);
         hash *= FNV1A_PRIME;
 
     }

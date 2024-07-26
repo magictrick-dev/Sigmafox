@@ -26,18 +26,18 @@
 #define HASH_TABLE_TAG_VALID        0xDEADBEEF
 #define HASH_TABLE_DEFAULT_LF       0.75f
 
-typedef uint32_t (*hashing_method_fptr)(const void *buffer, uint64_t buffer_size);
+typedef u32 (*hashing_method_fptr)(const void *buffer, u64 buffer_size);
 typedef struct hash_table
 {
     void       *entries_array;
-    uint32_t    entries_total;
-    uint32_t    entries_current;
-    uint32_t    entry_stride;
-    uint32_t    entry_block_offset;
-    uint32_t    entry_block_size;
-    uint32_t    entry_collision_count;
-    uint32_t    entry_collision_search;
-    float       load_factor_limit;
+    u64         entries_total;
+    u64         entries_current;
+    u64         entry_stride;
+    u64         entry_block_offset;
+    u64         entry_block_size;
+    u64         entry_collision_count;
+    u64         entry_collision_search;
+    r32         load_factor_limit;
 
     hashing_method_fptr hash_algorithm;
 } hash_table;
@@ -45,20 +45,18 @@ typedef struct hash_table
 #define     hash_table_insert_type(table, key, type) (type*)hash_table_insert_entry(table, key)
 #define     hash_table_find_type(table, key, type) (type*)hash_table_find_entry(table, key)
 
-void*       hash_table_insert_entry(hash_table *table, const char *key);
-void*       hash_table_find_entry(hash_table *table, const char *key);
-//void        hash_table_remove_entry(hash_table *table, char *key);
-//void*       hash_table_iterate_entries(hash_table *table, void *next);
-void        hash_table_resize(hash_table *table, uint64_t size);
+void*       hash_table_insert_entry(hash_table *table, cc64 key);
+void*       hash_table_find_entry(hash_table *table, cc64 key);
+void        hash_table_resize(hash_table *table, u64 size);
 void        hash_table_release(hash_table *table);
-void        hash_table_create(hash_table *table, uint32_t entry_block_size, uint32_t initial_capacity,
-            float load_factor_limit, hashing_method_fptr hash_func);
+void        hash_table_create(hash_table *table, u32 entry_block_size, u32 initial_capacity,
+            r32 load_factor_limit, hashing_method_fptr hash_func);
 
 // --- Hashing Algorithms ------------------------------------------------------
 //
 // Below are a list of hashing algorithms that can be used with the hashtable.
 //
 
-uint32_t    hash_function_fnv1a(const void *buffer, uint64_t buffer_size);
+u32         hash_function_fnv1a(const void *buffer, u64 buffer_size);
 
 #endif

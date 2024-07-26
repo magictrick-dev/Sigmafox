@@ -2,7 +2,6 @@
 #define SOURCE_COMPILER_RPARSER_H
 #include <core/definitions.h>
 
-// -----------------------------------------------------------------------------
 // --- Tokenizer ---------------------------------------------------------------
 //
 // The source tokenizer takes a given raw-text source file and attempts to match
@@ -22,7 +21,6 @@ typedef struct source_tokenizer
     cc64 source;
     u64 offset;
     u64 step;
-    u64 line;
 } source_tokenizer;
 
 typedef enum source_token_type
@@ -80,6 +78,7 @@ typedef enum source_token_type
     TOKEN_UNDEFINED,
     TOKEN_UNDEFINED_EOF,
     TOKEN_UNDEFINED_EOL,
+    TOKEN_EOF,
 } source_token_type;
 
 typedef struct source_token
@@ -90,6 +89,14 @@ typedef struct source_token
     u64 length;
 } source_token;
 
+cc64    source_tokenizer_token_type_to_string(source_token *token);
+b32     source_tokenizer_eof(source_tokenizer *tokenizer);
+b32     source_tokenizer_eol(source_tokenizer *tokenizer);
+b32     source_tokenizer_match(source_tokenizer *tokenizer, u32 count, ...);
+char    source_tokenizer_peek(source_tokenizer *tokenizer, u64 offset);
+char    source_tokenizer_consume(source_tokenizer *tokenizer, u64 count);
+void    source_tokenizer_set_token(source_tokenizer *tokenizer, source_token *token, source_token_type type);
+void    source_tokenizer_synchronize(source_tokenizer *tokenizer);
 b32     source_tokenizer_consume_whitespace(source_tokenizer *tokenizer, source_token *token);
 b32     source_tokenizer_match_comments(source_tokenizer *tokenizer, source_token *token);
 b32     source_tokenizer_match_newline(source_tokenizer *tokenizer, source_token *token);
@@ -98,8 +105,8 @@ b32     source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token
 b32     source_tokenizer_match_strings(source_tokenizer *tokenizer, source_token *token);
 b32     source_tokenizer_match_identifiers(source_tokenizer *tokenizer, source_token *token);
 void    source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token);
+void    source_tokenizer_initialize(source_tokenizer *tokenizer, cc64 source, cc64 path);
 
-// -----------------------------------------------------------------------------
 // --- Parser ------------------------------------------------------------------
 //
 // The parser generates a traversable AST by generating a contiguous list of
@@ -168,7 +175,7 @@ void    source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_toke
 //      invoke statements exist to catch this difference. The syntax differences
 //      make this tricky to install in expressions, but procedure calls don't work
 //      in expressions anyway, so we elevate them up to statement status.
-//
+//      
 
 typedef struct syntax_node          syntax_node;
 typedef struct binary_syntax_node   binary_syntax_node;
@@ -203,13 +210,11 @@ typedef enum syntax_operation_type
     OPERATION_SUBTRACTION,
     OPERATION_MULTIPLICATION,
     OPERATION_DIVISION,
-
     OPERATION_NEGATIVE_ASSOCIATE,
 } syntax_operation_type;
 
 typedef union object_literal
 {
-
     u64 unsigned_integer;
     i64 signed_integer;
     b64 boolean;
@@ -217,7 +222,6 @@ typedef union object_literal
     cc64 string;
     cc64 identifier;
     cc64 procedure_name;
-
 } object_literal;
 
 typedef enum object_type
@@ -278,6 +282,7 @@ typedef struct assigment_syntax_node
 
 typedef struct syntax_node
 {
+
     syntax_node_type type;
 
     union
@@ -308,13 +313,13 @@ typedef struct source_parser
 
 syntax_node*    source_parser_create_ast(source_parser *parser);
 
-// -----------------------------------------------------------------------------
 // --- Error Handling ----------------------------------------------------------
 //
 // In the event that there is an error, the error handler is designed to properly
 // synronize the parser and display helpful error messages as they are processed.
 // Most errors are recoverable such that the parser can continue to process additional
 // error messages for the user.
+//
 //
 
 typedef enum parse_error_type

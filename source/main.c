@@ -6,9 +6,6 @@ int
 main(int argc, char ** argv)
 {
 
-    // Initialize the default allocator.
-    memory_initialize_allocator_context();
-
     // Invoke initialization procedure. If init fails, immediately call shutdown
     // with -1 to indicate a fail.
     int init_code = environment_initialize(argc, argv);
@@ -23,9 +20,5 @@ main(int argc, char ** argv)
     int runtime_code = environment_runtime();
     environment_shutdown(runtime_code);
 
-    // Before shutting down, we manually pop all the allocators off the stack
-    // so that they properly invoke any cleanup events before shutdown.
-    while (memory_get_current_allocator_context() != NULL)
-        memory_pop_allocator();
 
 }

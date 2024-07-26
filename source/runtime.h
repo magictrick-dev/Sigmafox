@@ -1,14 +1,14 @@
 #ifndef SIGMAFOX_RUNTIME_H
 #define SIGMAFOX_RUNTIME_H
-#include <cstdio>
+#include <core/definitions.h>
 
 #define STATUS_CODE_SUCCESS         0
 #define STATUS_CODE_NO_ARGS         1
 #define STATUS_CODE_NO_FILE         2
 #define STATUS_CODE_ALLOC_FAIL      3
 
-int     environment_initialize(int argument_count, char ** argument_list);
-int     environment_runtime();
-void    environment_shutdown(int status_code);
+i32 environment_initialize(i32 argument_count, char ** argument_list);
+i32 environment_runtime();
+void environment_shutdown(i32 status_code);
 
 #endif

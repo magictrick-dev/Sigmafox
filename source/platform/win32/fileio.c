@@ -1,9 +1,8 @@
 #include <platform/fileio.h>
 #include <windows.h>
-#include <cassert>
 
-bool
-fileio_file_exists(const char *path)
+b32
+fileio_file_exists(cc64 path)
 {
 
     DWORD file_attr = GetFileAttributesA(path);
@@ -12,8 +11,8 @@ fileio_file_exists(const char *path)
 
 }
 
-size_t
-fileio_file_size(const char *path)
+u64 
+fileio_file_size(cc64 path)
 {
 
     // Attempt to open the file.
@@ -24,17 +23,17 @@ fileio_file_size(const char *path)
         return 0;
 
     // Get the file size.
-    LARGE_INTEGER lifsize = {};
+    LARGE_INTEGER lifsize = {0};
     GetFileSizeEx(file_handle, &lifsize);
-    size_t file_size = (size_t)lifsize.QuadPart;
+    u64 file_size = (u64)lifsize.QuadPart;
 
     CloseHandle(file_handle);
     return file_size;
 
 }
 
-bool
-fileio_file_read(const char *path, void *buffer, size_t rsize, size_t bsize)
+b32
+fileio_file_read(cc64 path, void *buffer, u64 rsize, u64 bsize)
 {
 
     assert(rsize <= bsize);
@@ -61,8 +60,8 @@ fileio_file_read(const char *path, void *buffer, size_t rsize, size_t bsize)
 
 }
 
-bool
-fileio_file_write(const char *path, void *buffer, size_t wsize)
+b32
+fileio_file_write(cc64 path, void *buffer, u64 wsize)
 {
 
     HANDLE file_handle = CreateFileA(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
@@ -84,7 +83,7 @@ fileio_file_write(const char *path, void *buffer, size_t wsize)
 }
 
 void
-fileio_file_get_full_path(const char *path, char *path_buffer, size_t buffer_size)
+fileio_file_get_full_path(cc64 path, c64 path_buffer, u64 buffer_size)
 {
 
     DWORD path_length = GetFullPathNameA(path, buffer_size, path_buffer, NULL);

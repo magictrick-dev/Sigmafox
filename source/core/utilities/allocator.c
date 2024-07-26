@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <core/utilities/allocator.h>
 
+/*
 // --- Malloc/Free Wrapper -----------------------------------------------------
 //
 // The malloc/free wrapper adds tracking information to allocations.
@@ -247,6 +248,7 @@ memory_release(void *ptr)
     return;
 
 }
+*/
 
 // --- Memory Arena ------------------------------------------------------------o
 //
@@ -254,20 +256,20 @@ memory_release(void *ptr)
 //
 
 void*    
-memory_arena_push(memory_arena *arena, uint64_t size)
+memory_arena_push(memory_arena *arena, u64 size)
 {
     assert(arena != NULL);
     assert(arena->buffer != NULL);
     assert(arena->commit + size <= arena->size);
 
-    void *result = (uint8_t*)arena->buffer + arena->commit;
+    void *result = (u8*)arena->buffer + arena->commit;
     arena->commit += size;
     return result;
 
 }
 
 void     
-memory_arena_pop(memory_arena *arena, uint64_t size)
+memory_arena_pop(memory_arena *arena, u64 size)
 {
 
     assert(arena != NULL);
@@ -276,18 +278,18 @@ memory_arena_pop(memory_arena *arena, uint64_t size)
 
 }
 
-uint64_t
+u64
 memory_arena_save_state(memory_arena *arena)
 {
 
     assert(arena != NULL);
-    size_t result = arena->commit;
+    u64 result = arena->commit;
     return result;
 
 }
 
 void     
-memory_arena_restore_state(memory_arena *arena, uint64_t state)
+memory_arena_restore_state(memory_arena *arena, u64 state)
 {
 
     assert(arena != NULL);
@@ -296,32 +298,3 @@ memory_arena_restore_state(memory_arena *arena, uint64_t state)
 
 }
 
-static void*
-memory_arena_context_allocate(uint64_t size)
-{
-
-    memory_allocator_context *context = memory_get_current_allocator_context();   
-    memory_arena *arena = (memory_arena*)context->user_defined;
-    void *buffer = memory_arena_push(arena, size);
-    return buffer;
-
-}
-
-static void
-memory_arena_context_free(void *ptr)
-{
-    return;
-}
-
-void
-memory_arena_create_and_set_context(memory_allocator_context *context, memory_arena *arena)
-{
-
-    context->user_defined       = arena;
-    context->allocate           = memory_arena_context_allocate;
-    context->release            = memory_arena_context_free;
-    context->on_context_push    = NULL;
-    context->on_context_pop     = NULL;
-    memory_push_allocator(context);
-
-}

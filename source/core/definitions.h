@@ -1,8 +1,11 @@
 #ifndef SIGMAFOX_CORE_DEFINITIONS_H
 #define SIGMAFOX_CORE_DEFINITIONS_H
 #include <ctype.h>
+#include <stdlib.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <assert.h>
+#include <stdarg.h>
 
 #define SF_BYTES(n)     ((size_t)n)
 #define SF_KILOBYTES(n) ((size_t)SF_BYTES(n)     * 1024)
@@ -26,5 +29,16 @@ typedef float       r32;
 typedef double      r64;
 typedef char*       c64;
 typedef const char* cc64;
+
+#if !defined(__cplusplus)
+#define false   0
+#define true    1
+#endif
+
+#if defined(__cplusplus)
+#define externable extern "C"
+#else
+#define externable
+#endif
 
 #endif
