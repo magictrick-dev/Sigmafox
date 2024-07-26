@@ -8,6 +8,61 @@
 // parser as needed.
 //
 
+static inline b32
+char_isalpha(char c)
+{
+
+    b32 upper = (c >= 0x41 && c <= 0x5A);
+    b32 lower = (c >= 0x61 && c <= 0x7A);
+    return (upper || lower);
+
+}
+
+static inline b32
+char_isnum(char c)
+{
+    b32 is_number = (c >= 0x30 && c <= 0x39);
+    return is_number;
+}
+
+static inline b32
+char_isalnum(char c)
+{
+    b32 alpha = char_isalpha(c);
+    b32 number = char_isnum(c);
+    return (alpha || number);
+}
+
+b32     
+source_tokenizer_isalpha(source_tokenizer *tokenizer)
+{
+    
+    char current = tokenizer->source[tokenizer->step];
+    b32 is_alpha = char_isalpha(current);
+    return is_alpha;
+
+}
+
+b32     
+source_tokenizer_isnum(source_tokenizer *tokenizer)
+{
+
+    char current = tokenizer->source[tokenizer->step];
+    b32 is_number = char_isnum(current);
+    return is_number;
+
+}
+
+b32     
+source_tokenizer_isalnum(source_tokenizer *tokenizer)
+{
+
+    char current = tokenizer->source[tokenizer->step];
+    b32 is_alnum = char_isalnum(current);
+    return current;
+
+}
+
 b32     
 source_tokenizer_eof(source_tokenizer *tokenizer)
 {
@@ -22,7 +77,7 @@ b32
 source_tokenizer_eol(source_tokenizer *tokenizer)
 {
     
-    if (source_tokenizer_match(tokenizer, 2, '\r', '\n'))
+    if (source_tokenizer_match(tokenizer, 1, '\n'))
         return true;
     return false;
 
@@ -78,6 +133,78 @@ source_tokenizer_match(source_tokenizer *tokenizer, u32 count, ...)
     va_end(args);
 
     return matched;
+
+}
+
+void
+source_tokenizer_check_identifier(source_tokenizer *tokenizer, source_token *token)
+{
+
+    // Validate identifier to keywords.
+    char hold_character = tokenizer->source[tokenizer->step];
+    tokenizer->source[tokenizer->step] = '\0';
+    cc64 string = token->source + token->offset;
+    u64 length = token->length;
+
+    static initialized_keywords = false;
+    static cc64 keywords[32];
+    static source_token_type types[32];
+    if (initialized_keywords == false)
+    {
+        keywords[0]     = "BEGIN";
+        types[0]        = TOKEN_KEYWORD_BEGIN;
+        keywords[1]     = "ELSEIF";
+        types[1]        = TOKEN_KEYWORD_ELSEIF;
+        keywords[2]     = "END";
+        types[2]        = TOKEN_KEYWORD_END;
+        keywords[3]     = "ENDFIT";
+        types[3]        = TOKEN_KEYWORD_ENDFIT;
+        keywords[4]     = "ENDIF";
+        types[4]        = TOKEN_KEYWORD_ENDIF;
+        keywords[5]     = "ENDFUNCTION";
+        types[5]        = TOKEN_KEYWORD_ENDFUNCTION;
+        keywords[6]     = "ENDLOOP";
+        types[6]        = TOKEN_KEYWORD_ENDLOOP;
+        keywords[7]     = "ENDPLOOP";
+        types[7]        = TOKEN_KEYWORD_ENDPLOOP;
+        keywords[8]     = "ENDPROCEDURE";
+        types[8]        = TOKEN_KEYWORD_ENDPROCEDURE;
+        keywords[9]     = "ENDSCOPE";
+        types[9]        = TOKEN_KEYWORD_ENDSCOPE;
+        keywords[10]    = "ENDWHILE";
+        types[10]       = TOKEN_KEYWORD_ENDWHILE;
+        keywords[11]    = "FIT";
+        types[11]       = TOKEN_KEYWORD_FIT;
+        keywords[12]    = "FUNCTION";
+        types[12]       = TOKEN_KEYWORD_FUNCTION;
+        keywords[13]    = "IF";
+        types[13]       = TOKEN_KEYWORD_IF;
+        keywords[14]    = "INCLUDE";
+        types[14]       = TOKEN_KEYWORD_INCLUDE;
+        keywords[15]    = "LOOP";
+        types[15]       = TOKEN_KEYWORD_LOOP;
+        keywords[16]    = "PLOOP";
+        types[16]       = TOKEN_KEYWORD_PLOOP;
+        keywords[17]    = "PROCEDURE";
+        types[17]       = TOKEN_KEYWORD_PROCEDURE;
+        keywords[18]    = "READ";
+        types[18]       = TOKEN_KEYWORD_READ;
+        keywords[19]    = "SAVE";
+        types[19]       = TOKEN_KEYWORD_SAVE;
+        keywords[20]    = "SCOPE";
+        types[20]       = TOKEN_KEYWORD_SCOPE;
+        keywords[21]    = "VARIABLE";
+        types[21]       = TOKEN_KEYWORD_VARIABLE;
+        keywords[22]    = "WHILE";
+        types[22]       = TOKEN_KEYWORD_WHILE;
+        keywords[23]    = "WRITE";
+        types[23]       = TOKEN_KEYWORD_WRITE;
+
+        initialized_keywords = true;
+    }
+
+    // Return hold character.
+    tokenizer->source[tokenizer->step] = hold_character;
 
 }
 
@@ -342,7 +469,52 @@ b32
 source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
 {
 
+    if (source_tokenizer_isnum(tokenizer))
+    {
 
+        source_tokenizer_consume(tokenizer, 1);
+        
+        while (true)
+        {
+
+            // Handle decimals.
+            char peek = source_tokenizer_peek(tokenizer, 0);
+            if (peek == '.')
+            {
+                char forward = source_tokenizer_peek(tokenizer, 1);
+                if (char_isnum(forward))
+                {
+
+                    source_tokenizer_consume(tokenizer, 2);
+                    continue;
+
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            // Consume until non-number.
+            if (char_isnum(peek))
+            {
+
+                source_tokenizer_consume(tokenizer, 1);
+                continue;
+
+            }
+            else
+            {
+                break;
+            }
+
+        }
+
+        source_tokenizer_set_token(tokenizer, token, TOKEN_NUMBER);
+        source_tokenizer_synchronize(tokenizer);
+        return true;
+
+    }
 
     return false;
 }
@@ -351,12 +523,80 @@ b32
 source_tokenizer_match_strings(source_tokenizer *tokenizer, source_token *token)
 {
 
+    char current = source_tokenizer_peek(tokenizer, 0);
+    if (current == '\'')
+    {
+
+        source_tokenizer_consume(tokenizer, 1);
+        source_tokenizer_synchronize(tokenizer);
+
+        while (source_tokenizer_peek(tokenizer, 0) != '\'' &&
+              !source_tokenizer_eof(tokenizer) &&
+              !source_tokenizer_eol(tokenizer))
+        {
+            source_tokenizer_consume(tokenizer, 1);
+        }
+
+        // Strings potentially terminate at EOF or EOL, so we check both cases.
+        if (source_tokenizer_eof(tokenizer))
+        {
+            source_tokenizer_set_token(tokenizer, token, TOKEN_UNDEFINED_EOF);
+        }
+
+        else if (source_tokenizer_eol(tokenizer))
+        {
+            source_tokenizer_set_token(tokenizer, token, TOKEN_UNDEFINED_EOL);
+        }
+
+        else
+        {
+
+            source_tokenizer_set_token(tokenizer, token, TOKEN_STRING);
+
+            // Consume the last '\''.
+            source_tokenizer_consume(tokenizer, 1);
+
+        }
+
+        source_tokenizer_synchronize(tokenizer);
+
+        return true;
+    }
+
     return false;
+    
 }
 
 b32     
 source_tokenizer_match_identifiers(source_tokenizer *tokenizer, source_token *token)
 {
+
+    if (source_tokenizer_isalpha(tokenizer))
+    {
+
+        // Consume until keyword match breaks.
+        source_tokenizer_consume(tokenizer, 1);
+        while (true)
+        {
+            char peek = source_tokenizer_peek(tokenizer, 0);
+            if (peek == '_' || char_isalnum(peek))
+            {
+                source_tokenizer_consume(tokenizer, 1);
+                continue;
+            }
+            else
+            {
+                break;
+            }
+        }
+
+        source_tokenizer_set_token(tokenizer, token, TOKEN_IDENTIFIER);
+        source_tokenizer_synchronize(tokenizer);
+        source_tokenizer_check_identifier(tokenizer, token);
+
+        return true;
+
+    }
 
     return false;
 }
@@ -366,7 +606,10 @@ source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token
 {
 
     // Strip all white space before the start of the matching routines.
-    source_tokenizer_consume_whitespace(tokenizer, token);
+    while (source_tokenizer_consume_whitespace(tokenizer, token))
+    {
+
+    }
     
     // Check if we reached EOF. At EOF and not due to match case EOF, a standard
     // EOF token is generated and returned.
@@ -380,6 +623,9 @@ source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token
     if (source_tokenizer_match_newline(tokenizer, token)) return;
     if (source_tokenizer_match_comments(tokenizer, token)) return;
     if (source_tokenizer_match_symbols(tokenizer, token)) return;
+    if (source_tokenizer_match_numbers(tokenizer, token)) return;
+    if (source_tokenizer_match_strings(tokenizer, token)) return;
+    if (source_tokenizer_match_identifiers(tokenizer, token)) return;
     
     // If we didn't return, then we know no cases matches, consume one token and
     // generate an undefined token.
@@ -390,7 +636,7 @@ source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token
 }
 
 void    
-source_tokenizer_initialize(source_tokenizer *tokenizer, cc64 source, cc64 path)
+source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
 {
 
 

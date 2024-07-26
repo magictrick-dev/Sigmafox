@@ -1,2 +1,2 @@
 #./bin/Debug/Sigmafox $args
-./bin/Debug/Sigmafox ./tests/partials.fox
+./bin/Debug/Sigmafox ./tests/symbol_test.fox

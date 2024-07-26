@@ -3,4 +3,18 @@
 + - * /
 = # & | %
 < <= > >= :=
+
 { Comment block. }
+123456789
+1234.5678
+
+{ Comment block. }
+'foo'
+'bar'
+
+{ Comment block. }
+hello
+world
+foo_bar
+
+

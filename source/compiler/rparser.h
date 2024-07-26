@@ -18,7 +18,7 @@
 typedef struct source_tokenizer
 {
     cc64 file_path;
-    cc64 source;
+    c64 source;
     u64 offset;
     u64 step;
 } source_tokenizer;
@@ -26,7 +26,6 @@ typedef struct source_tokenizer
 typedef enum source_token_type
 {
     TOKEN_COMMENT_BLOCK,
-    TOKEN_NEW_LINE,
     TOKEN_LEFT_PARENTHESIS,
     TOKEN_RIGHT_PARENTHESIS,
     TOKEN_SEMICOLON,
@@ -45,37 +44,41 @@ typedef enum source_token_type
     TOKEN_AMPERSAND,
     TOKEN_PIPE,
     TOKEN_PERCENT,
+
     TOKEN_NUMBER,
     TOKEN_STRING,
     TOKEN_IDENTIFIER,
-    TOKEN_KEYWORD_BEGIN,
-    TOKEN_KEYWORD_END,
-    TOKEN_KEYWORD_PROCEDURE,
-    TOKEN_KEYWORD_ENDPROCEDURE,
-    TOKEN_KEYWORD_FUNCTION,
-    TOKEN_KEYWORD_ENDFUNCTION,
-    TOKEN_KEYWORD_IF,
+
+    TOKEN_KEYWORD_BEGIN     = 50,
     TOKEN_KEYWORD_ELSEIF,
-    TOKEN_KEYWORD_ENDIF,
-    TOKEN_KEYWORD_WHILE,
-    TOKEN_KEYWORD_ENDWHILE,
-    TOKEN_KEYWORD_LOOP,
-    TOKEN_KEYWORD_ENDLOOP,
-    TOKEN_KEYWORD_PLOOP,
-    TOKEN_KEYWORD_ENDPLOOP,
-    TOKEN_KEYWORD_FIT,
+    TOKEN_KEYWORD_END,
     TOKEN_KEYWORD_ENDFIT,
-    TOKEN_KEYWORD_VARIABLE,
-    TOKEN_KEYWORD_WRITE,
+    TOKEN_KEYWORD_ENDIF,
+    TOKEN_KEYWORD_ENDFUNCTION,
+    TOKEN_KEYWORD_ENDLOOP,
+    TOKEN_KEYWORD_ENDPLOOP,
+    TOKEN_KEYWORD_ENDPROCEDURE,
+    TOKEN_KEYWORD_ENDSCOPE,
+    TOKEN_KEYWORD_ENDWHILE,
+    TOKEN_KEYWORD_FIT,
+    TOKEN_KEYWORD_FUNCTION,
+    TOKEN_KEYWORD_IF,
+    TOKEN_KEYWORD_INCLUDE,
+    TOKEN_KEYWORD_LOOP,
+    TOKEN_KEYWORD_PLOOP,
+    TOKEN_KEYWORD_PROCEDURE,
     TOKEN_KEYWORD_READ,
     TOKEN_KEYWORD_SAVE,
-    TOKEN_KEYWORD_INCLUDE,
     TOKEN_KEYWORD_SCOPE,
-    TOKEN_KEYWORD_ENDSCOPE,
-    TOKEN_UNDEFINED,
-    TOKEN_UNDEFINED_EOF,
-    TOKEN_UNDEFINED_EOL,
-    TOKEN_EOF,
+    TOKEN_KEYWORD_VARIABLE,
+    TOKEN_KEYWORD_WHILE,
+    TOKEN_KEYWORD_WRITE,
+
+    TOKEN_NEW_LINE          = 100,
+    TOKEN_UNDEFINED         = 200,
+    TOKEN_UNDEFINED_EOF     = 300,
+    TOKEN_UNDEFINED_EOL     = 400,
+    TOKEN_EOF               = 999,
 } source_token_type;
 
 typedef struct source_token
@@ -89,10 +92,14 @@ typedef struct source_token
 cc64    source_tokenizer_token_type_to_string(source_token *token);
 b32     source_tokenizer_eof(source_tokenizer *tokenizer);
 b32     source_tokenizer_eol(source_tokenizer *tokenizer);
+b32     source_tokenizer_isalpha(source_tokenizer *tokenizer);
+b32     source_tokenizer_isnum(source_tokenizer *tokenizer);
+b32     source_tokenizer_isalnum(source_tokenizer *tokenizer);
 b32     source_tokenizer_match(source_tokenizer *tokenizer, u32 count, ...);
 char    source_tokenizer_peek(source_tokenizer *tokenizer, u64 offset);
 char    source_tokenizer_consume(source_tokenizer *tokenizer, u64 count);
 void    source_tokenizer_set_token(source_tokenizer *tokenizer, source_token *token, source_token_type type);
+void    source_tokenizer_check_identifier(source_tokenizer *tokenizer, source_token *token);
 void    source_tokenizer_synchronize(source_tokenizer *tokenizer);
 b32     source_tokenizer_consume_whitespace(source_tokenizer *tokenizer, source_token *token);
 b32     source_tokenizer_match_comments(source_tokenizer *tokenizer, source_token *token);
@@ -102,7 +109,7 @@ b32     source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token
 b32     source_tokenizer_match_strings(source_tokenizer *tokenizer, source_token *token);
 b32     source_tokenizer_match_identifiers(source_tokenizer *tokenizer, source_token *token);
 void    source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token);
-void    source_tokenizer_initialize(source_tokenizer *tokenizer, cc64 source, cc64 path);
+void    source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path);
 
 // --- Parser ------------------------------------------------------------------
 //
