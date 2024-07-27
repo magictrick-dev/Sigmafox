@@ -29,20 +29,13 @@
 #include <platform/fileio.h>
 #include <platform/system.h>
 
-#include <core/utilities.h>
 #include <core/definitions.h>
+#include <core/arena.h>
 
 #include <compiler/rparser.h>
 
-typedef struct
-environment_state
-{
-    cc64 source_name;
-    memory_arena primary_store;
-} environment_state;
-
-static environment_state *state = NULL;
 static cc64 source_file;
+static memory_arena primary_arena;
 #define SF_PRIMARY_STORE_SIZE SF_GIGABYTES(2)
 
 // --- Environment Initialize --------------------------------------------------
@@ -95,6 +88,13 @@ environment_initialize(i32 argument_count, char ** argument_list)
     if (argument_count < 2) return STATUS_CODE_NO_ARGS;
     source_file = argument_list[1];
 
+    // Establish allocator region.
+    void *primary_memory_buffer = system_virtual_alloc(NULL, SF_PRIMARY_STORE_SIZE);
+    if (primary_memory_buffer == NULL) return STATUS_CODE_ALLOC_FAIL;
+    primary_arena.buffer    = primary_memory_buffer;
+    primary_arena.size      = SF_PRIMARY_STORE_SIZE;
+    primary_arena.commit    = 0;
+
     return STATUS_CODE_SUCCESS;
 
 }
@@ -115,21 +115,9 @@ environment_runtime()
     fileio_file_read(source_file, source_buffer, source_size, source_size + 1);
     source_buffer[source_size] = '\0'; // Null-terminate.
 
-    printf("%s\n", source_buffer);
-
-    source_tokenizer tokenizer = {0};
-    source_tokenizer_initialize(&tokenizer, source_buffer, source_file);
-
-    source_token current_token;
-    while (true)
-    {
-
-        source_tokenizer_get_next_token(&tokenizer, &current_token);
-        if (current_token.type == TOKEN_EOF) break;
-
-        printf("Token type: %d\n", current_token.type);
-
-    }
+    source_parser parser = {0};
+    syntax_node *root = source_parser_create_ast(&parser, source_buffer, 
+            source_file, &primary_arena);
 
     return STATUS_CODE_SUCCESS;
 
@@ -145,6 +133,6 @@ void
 environment_shutdown(i32 status_code)
 {
 
-
+    system_virtual_free(primary_arena.buffer);
 
 }

@@ -1,6 +1,7 @@
 #ifndef SOURCE_COMPILER_RPARSER_H
 #define SOURCE_COMPILER_RPARSER_H
 #include <core/definitions.h>
+#include <core/arena.h>
 
 // --- Tokenizer ---------------------------------------------------------------
 //
@@ -308,6 +309,8 @@ typedef struct source_parser
     source_token *current_token;
     source_token *next_token;
 
+    memory_arena *arena;
+
     syntax_node *entry;
     syntax_node *nodes;
     u64 node_count;
@@ -322,9 +325,16 @@ syntax_node* source_parser_match_comparison(source_parser *parser);
 syntax_node* source_parser_match_equality(source_parser *parser);
 syntax_node* source_parser_match_assignment(source_parser *parser);
 syntax_node* source_parser_match_expression(source_parser *parser);
-
 syntax_node* source_parser_match_program(source_parser *parser);
-syntax_node* source_parser_create_ast(source_parser *parser, c64 source, cc64 path);
+source_token* source_parser_get_previous_token(source_parser *parser);
+source_token* source_parser_get_current_token(source_parser *parser);
+source_token* source_parser_get_next_token(source_parser *parser);
+source_token* source_parser_consume_token(source_parser *parser);
+syntax_node* source_parser_push_node(source_parser *parser);
+b32 source_parser_match_token(source_parser *parser, u32 count, ...);
+b32 source_parser_should_propagate(void *check, source_parser *parser, arena_state state);
+syntax_node* source_parser_create_ast(source_parser *parser, c64 source,
+        cc64 path, memory_arena *arena);
 
 // --- Error Handling ----------------------------------------------------------
 //
@@ -352,5 +362,14 @@ void    parser_error_handler_display_error(source_parser *parser, parse_error_ty
 void    parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning);
 void    parser_error_handler_synchronize(source_parser *parser);
 b32     parser_error_handler_synchronize_to(source_parser *parser, source_token_type type);
+
+// --- Print Traversal ---------------------------------------------------------
+//
+// The following print traversal is designed for viewing the raw output of the
+// tree's interpretation. It's mainly used for debugging and not meant to be
+// used as production code.
+//
+
+void    parser_print_tree(syntax_node *root_node);
 
 #endif

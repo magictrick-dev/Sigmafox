@@ -635,10 +635,7 @@ source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token
 {
 
     // Strip all white space before the start of the matching routines.
-    while (source_tokenizer_consume_whitespace(tokenizer, token))
-    {
-
-    }
+    while (source_tokenizer_consume_whitespace(tokenizer, token));
     
     // Check if we reached EOF. At EOF and not due to match case EOF, a standard
     // EOF token is generated and returned.
@@ -682,19 +679,136 @@ source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
 // AST for the language.
 //
 
+syntax_node*
+source_parser_match_primary(source_parser *parser)
+{
+
+    return NULL;
+
+}
+
+syntax_node*
+source_parser_match_unary(source_parser *parser)
+{
+
+    syntax_node *right = source_parser_match_primary(parser);
+
+    return right;
+
+}
+
+syntax_node*
+source_parser_match_factor(source_parser *parser)
+{
+
+    syntax_node *left = source_parser_match_unary(parser);
+
+
+    return left;
+
+}
+
+syntax_node*
+source_parser_match_term(source_parser *parser)
+{
+
+    syntax_node *left = source_parser_match_factor(parser);
+
+
+    return left;
+
+}
+
+syntax_node*
+source_parser_match_comparison(source_parser *parser)
+{
+
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
+
+    syntax_node *left = source_parser_match_term(parser);
+    if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+
+    while (source_parser_match_token(parser, 4, TOKEN_LESS_THAN, TOKEN_LESS_THAN_EQUALS,
+            TOKEN_GREATER_THAN, TOKEN_GREATER_THAN_EQUALS))
+    {
+
+        source_parser_consume_token(parser);
+
+        syntax_node *right = source_parser_match_term(parser);
+        if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+
+        syntax_node *binary_node = source_parser_push_node(parser);
+        
+        left = binary_node;
+
+    }
+
+    return left;
+
+}
+
+syntax_node*
+source_parser_match_equality(source_parser *parser)
+{
+
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
+
+    syntax_node *left = source_parser_match_comparison(parser);
+    if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+
+    while (source_parser_match_token(parser, 2, TOKEN_EQUALS, TOKEN_HASH))
+    {
+
+        source_parser_consume_token(parser);
+
+        syntax_node *right = source_parser_match_comparison(parser);
+        if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+
+        syntax_node *binary_node = source_parser_push_node(parser);
+        binary_node->binary.left = left;
+        binary_node->binary.right = right;
+
+        left = binary_node;
+
+    }
+
+    return left;
+
+}
+
+syntax_node*
+source_parser_match_expression(source_parser *parser)
+{
+
+    syntax_node *expression = source_parser_match_equality(parser);
+    return expression;
+
+}
+
+syntax_node*
+source_parser_push_node(source_parser *parser)
+{
+    
+    syntax_node *allocation = memory_arena_push_type(parser->arena, syntax_node);
+    return allocation;
+
+}
+
 syntax_node*    
-source_parser_create_ast(source_parser *parser, c64 source, cc64 path)
+source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_arena *arena)
 {
 
     assert(parser != NULL);
 
     parser->entry           = NULL;
     parser->nodes           = NULL;
-    parser->previous_token  = NULL;
-    parser->current_token   = NULL;
-    parser->next_token      = NULL;
+    parser->previous_token  = &parser->tokens[0];
+    parser->current_token   = &parser->tokens[1];
+    parser->next_token      = &parser->tokens[2];
 
     source_tokenizer_initialize(&parser->tokenizer, source, path);
+    source_tokenizer_get_next_token(&parser->tokenizer, parser->current_token);
+    source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
 
     syntax_node* root = source_parser_match_expression(parser);
     parser->entry = root;
@@ -703,3 +817,81 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path)
 
 }
 
+source_token* 
+source_parser_get_previous_token(source_parser *parser)
+{
+    source_token *result = parser->previous_token;
+    return result;
+}
+
+source_token* 
+source_parser_get_current_token(source_parser *parser)
+{
+    source_token *result = parser->current_token;
+    return result;
+}
+
+source_token* 
+source_parser_get_next_token(source_parser *parser)
+{
+    source_token *result = parser->next_token;
+    return result;
+}
+
+source_token* 
+source_parser_consume_token(source_parser *parser)
+{
+    source_token *temporary = parser->previous_token;
+    parser->previous_token = parser->current_token;
+    parser->current_token = parser->next_token;
+    parser->next_token = temporary;
+    source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+    return parser->current_token;
+}
+
+b32 
+source_parser_match_token(source_parser *parser, u32 count, ...)
+{
+
+    va_list args;
+    va_start(args, count);
+    b32 matched = false;
+
+    source_token_type current = parser->current_token->type;
+    for (u32 idx = 0; idx < count; ++idx)
+    {
+        source_token_type type = va_arg(args, source_token_type);
+        if (type == current)
+        {
+            matched = true;
+            break;
+        }
+    }
+
+    va_end(args);
+
+    return matched;
+
+}
+
+b32 
+source_parser_should_propagate(void *check, source_parser *parser, arena_state state)
+{
+
+    if (check == NULL)
+    {
+        memory_arena_restore_state(parser->arena, state);
+        return true;
+    }
+
+    return false;
+
+}
+
+
+// --- Print Traversal ---------------------------------------------------------
+//
+// The following print traversal is designed for viewing the raw output of the
+// tree's interpretation. It's mainly used for debugging and not meant to be
+// used as production code.
+//

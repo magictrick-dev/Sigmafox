@@ -41,11 +41,9 @@ add_executable(Sigmafox
     "source/platform/fileio.h"
     "source/platform/system.h"
 
-    "source/core/utilities.h"
-    "source/core/utilities/hashtable.h"
-    "source/core/utilities/hashtable.c"
-    "source/core/utilities/allocator.h"
-    "source/core/utilities/allocator.c"
+    "source/core/definitions.h"
+    "source/core/arena.h"
+    "source/core/arena.c"
 
     ${PLATFORM_FILES}
 )
