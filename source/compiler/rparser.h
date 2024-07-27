@@ -48,8 +48,7 @@ typedef enum source_token_type
     TOKEN_NUMBER,
     TOKEN_STRING,
     TOKEN_IDENTIFIER,
-
-    TOKEN_KEYWORD_BEGIN     = 50,
+    TOKEN_KEYWORD_BEGIN,
     TOKEN_KEYWORD_ELSEIF,
     TOKEN_KEYWORD_END,
     TOKEN_KEYWORD_ENDFIT,
@@ -73,12 +72,11 @@ typedef enum source_token_type
     TOKEN_KEYWORD_VARIABLE,
     TOKEN_KEYWORD_WHILE,
     TOKEN_KEYWORD_WRITE,
-
-    TOKEN_NEW_LINE          = 100,
-    TOKEN_UNDEFINED         = 200,
-    TOKEN_UNDEFINED_EOF     = 300,
-    TOKEN_UNDEFINED_EOL     = 400,
-    TOKEN_EOF               = 999,
+    TOKEN_NEW_LINE,
+    TOKEN_UNDEFINED,
+    TOKEN_UNDEFINED_EOF,
+    TOKEN_UNDEFINED_EOL,
+    TOKEN_EOF,
 } source_token_type;
 
 typedef struct source_token
@@ -315,7 +313,18 @@ typedef struct source_parser
     u64 node_count;
 } source_parser;
 
-syntax_node*    source_parser_create_ast(source_parser *parser);
+syntax_node* source_parser_match_primary(source_parser *parser);
+syntax_node* source_parser_match_call(source_parser *parser);
+syntax_node* source_parser_match_unary(source_parser *parser);
+syntax_node* source_parser_match_factor(source_parser *parser);
+syntax_node* source_parser_match_term(source_parser *parser);
+syntax_node* source_parser_match_comparison(source_parser *parser);
+syntax_node* source_parser_match_equality(source_parser *parser);
+syntax_node* source_parser_match_assignment(source_parser *parser);
+syntax_node* source_parser_match_expression(source_parser *parser);
+
+syntax_node* source_parser_match_program(source_parser *parser);
+syntax_node* source_parser_create_ast(source_parser *parser, c64 source, cc64 path);
 
 // --- Error Handling ----------------------------------------------------------
 //

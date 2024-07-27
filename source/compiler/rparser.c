@@ -140,12 +140,7 @@ void
 source_tokenizer_check_identifier(source_tokenizer *tokenizer, source_token *token)
 {
 
-    // Validate identifier to keywords.
-    char hold_character = tokenizer->source[tokenizer->step];
-    tokenizer->source[tokenizer->step] = '\0';
-    cc64 string = token->source + token->offset;
-    u64 length = token->length;
-
+    // Ensure our list is set.
     static initialized_keywords = false;
     static cc64 keywords[32];
     static source_token_type types[32];
@@ -201,6 +196,40 @@ source_tokenizer_check_identifier(source_tokenizer *tokenizer, source_token *tok
         types[23]       = TOKEN_KEYWORD_WRITE;
 
         initialized_keywords = true;
+    }
+
+    // Validate identifier to keywords.
+    char hold_character = tokenizer->source[tokenizer->step];
+    tokenizer->source[tokenizer->step] = '\0';
+    cc64 string = token->source + token->offset;
+    u64 length = token->length;
+
+    // NOTE(Chris): We are using a pretty scuffed string matching routine for this.
+    //              There are better ways to do this matching, but for now we just
+    //              want it to work.
+    for (u32 idx = 0; idx < 24; ++idx)
+    {
+        
+        u32 s = 0;
+        b32 f = false;
+        while(toupper(string[s]) == keywords[idx][s])
+        {
+            if (string[s] == '\0' && keywords[idx][s] != '\0')
+                break;
+            if (string[s] != '\0' && keywords[idx][s] == '\0')
+                break;
+            if (string[s] == '\0' && keywords[idx][s] == '\0')
+            {
+                f = true;
+                break;
+            }
+            s++;
+        }
+        if (f == true)
+        {
+            token->type = types[idx];
+            break;
+        } 
     }
 
     // Return hold character.
@@ -644,6 +673,33 @@ source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
     tokenizer->source = source;
     tokenizer->offset = 0;
     tokenizer->step = 0;
+
+}
+
+// --- Parser ------------------------------------------------------------------
+//
+// The following code pertains to the parser implementation which generates the
+// AST for the language.
+//
+
+syntax_node*    
+source_parser_create_ast(source_parser *parser, c64 source, cc64 path)
+{
+
+    assert(parser != NULL);
+
+    parser->entry           = NULL;
+    parser->nodes           = NULL;
+    parser->previous_token  = NULL;
+    parser->current_token   = NULL;
+    parser->next_token      = NULL;
+
+    source_tokenizer_initialize(&parser->tokenizer, source, path);
+
+    syntax_node* root = source_parser_match_expression(parser);
+    parser->entry = root;
+    parser->nodes = root;
+    return root;
 
 }
 
