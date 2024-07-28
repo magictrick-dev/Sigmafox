@@ -3,6 +3,9 @@
 #include <core/definitions.h>
 #include <core/arena.h>
 
+#define STRING_POOL_DEFAULT_SIZE    SF_MEGABYTES(256)
+#define SYMBOL_TABLE_DEFAULT_SIZE   SF_MEGABYTES(256)
+
 // --- Tokenizer ---------------------------------------------------------------
 //
 // The source tokenizer takes a given raw-text source file and attempts to match
@@ -46,9 +49,11 @@ typedef enum source_token_type
     TOKEN_PIPE,
     TOKEN_PERCENT,
 
-    TOKEN_NUMBER,
+    TOKEN_INTEGER,
+    TOKEN_REAL,
     TOKEN_STRING,
     TOKEN_IDENTIFIER,
+
     TOKEN_KEYWORD_BEGIN,
     TOKEN_KEYWORD_ELSEIF,
     TOKEN_KEYWORD_END,
@@ -194,7 +199,6 @@ typedef enum syntax_node_type
     PRIMARY_EXPRESSION_NODE,
     CALL_EXPRESSION_NODE,
     GROUPING_EXPRESSION_NODE,
-
     EXPRESSION_STATEMENT_NODE,
     COMMENT_STATEMENT_NODE,
     NEWLINE_STATEMENT_NODE,
@@ -204,7 +208,7 @@ typedef enum syntax_node_type
     WHILE_STATEMENT_NODE,
     IF_STATEMENT_NODE,
     ELSEIF_STATEMENT_NODE,
-    PROCEDURE_STATEMENT_NODE
+    PROCEDURE_STATEMENT_NODE,
 } syntax_node_type;
 
 typedef enum syntax_operation_type
@@ -214,6 +218,12 @@ typedef enum syntax_operation_type
     OPERATION_MULTIPLICATION,
     OPERATION_DIVISION,
     OPERATION_NEGATIVE_ASSOCIATE,
+    OPERATION_EQUALS,
+    OPERATION_NOT_EQUALS,
+    OPERATION_LESS_THAN,
+    OPERATION_LESS_THAN_EQUALS,
+    OPERATION_GREATER_THAN,
+    OPERATION_GREATER_THAN_EQUALS,
 } syntax_operation_type;
 
 typedef union object_literal
@@ -311,6 +321,8 @@ typedef struct source_parser
 
     memory_arena *arena;
 
+    c64 string_pool_buffer;
+
     syntax_node *entry;
     syntax_node *nodes;
     u64 node_count;
@@ -332,7 +344,9 @@ source_token* source_parser_get_next_token(source_parser *parser);
 source_token* source_parser_consume_token(source_parser *parser);
 syntax_node* source_parser_push_node(source_parser *parser);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
-b32 source_parser_should_propagate(void *check, source_parser *parser, arena_state state);
+b32 source_parser_should_propagate_error(void *check, source_parser *parser, arena_state state);
+syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
+object_type source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object);
 syntax_node* source_parser_create_ast(source_parser *parser, c64 source,
         cc64 path, memory_arena *arena);
 
@@ -351,6 +365,8 @@ typedef enum parse_error_type
     PARSE_ERROR_UNDEFINED_TOKEN,
     PARSE_ERROR_UNEXPECTED_EOL,
     PRASE_ERROR_UNEXPECTED_EOF,
+    PARSE_ERROR_MEM_CONSTRAINT_STRING_POOL,
+    PARSE_ERROR_MEM_CONSTRAINT_SYMBOL_TABLE,
 } parse_error_type;
 
 typedef enum parse_warning_type

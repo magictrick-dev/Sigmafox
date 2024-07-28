@@ -502,6 +502,7 @@ source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
     {
 
         source_tokenizer_consume(tokenizer, 1);
+        source_token_type type = TOKEN_INTEGER;
         
         while (true)
         {
@@ -515,6 +516,7 @@ source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
                 {
 
                     source_tokenizer_consume(tokenizer, 2);
+                    type = TOKEN_REAL;
                     continue;
 
                 }
@@ -539,7 +541,7 @@ source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
 
         }
 
-        source_tokenizer_set_token(tokenizer, token, TOKEN_NUMBER);
+        source_tokenizer_set_token(tokenizer, token, type);
         source_tokenizer_synchronize(tokenizer);
         return true;
 
@@ -678,10 +680,63 @@ source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
 // The following code pertains to the parser implementation which generates the
 // AST for the language.
 //
+// NOTE(Chris): For anyone who intends to maintain this code, please refer to
+//              the grammar specification for a better understanding of how these
+//              functions traverse during runtime. The recursive nature makes it
+//              difficult to follow by looking at the code alone.
+//
+//            - Errors are propagated upwards as NULL and should end at an appropriate
+//              "synchronization point" where the parser can recover and replace
+//              itself to a point where it can continue to process more errors.
+//              This is pretty typical behavior of most compilers. At no point
+//              should the tree actually contain NULLs. Either the parser fully
+//              processes and validates completely or the AST is NULL due to an
+//              error. Any generated tree should be fully valid (no NULLs).
+//
+//            - The memory arena should also restore itself as errors propagate
+//              upwards. This unwinding ensures that the final output list of nodes
+//              of the generated tree is completely valid regardless if the final
+//              AST is invalid and NULL. The current implementation fully restores
+//              the arena on error, but we may want to create a debugger in order
+//              to track tricky errors that would be otherwise be hard to follow.
+//
+//            - The parser uses a fixed memory pool and treats out-of-memory
+//              conditions as "hard errors" and should force exit the parse routine
+//              and display an extremely helpful error message to inform the user
+//              what occured and how to adjust the memory parameters to avoid this
+//              problem during compilation. It's important that this clear without
+//              ambiguity. We should target the compiler to work with low memory
+//              overhead, so we should target a maximum of 4GB under extreme conditions
+//              and 2GB for normal conditions. If we need more than that, it's a
+//              symptom of poor architecture *or* the generated program is fairly
+//              substantial. Generally speaking, the latter of which is unlikely.
+//
 
 syntax_node*
 source_parser_match_primary(source_parser *parser)
 {
+
+    // Literals.
+    if (source_parser_match_token(parser, 3, TOKEN_REAL, TOKEN_INTEGER, TOKEN_STRING))
+    {
+
+        source_token *literal = source_parser_consume_token(parser);
+
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser, literal, &object);
+
+        syntax_node *primary_node = source_parser_push_node(parser);
+        primary_node->type = PRIMARY_EXPRESSION_NODE;
+        primary_node->primary.literal = object;
+        primary_node->primary.type = type;
+
+    }
+
+    // Identifiers.
+    else if (source_parser_match_token(parser, 1, TOKEN_IDENTIFIER))
+    {
+
+    }
 
     return NULL;
 
@@ -690,6 +745,26 @@ source_parser_match_primary(source_parser *parser)
 syntax_node*
 source_parser_match_unary(source_parser *parser)
 {
+
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
+
+    if (source_parser_match_token(parser, 1, TOKEN_MINUS))
+    {
+        
+        syntax_operation_type operation = OPERATION_NEGATIVE_ASSOCIATE;
+        source_parser_consume_token(parser);
+
+        syntax_node *right = source_parser_match_unary(parser);
+        if (source_parser_should_propagate_error(right, parser, mem_state)) return NULL;
+
+        syntax_node *unary_node = source_parser_push_node(parser);
+        unary_node->type = UNARY_EXPRESSION_NODE;
+        unary_node->unary.right = right;
+        unary_node->unary.type = operation;
+
+        return unary_node;
+
+    }
 
     syntax_node *right = source_parser_match_primary(parser);
 
@@ -701,8 +776,28 @@ syntax_node*
 source_parser_match_factor(source_parser *parser)
 {
 
-    syntax_node *left = source_parser_match_unary(parser);
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
 
+    syntax_node *left = source_parser_match_unary(parser);
+    if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+
+    while (source_parser_match_token(parser, 2, TOKEN_STAR, TOKEN_FORWARD_SLASH))
+    {
+
+        source_token *operation = source_parser_consume_token(parser);
+
+        syntax_node *right = source_parser_match_unary(parser);
+        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+
+        syntax_node *binary_node = source_parser_push_node(parser);
+        binary_node->type = BINARY_EXPRESSION_NODE;
+        binary_node->binary.left = left;
+        binary_node->binary.right = right;
+        binary_node->binary.type = source_parser_token_to_operation(operation);
+        
+        left = binary_node;
+
+    }
 
     return left;
 
@@ -712,8 +807,28 @@ syntax_node*
 source_parser_match_term(source_parser *parser)
 {
 
-    syntax_node *left = source_parser_match_factor(parser);
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
 
+    syntax_node *left = source_parser_match_factor(parser);
+    if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+
+    while (source_parser_match_token(parser, 2, TOKEN_PLUS, TOKEN_MINUS))
+    {
+
+        source_token *operation = source_parser_consume_token(parser);
+
+        syntax_node *right = source_parser_match_factor(parser);
+        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+
+        syntax_node *binary_node = source_parser_push_node(parser);
+        binary_node->type = BINARY_EXPRESSION_NODE;
+        binary_node->binary.left = left;
+        binary_node->binary.right = right;
+        binary_node->binary.type = source_parser_token_to_operation(operation);
+        
+        left = binary_node;
+
+    }
 
     return left;
 
@@ -726,18 +841,22 @@ source_parser_match_comparison(source_parser *parser)
     arena_state mem_state = memory_arena_cache_state(parser->arena);
 
     syntax_node *left = source_parser_match_term(parser);
-    if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+    if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
 
     while (source_parser_match_token(parser, 4, TOKEN_LESS_THAN, TOKEN_LESS_THAN_EQUALS,
             TOKEN_GREATER_THAN, TOKEN_GREATER_THAN_EQUALS))
     {
 
-        source_parser_consume_token(parser);
+        source_token *operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_term(parser);
-        if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
 
         syntax_node *binary_node = source_parser_push_node(parser);
+        binary_node->type = BINARY_EXPRESSION_NODE;
+        binary_node->binary.left = left;
+        binary_node->binary.right = right;
+        binary_node->binary.type = source_parser_token_to_operation(operation);
         
         left = binary_node;
 
@@ -754,19 +873,21 @@ source_parser_match_equality(source_parser *parser)
     arena_state mem_state = memory_arena_cache_state(parser->arena);
 
     syntax_node *left = source_parser_match_comparison(parser);
-    if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+    if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
 
     while (source_parser_match_token(parser, 2, TOKEN_EQUALS, TOKEN_HASH))
     {
 
-        source_parser_consume_token(parser);
+        source_token *operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_comparison(parser);
-        if (source_parser_should_propagate(left, parser, mem_state)) return NULL;
+        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
 
         syntax_node *binary_node = source_parser_push_node(parser);
+        binary_node->type = BINARY_EXPRESSION_NODE;
         binary_node->binary.left = left;
         binary_node->binary.right = right;
+        binary_node->binary.type = source_parser_token_to_operation(operation);
 
         left = binary_node;
 
@@ -800,6 +921,10 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
 
     assert(parser != NULL);
 
+    // Cache our memory arena state in the event we need to unwind on error.
+    arena_state mem_cache = memory_arena_cache_state(arena);
+
+    // Initialize.
     parser->entry           = NULL;
     parser->nodes           = NULL;
     parser->previous_token  = &parser->tokens[0];
@@ -810,9 +935,21 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     source_tokenizer_get_next_token(&parser->tokenizer, parser->current_token);
     source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
 
+    // Reserve the string pool.
+    c64 string_pool_buffer = memory_arena_push_array(arena, char, STRING_POOL_DEFAULT_SIZE);
+    parser->string_pool_buffer = string_pool_buffer;
+
+    // Generate the tree.
     syntax_node* root = source_parser_match_expression(parser);
     parser->entry = root;
     parser->nodes = root;
+    
+    // If there was an error, we can just restore our last mem-cache point.
+    if (root == NULL)
+    {
+        memory_arena_restore_state(arena, mem_cache);
+    }
+
     return root;
 
 }
@@ -874,8 +1011,65 @@ source_parser_match_token(source_parser *parser, u32 count, ...)
 
 }
 
+object_type
+source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object)
+{
+    
+    source_token_type type = token->type;
+
+    switch(type)
+    {
+
+        case TOKEN_REAL:
+        {
+
+
+        } break;
+
+        case TOKEN_INTEGER:
+        {
+            
+        } break;
+
+        case TOKEN_STRING:
+        {
+
+        } break;
+
+    };
+
+    assert(!"Unreachable condition, not all types handled.");
+    return 0; // So the compiler doesn't complain.
+
+}
+
+syntax_operation_type 
+source_parser_token_to_operation(source_token *token)
+{
+
+    source_token_type type = token->type;
+
+    switch (type)
+    {
+        case TOKEN_PLUS:                return OPERATION_ADDITION;
+        case TOKEN_MINUS:               return OPERATION_SUBTRACTION;
+        case TOKEN_STAR:                return OPERATION_MULTIPLICATION;
+        case TOKEN_FORWARD_SLASH:       return OPERATION_DIVISION;
+        case TOKEN_EQUALS:              return OPERATION_EQUALS;
+        case TOKEN_HASH:                return OPERATION_NOT_EQUALS;
+        case TOKEN_LESS_THAN:           return OPERATION_LESS_THAN;
+        case TOKEN_LESS_THAN_EQUALS:    return OPERATION_LESS_THAN_EQUALS;
+        case TOKEN_GREATER_THAN:        return OPERATION_GREATER_THAN;
+        case TOKEN_GREATER_THAN_EQUALS: return OPERATION_GREATER_THAN_EQUALS;
+    };
+
+    assert(!"Unreachable condition, not all types handled.");
+    return 0; // So the compiler doesn't complain.
+
+}
+
 b32 
-source_parser_should_propagate(void *check, source_parser *parser, arena_state state)
+source_parser_should_propagate_error(void *check, source_parser *parser, arena_state state)
 {
 
     if (check == NULL)
