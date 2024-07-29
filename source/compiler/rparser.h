@@ -88,7 +88,7 @@ typedef enum source_token_type
 typedef struct source_token
 {
     source_token_type type;
-    cc64 source;
+    c64 source;
     u64 offset;
     u64 length;
 } source_token;
@@ -322,6 +322,8 @@ typedef struct source_parser
     memory_arena *arena;
 
     c64 string_pool_buffer;
+    u64 string_pool_offset;
+    u64 string_pool_size;
 
     syntax_node *entry;
     syntax_node *nodes;
@@ -343,6 +345,7 @@ source_token* source_parser_get_current_token(source_parser *parser);
 source_token* source_parser_get_next_token(source_parser *parser);
 source_token* source_parser_consume_token(source_parser *parser);
 syntax_node* source_parser_push_node(source_parser *parser);
+cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
 b32 source_parser_should_propagate_error(void *check, source_parser *parser, arena_state state);
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);

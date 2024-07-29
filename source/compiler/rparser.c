@@ -938,6 +938,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     // Reserve the string pool.
     c64 string_pool_buffer = memory_arena_push_array(arena, char, STRING_POOL_DEFAULT_SIZE);
     parser->string_pool_buffer = string_pool_buffer;
+    parser->string_pool_size = STRING_POOL_DEFAULT_SIZE;
 
     // Generate the tree.
     syntax_node* root = source_parser_match_expression(parser);
@@ -1023,16 +1024,45 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
         case TOKEN_REAL:
         {
 
+            char hold_character = token->source[token->offset];
+            token->source[token->offset] = '\0';
+            cc64 token_string = token->source + token->offset;
+
+            double result = atof(token_string);
+            object->real = result;
+
+            token->source[token->offset] = hold_character;
+            return OBJECT_REAL;
 
         } break;
 
         case TOKEN_INTEGER:
         {
+
+            char hold_character = token->source[token->offset];
+            token->source[token->offset] = '\0';
+            cc64 token_string = token->source + token->offset;
+
+            double result = atoll(token_string);
+            object->signed_integer = result;
+
+            token->source[token->offset] = hold_character;
+            return OBJECT_REAL;
             
         } break;
 
         case TOKEN_STRING:
         {
+            
+            char hold_character = token->source[token->offset];
+            token->source[token->offset] = '\0';
+            cc64 token_string = token->source + token->offset;
+
+            cc64 pool_string = source_parser_insert_into_string_pool(parser, token_string);
+            object->string = pool_string;
+
+            token->source[token->offset] = hold_character;
+            return OBJECT_STRING;
 
         } break;
 
@@ -1040,6 +1070,41 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
 
     assert(!"Unreachable condition, not all types handled.");
     return 0; // So the compiler doesn't complain.
+
+}
+
+cc64 
+source_parser_insert_into_string_pool(source_parser *parser, cc64 string)
+{
+ 
+    c64 current = parser->string_pool_buffer + parser->string_pool_offset;
+    u64 string_index = 0;
+    u64 string_length = strlen(string);
+    
+    // TODO(Chris): We should probably clean this up for error handling in the
+    //              future since we need to know when the pool buffer reaches
+    //              capacity. We also don't want to leave the pool buffer as a
+    //              trivial subroutine since this is a critical point of optimization.
+    assert(string_length + parser->string_pool_offset <= parser->string_pool_size);
+
+    while (true)
+    {
+        c64 i = parser->string_pool_buffer + parser->string_pool_offset + string_index;
+        *i = string[string_index];
+        if (string_index == '\0')
+        {
+            string_index++;
+            break;
+        }
+        else
+        {
+            string_index++;
+        }
+    }
+
+    parser->string_pool_offset = string_index;
+
+    return current;
 
 }
 
