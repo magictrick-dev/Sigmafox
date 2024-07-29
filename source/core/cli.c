@@ -48,7 +48,68 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
         char follower = argument[1];
         if (follower == '-')
         {
-            
+            cc64 string_token = argument + 2;
+
+            if (cli_parser_match_string_caseless(string_token, "output-name"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_OUTPUT_NAME;
+                token->index = current_index;
+                return;
+            }
+
+            if (cli_parser_match_string_caseless(string_token, "output-directory"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_OUTPUT_DIR;
+                token->index = current_index;
+                return;
+            }
+
+            if (cli_parser_match_string_caseless(string_token, "compile"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_COMPILE;
+                token->index = current_index;
+                return;
+            }
+
+            if (cli_parser_match_string_caseless(string_token, "help"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_HELP;
+                token->index = current_index;
+                return;
+            }
+
+            if (cli_parser_match_string_caseless(string_token, "trim-comments"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_TRIM_COMMENTS;
+                token->index = current_index;
+                return;
+            }
+
+            if (cli_parser_match_string_caseless(string_token, "memory-limit-size"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_MEM_LIMIT;
+                token->index = current_index;
+                return;
+            }
+
+            if (cli_parser_match_string_caseless(string_token, "string-pool-limit"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_POOL_LIMIT;
+                token->index = current_index;
+                return;
+            }
+
+            token->type = CLI_TOKEN_UNDEFINED_ARGUMENT;
+            token->index = current_index;
+            return;
+
+        }
+
+        else
+        {
+            token->type = CLI_TOKEN_SWITCH;
+            token->index = current_index;
+            return;
         }
 
     }
@@ -56,11 +117,14 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
 }
 
 b32 
-command_line_parse(runtime_parameters *parameters, memory_arena *arena,
-        int argument_count, char ** arguments)
+command_line_parse(runtime_parameters *parameters)
 {
 
-    
+    // Initialize all options/flags. Unused flags are marked -1.
+    for (u32 i = 0; i < 26; ++i) parameters->flags[i] = -1;
+    parameters->options.compile = 0;
+    parameters->options.help = 0;
+    parameters->options.trim_comments = 0;
 
     return true;
 }

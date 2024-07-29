@@ -101,46 +101,44 @@
 //     string pool proportionally reduces the amount of free-space the
 //     transpiler has for other allocations.
 
-typedef union cli_flags
+typedef struct runtime_flags
 {
-
-    b8 flags[26];
-
-    struct
-    {
-        b8 unused_a;
-        b8 unused_b;
-        b8 compile;
-        b8 unused_d;
-        b8 unused_e;
-        b8 unused_f;
-        b8 unused_g;
-        b8 help;
-        b8 unused_i;
-        b8 unused_j;
-        b8 unused_k;
-        b8 unused_l;
-        b8 unused_m;
-        b8 unused_n;
-        b8 unused_o;
-        b8 unused_p;
-        b8 unused_q;
-        b8 unused_r;
-        b8 unused_s;
-        b8 trim_comments;
-        b8 unused_u;
-        b8 unused_v;
-        b8 unused_w;
-        b8 unused_x;
-        b8 unused_y;
-        b8 unused_z;
-    };
-
-} cli_flags;
+    b8 unused_a;
+    b8 unused_b;
+    b8 compile;
+    b8 unused_d;
+    b8 unused_e;
+    b8 unused_f;
+    b8 unused_g;
+    b8 help;
+    b8 unused_i;
+    b8 unused_j;
+    b8 unused_k;
+    b8 unused_l;
+    b8 unused_m;
+    b8 unused_n;
+    b8 unused_o;
+    b8 unused_p;
+    b8 unused_q;
+    b8 unused_r;
+    b8 unused_s;
+    b8 trim_comments;
+    b8 unused_u;
+    b8 unused_v;
+    b8 unused_w;
+    b8 unused_x;
+    b8 unused_y;
+    b8 unused_z;
+} runtime_flags;
 
 typedef struct runtime_parameters
 {
-    cli_flags flags;
+
+    union
+    {
+        b8 flags[26];
+        runtime_flags options;
+    };
 
     u64 memory_limit;
     u64 string_pool_limit;
@@ -173,6 +171,8 @@ typedef enum cli_token_type
     CLI_TOKEN_PATH,
 
     CLI_TOKEN_EOA,
+    CLI_TOKEN_UNDEFINED_ARGUMENT,
+    CLI_TOKEN_UNDEFINED_SWITCH,
 } cli_token_type;
 
 typedef struct cli_token
