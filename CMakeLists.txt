@@ -44,6 +44,8 @@ add_executable(Sigmafox
     "source/core/definitions.h"
     "source/core/arena.h"
     "source/core/arena.c"
+    "source/core/cli.h"
+    "source/core/cli.c"
 
     ${PLATFORM_FILES}
 )
