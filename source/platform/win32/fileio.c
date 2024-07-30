@@ -93,3 +93,22 @@ fileio_file_get_full_path(cc64 path, c64 path_buffer, u64 buffer_size)
 
 }
 
+b32         
+fileio_file_is_directory(const char* file_path)
+{
+
+    DWORD dwAttrib = GetFileAttributes(file_path);
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
+        (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+
+}
+
+b32         
+fileio_file_is_file(const char* file_path)
+{
+
+    DWORD dwAttrib = GetFileAttributes(file_path);
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
+        !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+
+}

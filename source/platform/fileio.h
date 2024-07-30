@@ -16,5 +16,7 @@ u64 fileio_file_size(cc64 path);
 b32 fileio_file_read(cc64 path, void *buffer, u64 read_size, u64 buffer_size);
 b32 fileio_file_write(cc64 path, void *buffer, u64 write_size);
 void fileio_file_get_full_path(cc64 path, c64 path_buffer, u64 buffer_size);
+b32 fileio_file_is_directory(cc64 file_path);
+b32 fileio_file_is_file(cc64 file_path);
 
 #endif
