@@ -167,6 +167,17 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
 
     }
 
+    else
+    {
+
+        // TODO(Chris): We need to validate paths here.
+        
+        token->type = CLI_TOKEN_STRING;
+        token->index = current_index;
+        return;
+
+    }
+
 }
 
 b32
@@ -181,41 +192,135 @@ cli_parser_match_argument(runtime_parameters *parameters)
 
         case CLI_TOKEN_ARGUMENT_OUTPUT_NAME:
         {
+            
+            cli_token source_token = {0};
+            cli_parser_get_next_token(parameters, &source_token);
+            if (source_token.type != CLI_TOKEN_STRING)
+            {
+                printf("Unexpected command line argument (expected string) at %d: '%s'\n",
+                        source_token.index,
+                        parameters->arguments[source_token.index]);
+                return CLI_PARSER_ERROR;
+            }
+
+            parameters->output_name = parameters->arguments[source_token.index];
+            return CLI_PARSER_CONTINUE;
 
         } break;
 
         case CLI_TOKEN_ARGUMENT_OUTPUT_DIR:
         {
 
+            cli_token source_token = {0};
+            cli_parser_get_next_token(parameters, &source_token);
+            if (source_token.type != CLI_TOKEN_PATH)
+            {
+                printf("Unexpected command line argument (expected path) at %d: '%s'\n",
+                        source_token.index,
+                        parameters->arguments[source_token.index]);
+                return CLI_PARSER_ERROR;
+            }
+
+            parameters->output_directory = parameters->arguments[source_token.index];
+            return CLI_PARSER_CONTINUE;
+
         } break;
 
         case CLI_TOKEN_ARGUMENT_HELP:
         {
 
+            cli_parser_display_help_long();
+            parameters->options.help = true;
+            parameters->helped = true;
+            return CLI_PARSER_BREAK;
+
         } break;
 
         case CLI_TOKEN_ARGUMENT_COMPILE:
         {
+            
+            parameters->options.compile = true;
+            return CLI_PARSER_CONTINUE;
 
         } break;
 
         case CLI_TOKEN_ARGUMENT_TRIM_COMMENTS:
         {
 
+            parameters->options.trim_comments = true;
+            return CLI_PARSER_CONTINUE;
+
         } break;
 
         case CLI_TOKEN_ARGUMENT_MEM_LIMIT:
         {
+            
+            cli_token source_token = {0};
+            cli_parser_get_next_token(parameters, &source_token);
+            if (source_token.type != CLI_TOKEN_NUMBER)
+            {
+                printf("Unexpected command line argument (expected number) at %d: '%s'\n",
+                        source_token.index,
+                        parameters->arguments[source_token.index]);
+                return CLI_PARSER_ERROR;
+            }
+
+            parameters->memory_limit = source_token.value;
+            return CLI_PARSER_CONTINUE;
 
         } break;
 
         case CLI_TOKEN_ARGUMENT_POOL_LIMIT:
         {
 
+            cli_token source_token = {0};
+            cli_parser_get_next_token(parameters, &source_token);
+            if (source_token.type != CLI_TOKEN_NUMBER)
+            {
+                printf("Unexpected command line argument (expected number) at %d: '%s'\n",
+                        source_token.index,
+                        parameters->arguments[source_token.index]);
+                return CLI_PARSER_ERROR;
+            }
+
+            parameters->string_pool_limit = source_token.value;
+            return CLI_PARSER_CONTINUE;
+
         } break;
 
         case CLI_TOKEN_SWITCH:
         {
+
+            // Each character is considered an indexable flag. We assume non-alphas
+            // are errors here and will display an error.
+            char idx = 1;
+            cc64 arg = parameters->arguments[argument_token.index];
+            while (arg[idx] != '\0')
+            {
+
+                if (!isalpha(arg[idx]))
+                {
+                    printf("Non-alphabetical command line flag at %d: '%c'\n",
+                            argument_token.index,
+                            arg[idx]);
+                    return CLI_PARSER_ERROR;
+                }
+                
+                // Handy little trick.
+                i64 flag_index = tolower(arg[idx]) - 'a';
+                if (parameters->flags[flag_index] == -1)
+                {
+                    printf("Undefined command line flag at %d: '%c'\n",
+                            argument_token.index,
+                            arg[idx]);
+                    return CLI_PARSER_ERROR;
+                }
+
+                parameters->flags[flag_index] = true;
+
+            }
+
+            return CLI_PARSER_CONTINUE;
 
         } break;
 
@@ -249,7 +354,7 @@ cli_parser_match_default(runtime_parameters *parameters)
         if (source_token.type == CLI_TOKEN_EOA)
         {
             printf("Unexpected end of command line arguments.\n");
-            return false;
+            return CLI_PARSER_ERROR;
         }
         
         // However, if we don't have a file argument, we give the appropriate
@@ -266,7 +371,7 @@ cli_parser_match_default(runtime_parameters *parameters)
 
     // Handle remaining arguments / flags.
     while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE);
-    if (current_code == CLI_PARSER_ERROR) return false;
+    if (current_code == CLI_PARSER_ERROR) return CLI_PARSER_ERROR;
     if (parameters->arg_current < parameters->arg_count)
     {
         for (i32 idx = parameters->arg_current; idx < parameters->arg_count; ++idx)
@@ -280,6 +385,20 @@ cli_parser_match_default(runtime_parameters *parameters)
 
 }
 
+void 
+cli_parser_display_help_long()
+{
+
+    return;
+}
+
+void 
+cli_parser_display_help_short()
+{
+
+    return;
+}
+
 b32 
 command_line_parse(runtime_parameters *parameters)
 {
@@ -289,9 +408,14 @@ command_line_parse(runtime_parameters *parameters)
     parameters->options.compile = 0;
     parameters->options.help = 0;
     parameters->options.trim_comments = 0;
+    parameters->helped = false;
 
     // Parse until all arguments are handled or we encounter an error.
-    if (cli_parser_match_default(parameters) == CLI_PARSER_ERROR) return false;
+    if (cli_parser_match_default(parameters) == CLI_PARSER_ERROR)
+    {
+        cli_parser_display_help_short();
+        return false;
+    }
     return true;
 }
 

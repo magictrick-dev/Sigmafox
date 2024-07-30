@@ -156,8 +156,9 @@ typedef struct runtime_parameters
 
     cc64 source_file_path;
 
-    int arg_current;
-    int arg_count;
+    b32 helped;
+    i32 arg_current;
+    i32 arg_count;
     char **arguments;
 } runtime_parameters;
 
@@ -198,6 +199,8 @@ typedef struct cli_token
     u64 value;
 } cli_token;
 
+void cli_parser_display_help_long();
+void cli_parser_display_help_short();
 void cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token);
 b32 cli_parser_match_argument(runtime_parameters *parameters);
 b32 cli_parser_match_default(runtime_parameters *parameters);
