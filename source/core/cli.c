@@ -31,7 +31,7 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
     assert(parameters != NULL);
     assert(token != NULL);
 
-    int current_index = parameters->arg_current;
+    int current_index = parameters->arg_current++;
     if (current_index >= parameters->arg_count)
     {
         token->type = CLI_TOKEN_EOA;
@@ -42,7 +42,60 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
     cc64 argument = parameters->arguments[current_index];
     char current = argument[0];
 
-    if (current == '-')
+    if (isdigit(current))
+    {
+        
+        cli_token_type type = CLI_TOKEN_NUMBER;
+        i32 eos = 0;
+        while (argument[eos] != '\0') eos++;
+
+        u64 modifier = 1;
+        if (tolower(argument[eos] == 'b'))
+        {
+
+            switch (argument[eos - 1])
+            {
+                case 'k':
+                {
+
+                    modifier = 1024;
+
+                } break;
+
+                case 'm':
+                {
+
+                    modifier = 1024 * 1024;
+
+                } break;
+
+                case 'g':
+                {
+
+                    modifier = 1024 * 1024 * 1024;
+
+                } break;
+                
+                default:
+                {
+                    
+                    token->type = CLI_TOKEN_UNDEFINED;
+                    token->index = current_index;
+                    return;
+
+                } break;
+            };
+
+        }
+
+        u64 value = atoll(argument) * modifier;
+        token->type = CLI_TOKEN_NUMBER;
+        token->value = value;
+        return;
+
+    }
+
+    else if (current == '-')
     {
 
         char follower = argument[1];

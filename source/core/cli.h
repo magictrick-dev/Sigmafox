@@ -173,12 +173,14 @@ typedef enum cli_token_type
     CLI_TOKEN_EOA,
     CLI_TOKEN_UNDEFINED_ARGUMENT,
     CLI_TOKEN_UNDEFINED_SWITCH,
+    CLI_TOKEN_DEFINED
 } cli_token_type;
 
 typedef struct cli_token
 {
     cli_token_type type;
-    int index;
+    i32 index;
+    u64 value;
 } cli_token;
 
 void cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token);

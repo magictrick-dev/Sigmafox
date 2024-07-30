@@ -931,6 +931,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     parser->current_token   = &parser->tokens[1];
     parser->next_token      = &parser->tokens[2];
 
+    // Get our current token and then get the "peek" token.
     source_tokenizer_initialize(&parser->tokenizer, source, path);
     source_tokenizer_get_next_token(&parser->tokenizer, parser->current_token);
     source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
