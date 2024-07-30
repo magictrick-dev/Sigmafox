@@ -53,7 +53,7 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
         if (tolower(argument[eos] == 'b'))
         {
 
-            switch (argument[eos - 1])
+            switch (tolower(argument[eos - 1]))
             {
                 case 'k':
                 {
@@ -169,6 +169,117 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
 
 }
 
+b32
+cli_parser_match_argument(runtime_parameters *parameters)
+{
+
+    cli_token argument_token = {0};
+    cli_parser_get_next_token(parameters, &argument_token);
+
+    switch (argument_token.type)
+    {
+
+        case CLI_TOKEN_ARGUMENT_OUTPUT_NAME:
+        {
+
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_OUTPUT_DIR:
+        {
+
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_HELP:
+        {
+
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_COMPILE:
+        {
+
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_TRIM_COMMENTS:
+        {
+
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_MEM_LIMIT:
+        {
+
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_POOL_LIMIT:
+        {
+
+        } break;
+
+        case CLI_TOKEN_SWITCH:
+        {
+
+        } break;
+
+        default:
+        {
+            return CLI_PARSER_BREAK;
+        } break;
+    }
+
+    return CLI_PARSER_CONTINUE;
+
+}
+
+b32
+cli_parser_match_default(runtime_parameters *parameters)
+{
+
+    // Handle all arguments / flags. 
+    cli_parser_code current_code;
+    while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE);
+    if (current_code == CLI_PARSER_ERROR) return CLI_PARSER_ERROR;
+
+    // Is the current argument a file?
+    cli_token source_token = {0};
+    cli_parser_get_next_token(parameters, &source_token);
+
+    if (source_token.type != CLI_TOKEN_FILE)
+    {
+
+        // If we prematurely reach EOA, then we just exit.
+        if (source_token.type == CLI_TOKEN_EOA)
+        {
+            printf("Unexpected end of command line arguments.\n");
+            return false;
+        }
+        
+        // However, if we don't have a file argument, we give the appropriate
+        // message. We expect a file at this point, so if it isn't we consider
+        // it an error.
+        printf("Unexpected command line argument at %d: '%s'\n",
+                source_token.index,
+                parameters->arguments[source_token.index]);
+        return CLI_PARSER_ERROR;
+
+    }
+
+    parameters->source_file_path = parameters->arguments[source_token.index];
+
+    // Handle remaining arguments / flags.
+    while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE);
+    if (current_code == CLI_PARSER_ERROR) return false;
+    if (parameters->arg_current < parameters->arg_count)
+    {
+        for (i32 idx = parameters->arg_current; idx < parameters->arg_count; ++idx)
+            printf("Unexpected command line argument at %d: '%s'\n",
+                    idx,
+                    parameters->arguments[idx]);
+        return CLI_PARSER_ERROR;
+    }
+
+    return CLI_PARSER_BREAK;
+
+}
+
 b32 
 command_line_parse(runtime_parameters *parameters)
 {
@@ -179,6 +290,8 @@ command_line_parse(runtime_parameters *parameters)
     parameters->options.help = 0;
     parameters->options.trim_comments = 0;
 
+    // Parse until all arguments are handled or we encounter an error.
+    if (cli_parser_match_default(parameters) == CLI_PARSER_ERROR) return false;
     return true;
 }
 

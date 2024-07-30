@@ -6,6 +6,14 @@
 // --- CLI Parser Outline ------------------------------------------------------
 //
 // The command line parser essentially constructs and validate CLI arguments.
+// The CLI parser isn't exactly meant to be a strict parser, it essentially
+// lazy-evaluates strings into certain types and ensures that arguments parse
+// correctly, followed by a single source file, followed by more arguments.
+//
+// NOTE(Chris): The code isn't pretty and could do with a refactor if a more
+//              robust CLI parser is required. For now, we just want some sort
+//              of way of modifying the runtime behavior through the startup
+//              procedure. This happens to be a kinda okayish way to do so.
 // 
 // CLI Grammar
 //
@@ -153,6 +161,13 @@ typedef struct runtime_parameters
     char **arguments;
 } runtime_parameters;
 
+typedef enum cli_parser_code
+{
+    CLI_PARSER_ERROR        = -1,
+    CLI_PARSER_BREAK        =  0,
+    CLI_PARSER_CONTINUE     =  1,
+} cli_parser_code;
+
 typedef enum cli_token_type
 {
     CLI_TOKEN_ARGUMENT_OUTPUT_NAME,
@@ -170,10 +185,10 @@ typedef enum cli_token_type
     CLI_TOKEN_FILE,
     CLI_TOKEN_PATH,
 
-    CLI_TOKEN_EOA,
-    CLI_TOKEN_UNDEFINED_ARGUMENT,
-    CLI_TOKEN_UNDEFINED_SWITCH,
-    CLI_TOKEN_UNDEFINED, 
+    CLI_TOKEN_EOA                   = 100,
+    CLI_TOKEN_UNDEFINED_ARGUMENT    = 200,
+    CLI_TOKEN_UNDEFINED_SWITCH      = 300,
+    CLI_TOKEN_UNDEFINED             = 999, 
 } cli_token_type;
 
 typedef struct cli_token
@@ -184,6 +199,8 @@ typedef struct cli_token
 } cli_token;
 
 void cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token);
+b32 cli_parser_match_argument(runtime_parameters *parameters);
+b32 cli_parser_match_default(runtime_parameters *parameters);
 b32 cli_parser_match_string_caseless(cc64 string, cc64 match_to);
 b32 command_line_parse(runtime_parameters *parameters);
 
