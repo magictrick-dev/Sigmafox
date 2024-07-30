@@ -173,7 +173,7 @@ typedef enum cli_token_type
     CLI_TOKEN_EOA,
     CLI_TOKEN_UNDEFINED_ARGUMENT,
     CLI_TOKEN_UNDEFINED_SWITCH,
-    CLI_TOKEN_DEFINED
+    CLI_TOKEN_UNDEFINED, 
 } cli_token_type;
 
 typedef struct cli_token
