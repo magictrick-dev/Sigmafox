@@ -182,6 +182,7 @@ typedef enum cli_token_type
     CLI_TOKEN_SWITCH,
 
     CLI_TOKEN_STRING,
+    CLI_TOKEN_NAME,
     CLI_TOKEN_NUMBER,
     CLI_TOKEN_FILE,
     CLI_TOKEN_PATH,

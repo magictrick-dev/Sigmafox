@@ -1,3 +1,4 @@
+#include <platform/fileio.h>
 #include <core/cli.h>
 
 b32 
@@ -31,7 +32,7 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
     assert(parameters != NULL);
     assert(token != NULL);
 
-    int current_index = parameters->arg_current++;
+    int current_index = parameters->arg_current;
     if (current_index >= parameters->arg_count)
     {
         token->type = CLI_TOKEN_EOA;
@@ -48,9 +49,10 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
         cli_token_type type = CLI_TOKEN_NUMBER;
         i32 eos = 0;
         while (argument[eos] != '\0') eos++;
+        eos--; // Rewind back one to get off null-term.
 
         u64 modifier = 1;
-        if (tolower(argument[eos] == 'b'))
+        if (tolower(argument[eos]) == 'b')
         {
 
             switch (tolower(argument[eos - 1]))
@@ -145,7 +147,7 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
                 return;
             }
 
-            if (cli_parser_match_string_caseless(string_token, "string-pool-limit"))
+            if (cli_parser_match_string_caseless(string_token, "string-pool-size"))
             {
                 token->type = CLI_TOKEN_ARGUMENT_POOL_LIMIT;
                 token->index = current_index;
@@ -167,14 +169,43 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
 
     }
 
-    else
+    else if (current == '\"')
     {
-
-        // TODO(Chris): We need to validate paths here.
-        
         token->type = CLI_TOKEN_STRING;
         token->index = current_index;
         return;
+    }
+
+    else if (current == '\'')
+    {
+        token->type = CLI_TOKEN_STRING;
+        token->index = current_index;
+        return;
+    }
+
+    else
+    {
+
+        if (fileio_file_is_directory(argument))
+        {
+            token->type = CLI_TOKEN_PATH;
+            token->index = current_index;
+            return;
+        }
+
+        else if (fileio_file_is_file(argument))
+        {
+            token->type = CLI_TOKEN_FILE;
+            token->index = current_index;
+            return;
+        }
+        
+        else
+        {
+            token->type = CLI_TOKEN_NAME;
+            token->index = current_index;
+            return;
+        }
 
     }
 
@@ -193,9 +224,10 @@ cli_parser_match_argument(runtime_parameters *parameters)
         case CLI_TOKEN_ARGUMENT_OUTPUT_NAME:
         {
             
+            parameters->arg_current++;
             cli_token source_token = {0};
             cli_parser_get_next_token(parameters, &source_token);
-            if (source_token.type != CLI_TOKEN_STRING)
+            if (source_token.type != CLI_TOKEN_NAME)
             {
                 printf("Unexpected command line argument (expected string) at %d: '%s'\n",
                         source_token.index,
@@ -211,6 +243,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
         case CLI_TOKEN_ARGUMENT_OUTPUT_DIR:
         {
 
+            parameters->arg_current++;
             cli_token source_token = {0};
             cli_parser_get_next_token(parameters, &source_token);
             if (source_token.type != CLI_TOKEN_PATH)
@@ -255,6 +288,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
         case CLI_TOKEN_ARGUMENT_MEM_LIMIT:
         {
             
+            parameters->arg_current++;
             cli_token source_token = {0};
             cli_parser_get_next_token(parameters, &source_token);
             if (source_token.type != CLI_TOKEN_NUMBER)
@@ -273,6 +307,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
         case CLI_TOKEN_ARGUMENT_POOL_LIMIT:
         {
 
+            parameters->arg_current++;
             cli_token source_token = {0};
             cli_parser_get_next_token(parameters, &source_token);
             if (source_token.type != CLI_TOKEN_NUMBER)
@@ -317,11 +352,20 @@ cli_parser_match_argument(runtime_parameters *parameters)
                 }
 
                 parameters->flags[flag_index] = true;
+                idx++;
 
             }
 
             return CLI_PARSER_CONTINUE;
 
+        } break;
+
+        case CLI_TOKEN_UNDEFINED_ARGUMENT:
+        {
+            printf("Undefined command line argument at %d: '%s'\n",
+                    argument_token.index,
+                    parameters->arguments[argument_token.index]);
+            return CLI_PARSER_ERROR;
         } break;
 
         default:
@@ -340,7 +384,8 @@ cli_parser_match_default(runtime_parameters *parameters)
 
     // Handle all arguments / flags. 
     cli_parser_code current_code;
-    while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE);
+    while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE)
+        parameters->arg_current++;
     if (current_code == CLI_PARSER_ERROR) return CLI_PARSER_ERROR;
 
     // Is the current argument a file?
@@ -368,9 +413,11 @@ cli_parser_match_default(runtime_parameters *parameters)
     }
 
     parameters->source_file_path = parameters->arguments[source_token.index];
+    parameters->arg_current++;
 
     // Handle remaining arguments / flags.
-    while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE);
+    while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE)
+        parameters->arg_current++;
     if (current_code == CLI_PARSER_ERROR) return CLI_PARSER_ERROR;
     if (parameters->arg_current < parameters->arg_count)
     {

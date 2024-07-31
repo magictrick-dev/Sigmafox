@@ -31,12 +31,14 @@
 
 #include <core/definitions.h>
 #include <core/arena.h>
+#include <core/cli.h>
 
 #include <compiler/rparser.h>
 
 static cc64 source_file;
 static memory_arena primary_arena;
 #define SF_PRIMARY_STORE_SIZE SF_GIGABYTES(2)
+static runtime_parameters params;
 
 // --- Environment Initialize --------------------------------------------------
 //
@@ -83,10 +85,26 @@ environment_initialize(i32 argument_count, char ** argument_list)
     }
 */
 
-    // NOTE(Chris): For now, we aren't doing any real checks here, just assuming
-    //              file is valid.
-    if (argument_count < 2) return STATUS_CODE_NO_ARGS;
-    source_file = argument_list[1];
+    // Load runtime parameters from command line as well as set defaults.
+    params.arg_current          = 1; // Always start at 1.
+    params.arg_count            = argument_count;
+    params.arguments            = argument_list;
+    params.memory_limit         = SF_PRIMARY_STORE_SIZE;
+    params.string_pool_limit    = SF_MEGABYTES(256);
+    params.output_directory     = "./";
+    params.output_name          = "main";
+
+    // Parse and validate.
+    b32 command_line_valid = command_line_parse(&params);
+    if (params.helped == true) return STATUS_CODE_SUCCESS;
+    if (command_line_valid == false)
+    {
+        printf("Unable to run transpiler, check command line arguments.\n");
+        return STATUS_CODE_BAD_ARGS;
+    }
+
+    // Set source file path, as checked.
+    source_file = params.source_file_path;
 
     // Establish allocator region.
     void *primary_memory_buffer = system_virtual_alloc(NULL, SF_PRIMARY_STORE_SIZE);

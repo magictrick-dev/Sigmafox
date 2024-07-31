@@ -6,6 +6,7 @@
 #define STATUS_CODE_NO_ARGS         1
 #define STATUS_CODE_NO_FILE         2
 #define STATUS_CODE_ALLOC_FAIL      3
+#define STATUS_CODE_BAD_ARGS        4
 
 i32 environment_initialize(i32 argument_count, char ** argument_list);
 i32 environment_runtime();
