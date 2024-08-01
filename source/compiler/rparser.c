@@ -775,6 +775,7 @@ source_parser_match_primary(source_parser *parser)
 
     }
 
+    parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_TOKEN);
     return NULL;
 
 }
@@ -824,7 +825,7 @@ source_parser_match_factor(source_parser *parser)
         source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_unary(parser);
-        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+        if (source_parser_should_propagate_error(right, parser, mem_state)) return NULL;
 
         syntax_node *binary_node = source_parser_push_node(parser);
         binary_node->type = BINARY_EXPRESSION_NODE;
@@ -855,7 +856,7 @@ source_parser_match_term(source_parser *parser)
         source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_factor(parser);
-        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+        if (source_parser_should_propagate_error(right, parser, mem_state)) return NULL;
 
         syntax_node *binary_node = source_parser_push_node(parser);
         binary_node->type = BINARY_EXPRESSION_NODE;
@@ -887,7 +888,7 @@ source_parser_match_comparison(source_parser *parser)
         source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_term(parser);
-        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+        if (source_parser_should_propagate_error(right, parser, mem_state)) return NULL;
 
         syntax_node *binary_node = source_parser_push_node(parser);
         binary_node->type = BINARY_EXPRESSION_NODE;
@@ -918,7 +919,7 @@ source_parser_match_equality(source_parser *parser)
         source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_comparison(parser);
-        if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
+        if (source_parser_should_propagate_error(right, parser, mem_state)) return NULL;
 
         syntax_node *binary_node = source_parser_push_node(parser);
         binary_node->type = BINARY_EXPRESSION_NODE;
@@ -987,7 +988,8 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     // If there was an error, we can just restore our last mem-cache point.
     if (root == NULL)
     {
-        printf("Failed to parse.\n");
+        printf("\n");
+        printf("-- Failed to parse, no output has been generated.\n");
         memory_arena_restore_state(arena, mem_cache);
     }
 
@@ -1199,6 +1201,50 @@ source_parser_should_propagate_error(void *check, source_parser *parser, arena_s
 
 }
 
+// --- Error Handling ----------------------------------------------------------
+//
+// These routines provide verbal error and warnings back to the user in a uniform
+// format. Synchronization of the parser should not be performed here.
+//
+
+void    
+parser_error_handler_display_error(source_parser *parser, parse_error_type error)
+{
+
+    switch (error)
+    {
+        
+        case PARSE_ERROR_UNDEFINED_TOKEN:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s(x,y)(eid:%d): encountered unexpected token '%s'\n",
+                    file_name, error, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        default:
+        {
+            assert(!"Uncaught error message handling routine.");
+            return;
+        } break;
+
+    };
+
+}
+
+void    
+parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning)
+{
+
+}
 
 // --- Print Traversal ---------------------------------------------------------
 //
