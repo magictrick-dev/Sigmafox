@@ -667,7 +667,6 @@ void
 source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
 {
 
-
     tokenizer->file_path = path;
     tokenizer->source = source;
     tokenizer->offset = 0;
@@ -735,6 +734,16 @@ source_parser_match_primary(source_parser *parser)
     // Identifiers.
     else if (source_parser_match_token(parser, 1, TOKEN_IDENTIFIER))
     {
+        
+        source_token *identifier = source_parser_consume_token(parser);
+
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser, identifier, &object);
+
+        syntax_node *primary_node = source_parser_push_node(parser);
+        primary_node->type = PRIMARY_EXPRESSION_NODE;
+        primary_node->primary.literal = object;
+        primary_node->primary.type = type;
 
     }
 
@@ -930,6 +939,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     parser->previous_token  = &parser->tokens[0];
     parser->current_token   = &parser->tokens[1];
     parser->next_token      = &parser->tokens[2];
+    parser->arena           = arena;
 
     // Get our current token and then get the "peek" token.
     source_tokenizer_initialize(&parser->tokenizer, source, path);
@@ -949,6 +959,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     // If there was an error, we can just restore our last mem-cache point.
     if (root == NULL)
     {
+        printf("Failed to parse.\n");
         memory_arena_restore_state(arena, mem_cache);
     }
 
@@ -1050,6 +1061,21 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
             token->source[token->offset] = hold_character;
             return OBJECT_REAL;
             
+        } break;
+
+        case TOKEN_IDENTIFIER:
+        {
+
+            char hold_character = token->source[token->offset];
+            token->source[token->offset] = '\0';
+            cc64 token_string = token->source + token->offset;
+
+            cc64 pool_string = source_parser_insert_into_string_pool(parser, token_string);
+            object->string = pool_string;
+
+            token->source[token->offset] = hold_character;
+            return OBJECT_IDENTIFIER;
+
         } break;
 
         case TOKEN_STRING:
@@ -1155,3 +1181,133 @@ source_parser_should_propagate_error(void *check, source_parser *parser, arena_s
 // tree's interpretation. It's mainly used for debugging and not meant to be
 // used as production code.
 //
+
+void
+parser_print_tree(syntax_node *root_node)
+{
+
+    switch(root_node->type)
+    {
+
+        case BINARY_EXPRESSION_NODE:
+        {
+
+            parser_print_tree(root_node->binary.left);
+
+            switch (root_node->binary.type)
+            {
+
+                case OPERATION_ADDITION: printf(" + "); break;
+                case OPERATION_SUBTRACTION: printf(" - "); break;
+                case OPERATION_MULTIPLICATION: printf(" * "); break;
+                case OPERATION_DIVISION: printf(" / "); break;
+                case OPERATION_EQUALS: printf(" == "); break;
+                case OPERATION_NOT_EQUALS: printf(" != "); break;
+                case OPERATION_LESS_THAN: printf(" < "); break;
+                case OPERATION_LESS_THAN_EQUALS: printf(" <= "); break;
+                case OPERATION_GREATER_THAN: printf(" > "); break;
+                case OPERATION_GREATER_THAN_EQUALS: printf(" >= "); break;
+                
+                default:
+                {
+
+                    assert(!"Unimplemented operation for binary expression printing.");
+                    return;
+
+                } break;
+            }
+
+            parser_print_tree(root_node->binary.right);
+
+        } break;
+
+        case UNARY_EXPRESSION_NODE:
+        {
+
+            switch (root_node->unary.type)
+            {
+
+                case OPERATION_NEGATIVE_ASSOCIATE: printf("-"); break;
+
+                default:
+                {
+
+                    assert(!"Unimplemented operation for unary expression printing.");
+                    return;
+
+                } break;
+
+            };
+
+            parser_print_tree(root_node->unary.right);
+
+        } break;
+
+        case GROUPING_EXPRESSION_NODE:
+        {
+
+            printf("( ");
+            parser_print_tree(root_node->grouping.grouping);
+            printf(" )");
+
+        } break;
+
+        case PRIMARY_EXPRESSION_NODE:
+        {
+
+            switch (root_node->primary.type)
+            {
+
+                case OBJECT_UNSIGNED_INTEGER: 
+                {
+                    printf("%llu", root_node->primary.literal.unsigned_integer);
+                } break;
+
+                case OBJECT_SIGNED_INTEGER: 
+                {
+                    printf("%lld", root_node->primary.literal.signed_integer);
+                } break;
+
+                case OBJECT_REAL: 
+                {
+                    printf("%f", root_node->primary.literal.real);
+                } break;
+
+                case OBJECT_BOOLEAN: 
+                {
+                    printf("%lld", root_node->primary.literal.boolean);
+                } break;
+
+                case OBJECT_STRING: 
+                {
+                    printf("\"%s\"", root_node->primary.literal.string);
+                } break;
+
+                case OBJECT_IDENTIFIER: 
+                {
+                    printf("\"%s\"", root_node->primary.literal.identifier);
+                } break;
+                
+                default:
+                {
+
+                    assert(!"Unimplemented case for primary expression printing.");
+                    return;
+
+                } break;
+
+            }
+
+        } break;
+
+        default:
+        {
+
+            assert(!"Unimplemented parser print case.");
+            return;
+
+        };
+
+    };
+
+}

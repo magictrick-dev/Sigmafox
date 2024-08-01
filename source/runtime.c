@@ -94,6 +94,8 @@ environment_initialize(i32 argument_count, char ** argument_list)
     params.output_directory     = "./";
     params.output_name          = "main";
 
+    printf("Validating CLI arguments...\n");
+
     // Parse and validate.
     b32 command_line_valid = command_line_parse(&params);
     if (params.helped == true) return STATUS_CODE_SUCCESS;
@@ -105,6 +107,9 @@ environment_initialize(i32 argument_count, char ** argument_list)
 
     // Set source file path, as checked.
     source_file = params.source_file_path;
+    printf("Total memory committed for transpiling: %llu\n", params.memory_limit);
+    printf("String pool size: %llu\n", params.string_pool_limit);
+    printf("Compiling %s...\n", source_file);
 
     // Establish allocator region.
     void *primary_memory_buffer = system_virtual_alloc(NULL, SF_PRIMARY_STORE_SIZE);
@@ -136,6 +141,7 @@ environment_runtime()
     source_parser parser = {0};
     syntax_node *root = source_parser_create_ast(&parser, source_buffer, 
             source_file, &primary_arena);
+    if (root != NULL) parser_print_tree(root);
 
     return STATUS_CODE_SUCCESS;
 
