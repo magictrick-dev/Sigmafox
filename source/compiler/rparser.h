@@ -95,6 +95,7 @@ typedef struct source_token
 
 cc64    source_token_string_nullify(source_token *token, char *hold_character);
 void    source_token_string_unnullify(source_token *token, char hold_character);
+void    source_token_position(source_token *token, i32 *line, i32 *col);
 
 cc64    source_tokenizer_token_type_to_string(source_token *token);
 b32     source_tokenizer_eof(source_tokenizer *tokenizer);

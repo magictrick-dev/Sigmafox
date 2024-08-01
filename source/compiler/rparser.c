@@ -674,6 +674,36 @@ source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
 
 }
 
+void    
+source_token_position(source_token *token, i32 *line, i32 *col)
+{
+
+    assert(token != NULL);
+    assert(line != NULL);
+    assert(col != NULL);
+
+    i32 line_count = 1;
+    i32 column_count = 1;
+
+    u64 offset = 0;
+    while (token->source + offset < token->source + token->offset)
+    {
+
+        if (token->source[offset] == '\n')
+        {
+            line_count++;
+            column_count = 1;
+        }
+
+        offset++;
+        column_count++;
+    }
+
+    *line = line_count;
+    *col = column_count;
+
+}
+
 cc64    
 source_token_string_nullify(source_token *token, char *hold_character)
 {
@@ -774,6 +804,12 @@ source_parser_match_primary(source_parser *parser)
         return primary_node;
 
     }
+
+    // NOTE(Chris): It is very much possible that the following token is a new-line
+    //              or comment token which must be processed as a valid expression.
+    //              The issue here is that we want to preserve the location of these
+    //              comments so therefore we need to construct a grammar that allows
+    //              for this behavior.
 
     parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN);
 
@@ -1221,11 +1257,16 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             source_token *error_at = parser->current_token;
             cc64 file_name = parser->tokenizer.file_path;
 
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s (x,y) (error:%d): unexpected token in expression: '%s', ",
-                    file_name, error, token_encountered);
+            printf("%s (%d,%d) (error:%d): unexpected token in expression: '%s', ",
+                    file_name, line, column, error, token_encountered);
             printf("expected real, identifier, or grouping.\n");
 
             source_token_string_unnullify(error_at, hold);
