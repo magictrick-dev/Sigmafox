@@ -368,7 +368,7 @@ syntax_node* source_parser_create_ast(source_parser *parser, c64 source,
 typedef enum parse_error_type
 {
     PARSE_ERROR_HANDLED,
-    PARSE_ERROR_UNDEFINED_TOKEN,
+    PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN,
     PARSE_ERROR_UNEXPECTED_EOL,
     PRASE_ERROR_UNEXPECTED_EOF,
     PARSE_ERROR_MEM_CONSTRAINT_STRING_POOL,

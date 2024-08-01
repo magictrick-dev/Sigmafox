@@ -775,7 +775,8 @@ source_parser_match_primary(source_parser *parser)
 
     }
 
-    parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_TOKEN);
+    parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN);
+
     return NULL;
 
 }
@@ -1214,7 +1215,7 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
     switch (error)
     {
         
-        case PARSE_ERROR_UNDEFINED_TOKEN:
+        case PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN:
         {
 
             source_token *error_at = parser->current_token;
@@ -1223,8 +1224,9 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s(x,y)(eid:%d): encountered unexpected token '%s'\n",
+            printf("%s (x,y) (error:%d): unexpected token in expression: '%s', ",
                     file_name, error, token_encountered);
+            printf("expected real, identifier, or grouping.\n");
 
             source_token_string_unnullify(error_at, hold);
 
