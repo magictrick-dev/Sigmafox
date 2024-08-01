@@ -94,22 +94,21 @@ environment_initialize(i32 argument_count, char ** argument_list)
     params.output_directory     = "./";
     params.output_name          = "main";
 
-    printf("Validating CLI arguments...\n");
-
     // Parse and validate.
     b32 command_line_valid = command_line_parse(&params);
-    if (params.helped == true) return STATUS_CODE_SUCCESS;
+    if (params.helped == true) return STATUS_CODE_HELP;
     if (command_line_valid == false)
     {
-        printf("Unable to run transpiler, check command line arguments.\n");
+        printf("-- Unable to run transpiler, check command line arguments.\n");
         return STATUS_CODE_BAD_ARGS;
     }
 
     // Set source file path, as checked.
     source_file = params.source_file_path;
-    printf("Total memory committed for transpiling: %llu\n", params.memory_limit);
-    printf("String pool size: %llu\n", params.string_pool_limit);
-    printf("Compiling %s...\n", source_file);
+    printf("-- Memory commit:       %lluMB\n", params.memory_limit/(1024*1024));
+    printf("-- String pool size:    %lluMB\n", params.string_pool_limit/(1024*1024));
+    printf("-- Compiling:           %s\n", source_file);
+    printf("\n");
 
     // Establish allocator region.
     void *primary_memory_buffer = system_virtual_alloc(NULL, SF_PRIMARY_STORE_SIZE);

@@ -265,7 +265,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
             cli_parser_display_help_long();
             parameters->options.help = true;
             parameters->helped = true;
-            return CLI_PARSER_BREAK;
+            return CLI_PARSER_CONTINUE;
 
         } break;
 
@@ -432,9 +432,84 @@ cli_parser_match_default(runtime_parameters *parameters)
 
 }
 
+void
+cli_parser_display_header()
+{
+    printf("--------------------------------------------------------------------\n");
+    printf("Sigmafox Transpiler Version 0.2.0A\n");
+    printf("Northern Illinois University\n");
+    printf("Developed & Maintained by Chris DeJong (magicktrick-dev@github)\n");
+    printf("--------------------------------------------------------------------\n");
+}
+
 void 
 cli_parser_display_help_long()
 {
+
+    printf("Basic useage:\n");
+    printf("    sigmafox source.fox\n");
+    printf("    sigmafox ?(argument [parameters]) source.fox ?(argument [parameters])\n");
+    printf("\n");
+
+    printf("-h, --help\n");
+    printf("    Example: sigmafox --help\n");
+    printf("    Default:\n");
+    printf("\n");
+    printf("    Displays the help dialogue and the list of commands. This is automatically\n");
+    printf("    invoked in short-form when the CLI parser fails or in long-form explictly\n");
+    printf("    when invoked by the user. If the help flag is provided, execution doesn't\n");
+    printf("    continue and the program automatically exits after parsing.\n");
+    printf("\n");
+
+    printf("--output-name [string]\n");
+    printf("    Example: sigmafox fibonacci.fox --output-name fibonacci\n");
+    printf("    Default: --output-name main\n");
+    printf("\n");
+    printf("    Sets the output name of either compiled binary or the entry point.\n");
+    printf("    File extensions are automatically set.\n");
+    printf("\n");
+
+    printf("--output-directory [directory]\n");
+    printf("    Example: sigmafox fibonacci.fox --output-directory ./build\n");
+    printf("    Default: --output-directory ./\n");
+    printf("\n");
+    printf("    Sets the directory where all build files are stored.\n");
+    printf("\n");
+
+    printf("-c, --compile\n");
+    printf("    Example: sigmafox fibonacci.fox -c -o build/fibonacci.exe\n");
+    printf("    Default:\n");
+    printf("\n");
+    printf("    Enables direct-to-binary compilation.\n");
+    printf("\n");
+
+    printf("-t, --trim-comments\n");
+    printf("    Example: sigmafox fibonacci.fox -t\n");
+    printf("    Default:\n");
+    printf("\n");
+    printf("    Removes all comments from the generated C++ file.\n");
+    printf("\n");
+
+    printf("--memory-limit-size [memory-size]\n");
+    printf("    Example: --memory-limit 4GB\n");
+    printf("    Default: --memory-limit 4GB\n");
+    printf("\n");
+    printf("    Sets the amount of memory the transpiler reserves at startup.\n");
+    printf("    The transpiler will error out with an appropriate message if\n");
+    printf("    this capacity is reached.\n");
+    printf("\n");
+
+    printf("--string-pool-limit [memory-size]\n");
+    printf("    Example: --string-pool-limit 16MB\n");
+    printf("    Default: --string-pool-limit 16MB\n");
+    printf("\n");
+    printf("    Sets the amount of memory reserved within the string pool. The\n");
+    printf("    transpiler uses this to store identifier names and string buffers\n");
+    printf("    during the parsing phase. The transpiler will error out with an\n");
+    printf("    appropriate message if this capacity is reached. The size of the\n");
+    printf("    string pool proportionally reduces the amount of free-space the\n");
+    printf("    transpiler has for other allocations.\n");
+    printf("\n");
 
     return;
 }
@@ -443,12 +518,29 @@ void
 cli_parser_display_help_short()
 {
 
+    printf("For a complete list of commands & argument formatting, run --help\n");
+    printf("\n");
+    printf("Basic useage:\n");
+    printf("    sigmafox source.fox\n");
+    printf("    sigmafox ?(argument [parameters]) source.fox ?(argument [parameters])\n");
+    printf("\n");
+    printf("-h, --help\n");
+    printf("    Example: sigmafox --help\n");
+    printf("    Default:\n");
+    printf("\n");
+    printf("    Displays the help dialogue and the list of commands. This is automatically\n");
+    printf("    invoked in short-form when the CLI parser fails or in long-form explictly\n");
+    printf("    when invoked by the user. If the help flag is provided, execution doesn't\n");
+    printf("    continue and the program automatically exits after parsing.\n");
+
     return;
 }
 
 b32 
 command_line_parse(runtime_parameters *parameters)
 {
+
+    cli_parser_display_header();
 
     // Initialize all options/flags. Unused flags are marked -1.
     for (u32 i = 0; i < 26; ++i) parameters->flags[i] = -1;

@@ -9,7 +9,11 @@ main(int argc, char ** argv)
     // Invoke initialization procedure. If init fails, immediately call shutdown
     // with -1 to indicate a fail.
     int init_code = environment_initialize(argc, argv);
-    if (init_code != STATUS_CODE_SUCCESS)
+    if (init_code == STATUS_CODE_HELP)
+    {
+        return 0;
+    }
+    else if (init_code != STATUS_CODE_SUCCESS)
     {
         printf("Initialization failed with status code: %i\n", init_code);
         environment_shutdown(init_code);

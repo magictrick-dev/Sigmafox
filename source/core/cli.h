@@ -200,6 +200,7 @@ typedef struct cli_token
     u64 value;
 } cli_token;
 
+void cli_parser_display_header();
 void cli_parser_display_help_long();
 void cli_parser_display_help_short();
 void cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token);
