@@ -93,6 +93,9 @@ typedef struct source_token
     u64 length;
 } source_token;
 
+cc64    source_token_string_nullify(source_token *token, char *hold_character);
+void    source_token_string_unnullify(source_token *token, char hold_character);
+
 cc64    source_tokenizer_token_type_to_string(source_token *token);
 b32     source_tokenizer_eof(source_tokenizer *tokenizer);
 b32     source_tokenizer_eol(source_tokenizer *tokenizer);
@@ -340,10 +343,10 @@ syntax_node* source_parser_match_equality(source_parser *parser);
 syntax_node* source_parser_match_assignment(source_parser *parser);
 syntax_node* source_parser_match_expression(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
-source_token* source_parser_get_previous_token(source_parser *parser);
-source_token* source_parser_get_current_token(source_parser *parser);
-source_token* source_parser_get_next_token(source_parser *parser);
-source_token* source_parser_consume_token(source_parser *parser);
+source_token source_parser_get_previous_token(source_parser *parser);
+source_token source_parser_get_current_token(source_parser *parser);
+source_token source_parser_get_next_token(source_parser *parser);
+source_token source_parser_consume_token(source_parser *parser);
 syntax_node* source_parser_push_node(source_parser *parser);
 cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);

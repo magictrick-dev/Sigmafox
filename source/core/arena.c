@@ -4,7 +4,7 @@ void*
 memory_arena_push(memory_arena *arena, u64 size)
 {
     assert(size + arena->commit <= arena->size);
-    void *buffer = arena->buffer;
+    void *buffer = (u8*)arena->buffer + arena->commit;
     arena->commit += size;
     return buffer;
 }

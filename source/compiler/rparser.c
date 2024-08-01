@@ -674,6 +674,31 @@ source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
 
 }
 
+cc64    
+source_token_string_nullify(source_token *token, char *hold_character)
+{
+
+    assert(hold_character != NULL);
+    cc64 string_start = token->source + token->offset;
+
+    char hold = token->source[token->offset + token->length];
+    *hold_character = hold;
+
+    token->source[token->offset + token->length] = '\0';
+
+    return string_start;
+
+}
+
+void    
+source_token_string_unnullify(source_token *token, char hold_character)
+{
+
+    token->source[token->offset + token->length] = hold_character;
+    return;
+
+}
+
 // --- Parser ------------------------------------------------------------------
 //
 // The following code pertains to the parser implementation which generates the
@@ -719,15 +744,16 @@ source_parser_match_primary(source_parser *parser)
     if (source_parser_match_token(parser, 3, TOKEN_REAL, TOKEN_INTEGER, TOKEN_STRING))
     {
 
-        source_token *literal = source_parser_consume_token(parser);
+        source_token literal = source_parser_consume_token(parser);
 
         object_literal object = {0};
-        object_type type = source_parser_token_to_literal(parser, literal, &object);
+        object_type type = source_parser_token_to_literal(parser, &literal, &object);
 
         syntax_node *primary_node = source_parser_push_node(parser);
         primary_node->type = PRIMARY_EXPRESSION_NODE;
         primary_node->primary.literal = object;
         primary_node->primary.type = type;
+        return primary_node;
 
     }
 
@@ -735,15 +761,17 @@ source_parser_match_primary(source_parser *parser)
     else if (source_parser_match_token(parser, 1, TOKEN_IDENTIFIER))
     {
         
-        source_token *identifier = source_parser_consume_token(parser);
+        source_token identifier = source_parser_consume_token(parser);
 
         object_literal object = {0};
-        object_type type = source_parser_token_to_literal(parser, identifier, &object);
+        object_type type = source_parser_token_to_literal(parser, &identifier, &object);
 
         syntax_node *primary_node = source_parser_push_node(parser);
         primary_node->type = PRIMARY_EXPRESSION_NODE;
         primary_node->primary.literal = object;
         primary_node->primary.type = type;
+
+        return primary_node;
 
     }
 
@@ -793,7 +821,7 @@ source_parser_match_factor(source_parser *parser)
     while (source_parser_match_token(parser, 2, TOKEN_STAR, TOKEN_FORWARD_SLASH))
     {
 
-        source_token *operation = source_parser_consume_token(parser);
+        source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_unary(parser);
         if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -802,7 +830,7 @@ source_parser_match_factor(source_parser *parser)
         binary_node->type = BINARY_EXPRESSION_NODE;
         binary_node->binary.left = left;
         binary_node->binary.right = right;
-        binary_node->binary.type = source_parser_token_to_operation(operation);
+        binary_node->binary.type = source_parser_token_to_operation(&operation);
         
         left = binary_node;
 
@@ -824,7 +852,7 @@ source_parser_match_term(source_parser *parser)
     while (source_parser_match_token(parser, 2, TOKEN_PLUS, TOKEN_MINUS))
     {
 
-        source_token *operation = source_parser_consume_token(parser);
+        source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_factor(parser);
         if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -833,7 +861,7 @@ source_parser_match_term(source_parser *parser)
         binary_node->type = BINARY_EXPRESSION_NODE;
         binary_node->binary.left = left;
         binary_node->binary.right = right;
-        binary_node->binary.type = source_parser_token_to_operation(operation);
+        binary_node->binary.type = source_parser_token_to_operation(&operation);
         
         left = binary_node;
 
@@ -856,7 +884,7 @@ source_parser_match_comparison(source_parser *parser)
             TOKEN_GREATER_THAN, TOKEN_GREATER_THAN_EQUALS))
     {
 
-        source_token *operation = source_parser_consume_token(parser);
+        source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_term(parser);
         if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -865,7 +893,7 @@ source_parser_match_comparison(source_parser *parser)
         binary_node->type = BINARY_EXPRESSION_NODE;
         binary_node->binary.left = left;
         binary_node->binary.right = right;
-        binary_node->binary.type = source_parser_token_to_operation(operation);
+        binary_node->binary.type = source_parser_token_to_operation(&operation);
         
         left = binary_node;
 
@@ -887,7 +915,7 @@ source_parser_match_equality(source_parser *parser)
     while (source_parser_match_token(parser, 2, TOKEN_EQUALS, TOKEN_HASH))
     {
 
-        source_token *operation = source_parser_consume_token(parser);
+        source_token operation = source_parser_consume_token(parser);
 
         syntax_node *right = source_parser_match_comparison(parser);
         if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -896,7 +924,7 @@ source_parser_match_equality(source_parser *parser)
         binary_node->type = BINARY_EXPRESSION_NODE;
         binary_node->binary.left = left;
         binary_node->binary.right = right;
-        binary_node->binary.type = source_parser_token_to_operation(operation);
+        binary_node->binary.type = source_parser_token_to_operation(&operation);
 
         left = binary_node;
 
@@ -967,28 +995,28 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
 
 }
 
-source_token* 
+source_token
 source_parser_get_previous_token(source_parser *parser)
 {
     source_token *result = parser->previous_token;
-    return result;
+    return *result;
 }
 
-source_token* 
+source_token
 source_parser_get_current_token(source_parser *parser)
 {
     source_token *result = parser->current_token;
-    return result;
+    return *result;
 }
 
-source_token* 
+source_token
 source_parser_get_next_token(source_parser *parser)
 {
     source_token *result = parser->next_token;
-    return result;
+    return *result;
 }
 
-source_token* 
+source_token
 source_parser_consume_token(source_parser *parser)
 {
     source_token *temporary = parser->previous_token;
@@ -996,7 +1024,7 @@ source_parser_consume_token(source_parser *parser)
     parser->current_token = parser->next_token;
     parser->next_token = temporary;
     source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
-    return parser->current_token;
+    return *parser->previous_token;
 }
 
 b32 
@@ -1036,14 +1064,14 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
         case TOKEN_REAL:
         {
 
-            char hold_character = token->source[token->offset];
-            token->source[token->offset] = '\0';
-            cc64 token_string = token->source + token->offset;
+            char hold;
+            cc64 token_string = source_token_string_nullify(token, &hold);
 
             double result = atof(token_string);
             object->real = result;
 
-            token->source[token->offset] = hold_character;
+            source_token_string_unnullify(token, hold);
+
             return OBJECT_REAL;
 
         } break;
@@ -1051,29 +1079,27 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
         case TOKEN_INTEGER:
         {
 
-            char hold_character = token->source[token->offset];
-            token->source[token->offset] = '\0';
-            cc64 token_string = token->source + token->offset;
+            char hold;
+            cc64 token_string = source_token_string_nullify(token, &hold);
 
-            double result = atoll(token_string);
+            i64 result = atoll(token_string);
             object->signed_integer = result;
 
-            token->source[token->offset] = hold_character;
-            return OBJECT_REAL;
+            source_token_string_unnullify(token, hold);
+            return OBJECT_SIGNED_INTEGER;
             
         } break;
 
         case TOKEN_IDENTIFIER:
         {
 
-            char hold_character = token->source[token->offset];
-            token->source[token->offset] = '\0';
-            cc64 token_string = token->source + token->offset;
+            char hold;
+            cc64 token_string = source_token_string_nullify(token, &hold);
 
             cc64 pool_string = source_parser_insert_into_string_pool(parser, token_string);
             object->string = pool_string;
 
-            token->source[token->offset] = hold_character;
+            source_token_string_unnullify(token, hold);
             return OBJECT_IDENTIFIER;
 
         } break;
@@ -1081,14 +1107,13 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
         case TOKEN_STRING:
         {
             
-            char hold_character = token->source[token->offset];
-            token->source[token->offset] = '\0';
-            cc64 token_string = token->source + token->offset;
+            char hold;
+            cc64 token_string = source_token_string_nullify(token, &hold);
 
             cc64 pool_string = source_parser_insert_into_string_pool(parser, token_string);
             object->string = pool_string;
 
-            token->source[token->offset] = hold_character;
+            source_token_string_unnullify(token, hold);
             return OBJECT_STRING;
 
         } break;
