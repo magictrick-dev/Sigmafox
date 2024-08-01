@@ -164,6 +164,7 @@ typedef struct runtime_parameters
 
 typedef enum cli_parser_code
 {
+    CLI_PARSER_HELP         = -2,
     CLI_PARSER_ERROR        = -1,
     CLI_PARSER_BREAK        =  0,
     CLI_PARSER_CONTINUE     =  1,

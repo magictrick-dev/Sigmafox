@@ -15,7 +15,7 @@ main(int argc, char ** argv)
     }
     else if (init_code != STATUS_CODE_SUCCESS)
     {
-        printf("Initialization failed with status code: %i\n", init_code);
+        printf("-- Initialization failed with status code: %i\n", init_code);
         environment_shutdown(init_code);
         return init_code;
     }

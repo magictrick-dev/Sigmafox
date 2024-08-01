@@ -229,7 +229,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
             cli_parser_get_next_token(parameters, &source_token);
             if (source_token.type != CLI_TOKEN_NAME)
             {
-                printf("Unexpected command line argument (expected string) at %d: '%s'\n",
+                printf("Unexpected command line argument (expected string) at position %d: '%s'\n",
                         source_token.index,
                         parameters->arguments[source_token.index]);
                 return CLI_PARSER_ERROR;
@@ -248,7 +248,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
             cli_parser_get_next_token(parameters, &source_token);
             if (source_token.type != CLI_TOKEN_PATH)
             {
-                printf("Unexpected command line argument (expected path) at %d: '%s'\n",
+                printf("Unexpected command line argument (expected path) at position %d: '%s'\n",
                         source_token.index,
                         parameters->arguments[source_token.index]);
                 return CLI_PARSER_ERROR;
@@ -265,7 +265,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
             cli_parser_display_help_long();
             parameters->options.help = true;
             parameters->helped = true;
-            return CLI_PARSER_CONTINUE;
+            return CLI_PARSER_HELP;
 
         } break;
 
@@ -293,7 +293,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
             cli_parser_get_next_token(parameters, &source_token);
             if (source_token.type != CLI_TOKEN_NUMBER)
             {
-                printf("Unexpected command line argument (expected number) at %d: '%s'\n",
+                printf("Unexpected command line argument (expected number) at position %d: '%s'\n",
                         source_token.index,
                         parameters->arguments[source_token.index]);
                 return CLI_PARSER_ERROR;
@@ -312,7 +312,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
             cli_parser_get_next_token(parameters, &source_token);
             if (source_token.type != CLI_TOKEN_NUMBER)
             {
-                printf("Unexpected command line argument (expected number) at %d: '%s'\n",
+                printf("Unexpected command line argument (expected number) at position %d: '%s'\n",
                         source_token.index,
                         parameters->arguments[source_token.index]);
                 return CLI_PARSER_ERROR;
@@ -335,7 +335,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
 
                 if (!isalpha(arg[idx]))
                 {
-                    printf("Non-alphabetical command line flag at %d: '%c'\n",
+                    printf("Non-alphabetical command line flag at position %d: '%c'\n",
                             argument_token.index,
                             arg[idx]);
                     return CLI_PARSER_ERROR;
@@ -345,7 +345,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
                 i64 flag_index = tolower(arg[idx]) - 'a';
                 if (parameters->flags[flag_index] == -1)
                 {
-                    printf("Undefined command line flag at %d: '%c'\n",
+                    printf("Undefined command line flag at position %d: '%c'\n",
                             argument_token.index,
                             arg[idx]);
                     return CLI_PARSER_ERROR;
@@ -362,7 +362,7 @@ cli_parser_match_argument(runtime_parameters *parameters)
 
         case CLI_TOKEN_UNDEFINED_ARGUMENT:
         {
-            printf("Undefined command line argument at %d: '%s'\n",
+            printf("Undefined command line argument at position %d: '%s'\n",
                     argument_token.index,
                     parameters->arguments[argument_token.index]);
             return CLI_PARSER_ERROR;
@@ -386,6 +386,7 @@ cli_parser_match_default(runtime_parameters *parameters)
     cli_parser_code current_code;
     while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE)
         parameters->arg_current++;
+    if (current_code == CLI_PARSER_HELP) return CLI_PARSER_HELP;
     if (current_code == CLI_PARSER_ERROR) return CLI_PARSER_ERROR;
 
     // Is the current argument a file?
@@ -405,7 +406,7 @@ cli_parser_match_default(runtime_parameters *parameters)
         // However, if we don't have a file argument, we give the appropriate
         // message. We expect a file at this point, so if it isn't we consider
         // it an error.
-        printf("Unexpected command line argument at %d: '%s'\n",
+        printf("Unexpected command line argument at position %d: '%s'\n",
                 source_token.index,
                 parameters->arguments[source_token.index]);
         return CLI_PARSER_ERROR;
@@ -419,10 +420,11 @@ cli_parser_match_default(runtime_parameters *parameters)
     while ((current_code = cli_parser_match_argument(parameters)) == CLI_PARSER_CONTINUE)
         parameters->arg_current++;
     if (current_code == CLI_PARSER_ERROR) return CLI_PARSER_ERROR;
+    if (current_code == CLI_PARSER_HELP) return CLI_PARSER_HELP;
     if (parameters->arg_current < parameters->arg_count)
     {
         for (i32 idx = parameters->arg_current; idx < parameters->arg_count; ++idx)
-            printf("Unexpected command line argument at %d: '%s'\n",
+            printf("Unexpected command line argument at position %d: '%s'\n",
                     idx,
                     parameters->arguments[idx]);
         return CLI_PARSER_ERROR;
@@ -532,6 +534,7 @@ cli_parser_display_help_short()
     printf("    invoked in short-form when the CLI parser fails or in long-form explictly\n");
     printf("    when invoked by the user. If the help flag is provided, execution doesn't\n");
     printf("    continue and the program automatically exits after parsing.\n");
+    printf("\n");
 
     return;
 }

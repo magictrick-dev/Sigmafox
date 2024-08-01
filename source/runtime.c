@@ -96,7 +96,11 @@ environment_initialize(i32 argument_count, char ** argument_list)
 
     // Parse and validate.
     b32 command_line_valid = command_line_parse(&params);
-    if (params.helped == true) return STATUS_CODE_HELP;
+    if (params.helped == true)
+    {
+        printf("-- Transpiler will not run when help flag is enabled.\n");
+        return STATUS_CODE_HELP;
+    }
     if (command_line_valid == false)
     {
         printf("-- Unable to run transpiler, check command line arguments.\n");
@@ -156,6 +160,7 @@ void
 environment_shutdown(i32 status_code)
 {
 
-    system_virtual_free(primary_arena.buffer);
+    // Free the virtual memory if it was allocated.
+    if (primary_arena.buffer != NULL) system_virtual_free(primary_arena.buffer);
 
 }
