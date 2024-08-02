@@ -692,7 +692,7 @@ source_token_position(source_token *token, i32 *line, i32 *col)
         if (token->source[offset] == '\n')
         {
             line_count++;
-            column_count = 1;
+            column_count = 0;
         }
 
         offset++;
@@ -770,6 +770,8 @@ syntax_node*
 source_parser_match_primary(source_parser *parser)
 {
 
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
+
     // Literals.
     if (source_parser_match_token(parser, 3, TOKEN_REAL, TOKEN_INTEGER, TOKEN_STRING))
     {
@@ -805,14 +807,36 @@ source_parser_match_primary(source_parser *parser)
 
     }
 
-    // NOTE(Chris): It is very much possible that the following token is a new-line
-    //              or comment token which must be processed as a valid expression.
-    //              The issue here is that we want to preserve the location of these
-    //              comments so therefore we need to construct a grammar that allows
-    //              for this behavior.
+    // Groupings.
+    else if (source_parser_match_token(parser, 1, TOKEN_LEFT_PARENTHESIS))
+    {
+
+        source_parser_consume_token(parser);
+
+        syntax_node *inside = source_parser_match_expression(parser);
+        if (source_parser_should_propagate_error(inside, parser, mem_state)) return NULL;
+
+        if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
+        {
+            parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS);
+            return NULL;
+        }
+
+        else
+        {
+            source_parser_consume_token(parser);
+        }
+
+        syntax_node *grouping_node = source_parser_push_node(parser);
+        grouping_node->type = GROUPING_EXPRESSION_NODE;
+        grouping_node->grouping.grouping = inside;
+
+        return grouping_node;
+
+
+    }
 
     parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN);
-
     return NULL;
 
 }
@@ -1007,10 +1031,10 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     parser->next_token      = &parser->tokens[2];
     parser->arena           = arena;
 
-    // Get our current token and then get the "peek" token.
+    // Initialize the tokenizer then cycle in two tokens.
     source_tokenizer_initialize(&parser->tokenizer, source, path);
-    source_tokenizer_get_next_token(&parser->tokenizer, parser->current_token);
-    source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+    source_parser_consume_token(parser);
+    source_parser_consume_token(parser);
 
     // Reserve the string pool.
     c64 string_pool_buffer = memory_arena_push_array(arena, char, STRING_POOL_DEFAULT_SIZE);
@@ -1063,7 +1087,27 @@ source_parser_consume_token(source_parser *parser)
     parser->current_token = parser->next_token;
     parser->next_token = temporary;
     source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+
+    // NOTE(Chris): Due to the fact that expression and statement grammar does
+    //              not take into account that new lines and comments can coexist
+    //              in them, we ignore them here for now.
+
+    while (parser->next_token->type == TOKEN_NEW_LINE ||
+           parser->next_token->type == TOKEN_COMMENT_BLOCK)
+    {
+        source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+    }
+    
     return *parser->previous_token;
+}
+
+b32 
+source_parser_expect_token(source_parser *parser, source_token_type type)
+{
+    
+    b32 is_type = (parser->current_token->type == type);
+    return is_type;
+
 }
 
 b32 
