@@ -1317,6 +1317,27 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
         } break;
 
+        case PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS:
+        {
+
+            source_token *error_at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d): expected matched ')' for expression.\n",
+                    file_name, line, column, error, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
         default:
         {
             assert(!"Uncaught error message handling routine.");
