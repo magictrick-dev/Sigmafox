@@ -23,31 +23,38 @@
 //      average size of intern'd stirngs.
 //
 
-typedef struct string_pool_table
+
+typedef struct intern
 {
-    cc64   *pointers;
-    u64     capacity;
-    u64     load;
-} string_pool_table;
+    cc64    string;
+    u32     hash;
+    b32     occupied;
+} intern;
+
+typedef intern* sh64;
+
+typedef struct intern_table
+{
+    intern *entries;
+    u64 size;
+    u64 count;
+    u64 commit;
+} intern_table;
 
 typedef struct string_pool
 {
-    c64 pool_buffer;
-    u64 pool_size;
-    u64 pool_offset;
 
-    string_pool_table table;
+    c64 buffer;
+    u64 buffer_size;
+    u64 buffer_offset;
+
+    intern_table table;
+
 } string_pool;
 
-// string pool capacity / divisor = number of entries in hash table
-#define STRING_POOL_DEFAULT_DIVISOR 1024
-
-u64     string_pool_get_hash_table_divisor();
-void    string_pool_set_hash_table_divisor(u64 divisor_value);
-cc64    string_pool_insert_string(string_pool *pool, cc64 string);
-cc64    string_pool_remove_string(string_pool *pool, cc64 string);
-b32     string_pool_string_exists(string_pool *pool, cc64 string);
-u32     string_pool_hashify(cc64 string);
-void    string_pool_initialize(string_pool *pool, memory_arena *arena, u64 pool_size);
+cc64        string_pool_string_from_handle(sh64 handle);
+u32         string_pool_hashify(cc64 string, u64 length);
+sh64        string_pool_insert(string_pool *pool, cc64 string);
+void        string_pool_initialize(string_pool *pool, memory_arena *arena, u64 pool_size);
 
 #endif
