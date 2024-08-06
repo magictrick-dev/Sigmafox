@@ -140,6 +140,13 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
                 return;
             }
 
+            if (cli_parser_match_string_caseless(string_token, "unit-test"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_UNIT_TEST;
+                token->index = current_index;
+                return;
+            }
+
             if (cli_parser_match_string_caseless(string_token, "memory-limit-size"))
             {
                 token->type = CLI_TOKEN_ARGUMENT_MEM_LIMIT;
@@ -283,6 +290,11 @@ cli_parser_match_argument(runtime_parameters *parameters)
             parameters->options.trim_comments = true;
             return CLI_PARSER_CONTINUE;
 
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_UNIT_TEST:
+        {
+            parameters->options.unit_test = true;
         } break;
 
         case CLI_TOKEN_ARGUMENT_MEM_LIMIT:
@@ -550,6 +562,7 @@ command_line_parse(runtime_parameters *parameters)
     parameters->options.compile = 0;
     parameters->options.help = 0;
     parameters->options.trim_comments = 0;
+    parameters->options.unit_test = 0;
     parameters->helped = false;
 
     // Parse until all arguments are handled or we encounter an error.

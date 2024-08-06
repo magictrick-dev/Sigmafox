@@ -48,6 +48,8 @@ add_executable(Sigmafox
     "source/core/arena.c"
     "source/core/cli.h"
     "source/core/cli.c"
+    "source/core/memops.h"
+    "source/core/memops.c"
 
     ${PLATFORM_FILES}
 )

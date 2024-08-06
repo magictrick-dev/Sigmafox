@@ -96,7 +96,7 @@ hash_table_resize(hash_table *table, u64 size)
         if (entry->tag == HASH_TABLE_TAG_VALID)
         {
             void* new_entry_block = hash_table_insert_at_hash(&overwritting_table, entry->hash);
-            memcpy(new_entry_block, old_entry_block, table->entry_block_size);
+            memory_copy_simple(new_entry_block, old_entry_block, table->entry_block_size);
         }
 
     }

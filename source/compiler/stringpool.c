@@ -47,7 +47,7 @@ string_pool_insert(string_pool *pool, cc64 string)
     assert(pool->buffer_offset + length + 1 < pool->buffer_size);
 
     cc64 result = pool->buffer + pool->buffer_offset;
-    memcpy(pool->buffer + pool->buffer_offset, string, length + 1);
+    memory_copy_simple(pool->buffer + pool->buffer_offset, string, length + 1);
     pool->buffer_offset += (length + 1);
 
     current->string = result;

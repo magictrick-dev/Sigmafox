@@ -2,27 +2,6 @@
 //
 // The runtime environment is where the magic happens.
 //
-// TODO(Chris): In no particular order...
-//
-//      1.  Decouple any C++ language dependencies to C. This means any placement
-//          new operators need to be removed in favor of good ol' fashioned memory
-//          management routines. Much of this is already abstracted away.
-//
-//      2.  Implement an efficient hashing routine as well as a C-style hashmap
-//          so that we can speed up our symbol-table searches.
-//
-//      3.  A C-style string utility library to make it easier to generate and copy
-//          strings out to memory.
-//
-//      4.  Memory copy and memory set routines. This will be important to have
-//          towards the file-generation process since we're basically doing large
-//          quantities of memory copies.
-//
-//      5.  A platform multithreading library. This will help in a number of areas
-//          to improve performance where parallelism is possible. The most obvious
-//          area to consider is the tokenization routine which can easily parallized
-//          based on the number of files submitted at compile time.
-//
 
 #include <runtime.h>
 
@@ -113,7 +92,6 @@ environment_initialize(i32 argument_count, char ** argument_list)
     printf("-- Memory commit:       %lluMB\n", params.memory_limit/(1024*1024));
     printf("-- String pool size:    %lluMB\n", params.string_pool_limit/(1024*1024));
     printf("-- Compiling:           %s\n", source_file);
-    printf("\n");
 
     // Establish allocator region.
     void *primary_memory_buffer = system_virtual_alloc(NULL, SF_PRIMARY_STORE_SIZE);
@@ -136,6 +114,23 @@ environment_initialize(i32 argument_count, char ** argument_list)
 i32
 environment_runtime()
 {
+
+    // --- Unit Testing --------------------------------------------------------
+    //
+    // If the unit test flag is switched on, we perform all unit tests.
+    //
+
+    if (params.options.unit_test == true)
+    {
+        i32 result = environment_tests();
+        if (result == false)
+        {
+            printf("-- Unit tests have failed, transpilation will not continue.\n");
+            return STATUS_CODE_SUCCESS;
+        }
+    }
+
+    printf("\n");
 
     // --- Pool Testing --------------------------------------------------------
     //
@@ -172,7 +167,10 @@ environment_runtime()
 
     printf("-- Arena Stack Size:    %llu bytes\n", primary_arena.size);
     printf("-- Arena Stack Commit:  %llu bytes\n", primary_arena.commit);
-    printf("-- Transpilation was successful.\n");
+    if (root != NULL)
+        printf("Transpilation was successful.\n");
+    else
+        printf("Transpilation failed. See errors for more information.\n");
 
     return STATUS_CODE_SUCCESS;
 
@@ -191,4 +189,155 @@ environment_shutdown(i32 status_code)
     // Free the virtual memory if it was allocated.
     if (primary_arena.buffer != NULL) system_virtual_free(primary_arena.buffer);
 
+}
+
+// --- Environment Tests -------------------------------------------------------
+//
+// A set of environment tests that can be checked and validated at runtime.
+// The following code is not for the faint of heart, it is for software validation
+// and performance testing.
+//
+
+i32
+environment_tests()
+{
+
+    if (primary_arena.buffer == NULL) return false;
+    arena_state primary_arena_state = memory_arena_cache_state(&primary_arena);
+
+
+    printf("\n");
+    printf("-- Performing unit tests:\n");
+
+    // Get CPU frequency into cache. This is a semi-expensive process and we
+    // should perform this routine first. Report the cpu frequency back to the user.
+    u64 cpu_frequency = system_cpustamp_frequency();
+
+    // --- Memory Copy ---------------------------------------------------------
+    //
+    // Testing the speed and throughput of c-standard library memory copy versus
+    // the custom memory copy routine. This is a raw through-put routine, not
+    // validating copy integrity. Memory copy is undefined for overlapped, therefore
+    // integrity checking is not required.
+    //
+
+    {
+        arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
+        printf("-- Memory Copy Throughput Testing @ 16KB\n");
+        u64 test_size = SF_KILOBYTES(16);
+        unit_test_memory_copy memcpy_params = {0};
+        void *source = memory_arena_push(&primary_arena, test_size);
+        void *dest = memory_arena_push(&primary_arena, test_size);
+        memcpy_params.source = source;
+        memcpy_params.dest = dest;
+        memcpy_params.size = test_size;
+
+        unit_test_repitition("memory_copy_simple()", 1000, unit_test_repfn_core_memory_copy_simple, &memcpy_params);
+        unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
+        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
+        printf("\n");
+
+        memory_arena_restore_state(&primary_arena, memory_copy_state);
+    }
+
+    {
+        arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
+        printf("-- Memory Copy Throughput Testing @ 4MB\n");
+        u64 test_size = SF_MEGABYTES(4);
+        unit_test_memory_copy memcpy_params = {0};
+        void *source = memory_arena_push(&primary_arena, test_size);
+        void *dest = memory_arena_push(&primary_arena, test_size);
+        memcpy_params.source = source;
+        memcpy_params.dest = dest;
+        memcpy_params.size = test_size;
+
+        unit_test_repitition("memory_copy_simple()", 1000, unit_test_repfn_core_memory_copy_simple, &memcpy_params);
+        unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
+        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
+        printf("\n");
+
+        memory_arena_restore_state(&primary_arena, memory_copy_state);
+    }
+
+    {
+        arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
+        printf("-- Memory Copy Throughput Testing @ 32MB\n");
+        u64 test_size = SF_MEGABYTES(32);
+        unit_test_memory_copy memcpy_params = {0};
+        void *source = memory_arena_push(&primary_arena, test_size);
+        void *dest = memory_arena_push(&primary_arena, test_size);
+        memcpy_params.source = source;
+        memcpy_params.dest = dest;
+        memcpy_params.size = test_size;
+
+        unit_test_repitition("memory_copy_simple()", 0, unit_test_repfn_core_memory_copy_simple, &memcpy_params);
+        unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
+        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
+        printf("\n");
+
+        memory_arena_restore_state(&primary_arena, memory_copy_state);
+    }
+
+    // Return a valid test code.
+    memory_arena_restore_state(&primary_arena, primary_arena_state);
+    return true;
+
+}
+
+void
+unit_test_repitition(cc64 name, u64 count, repetition_routine_fptr repfn, void *user)
+{
+
+    if (count == 0)
+    {
+        printf("--      %32s : Skipped\n", name);
+        return;
+    }
+
+    r64 last_interval_time = 0;
+    r64 lowest_interval_time = 100000000;
+    u64 idx = 0;
+    u64 freq = system_cpustamp_frequency();
+    while (idx < count)
+    {
+
+        u64 start = system_cpustamp();
+        repfn(user);
+        u64 end = system_cpustamp();
+
+        last_interval_time = (r64)(end - start) / freq * 1000;
+        if (last_interval_time < lowest_interval_time)
+        {
+            lowest_interval_time = last_interval_time;
+            printf("--      %32s : %.9fms\r", name, lowest_interval_time);
+            idx = 0; // Reset on new low.
+        }
+
+        idx++;
+
+    }
+
+    printf("\n");
+
+}
+
+void 
+unit_test_repfn_clib_memcpy(void *copy_params)
+{
+    unit_test_memory_copy *cparams = (unit_test_memory_copy*)copy_params;
+    memcpy(cparams->dest, cparams->source, cparams->size);
+}
+
+void
+unit_test_repfn_core_memory_copy_simple(void *copy_params)
+{
+    unit_test_memory_copy *cparams = (unit_test_memory_copy*)copy_params;
+    memory_copy_simple(cparams->dest, cparams->source, cparams->size);
+}
+
+void
+unit_test_repfn_core_memory_copy_ext(void *copy_params)
+{
+    unit_test_memory_copy *cparams = (unit_test_memory_copy*)copy_params;
+    memory_copy_ext(cparams->dest, cparams->source, cparams->size);
 }
