@@ -223,7 +223,7 @@ environment_tests()
 
     {
         arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
-        printf("-- Memory Copy Throughput Testing @ 16KB\n");
+        printf("-- Memory Copy Throughput Testing 1000 Reps @ 16KB\n");
         u64 test_size = SF_KILOBYTES(16);
         unit_test_memory_copy memcpy_params = {0};
         void *source = memory_arena_push(&primary_arena, test_size);
@@ -232,9 +232,9 @@ environment_tests()
         memcpy_params.dest = dest;
         memcpy_params.size = test_size;
 
+        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
         unit_test_repitition("memory_copy_simple()", 1000, unit_test_repfn_core_memory_copy_simple, &memcpy_params);
         unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
-        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
         printf("\n");
 
         memory_arena_restore_state(&primary_arena, memory_copy_state);
@@ -242,7 +242,7 @@ environment_tests()
 
     {
         arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
-        printf("-- Memory Copy Throughput Testing @ 4MB\n");
+        printf("-- Memory Copy Throughput Testing 1000 Reps @ 4MB\n");
         u64 test_size = SF_MEGABYTES(4);
         unit_test_memory_copy memcpy_params = {0};
         void *source = memory_arena_push(&primary_arena, test_size);
@@ -251,9 +251,9 @@ environment_tests()
         memcpy_params.dest = dest;
         memcpy_params.size = test_size;
 
+        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
         unit_test_repitition("memory_copy_simple()", 1000, unit_test_repfn_core_memory_copy_simple, &memcpy_params);
         unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
-        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
         printf("\n");
 
         memory_arena_restore_state(&primary_arena, memory_copy_state);
@@ -261,7 +261,7 @@ environment_tests()
 
     {
         arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
-        printf("-- Memory Copy Throughput Testing @ 32MB\n");
+        printf("-- Memory Copy Throughput Testing 1000 Reps @ 32MB\n");
         u64 test_size = SF_MEGABYTES(32);
         unit_test_memory_copy memcpy_params = {0};
         void *source = memory_arena_push(&primary_arena, test_size);
@@ -270,9 +270,9 @@ environment_tests()
         memcpy_params.dest = dest;
         memcpy_params.size = test_size;
 
+        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
         unit_test_repitition("memory_copy_simple()", 0, unit_test_repfn_core_memory_copy_simple, &memcpy_params);
         unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
-        unit_test_repitition("memory_copy_ext()", 1000, unit_test_repfn_core_memory_copy_ext, &memcpy_params);
         printf("\n");
 
         memory_arena_restore_state(&primary_arena, memory_copy_state);
@@ -309,7 +309,7 @@ unit_test_repitition(cc64 name, u64 count, repetition_routine_fptr repfn, void *
         if (last_interval_time < lowest_interval_time)
         {
             lowest_interval_time = last_interval_time;
-            printf("--      %32s : %.9fms\r", name, lowest_interval_time);
+            printf("--      %32s : %.6fms           \r", name, lowest_interval_time);
             idx = 0; // Reset on new low.
         }
 
