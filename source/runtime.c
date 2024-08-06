@@ -168,6 +168,11 @@ environment_runtime()
     syntax_node *root = source_parser_create_ast(&parser, source_buffer, 
             source_file, &primary_arena);
     if (root != NULL) parser_print_tree(root);
+    printf("\n\n");
+
+    printf("-- Arena Stack Size:    %llu bytes\n", primary_arena.size);
+    printf("-- Arena Stack Commit:  %llu bytes\n", primary_arena.commit);
+    printf("-- Transpilation was successful.\n");
 
     return STATUS_CODE_SUCCESS;
 
