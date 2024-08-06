@@ -364,6 +364,12 @@ cli_parser_match_argument(runtime_parameters *parameters)
                 }
 
                 parameters->flags[flag_index] = true;
+                if (arg[idx] == 'h')
+                {
+                    cli_parser_display_help_long();
+                    parameters->helped = true;
+                    return CLI_PARSER_HELP;
+                }
                 idx++;
 
             }
