@@ -33,6 +33,7 @@
 #include <core/arena.h>
 #include <core/cli.h>
 
+#include <compiler/stringpool.h>
 #include <compiler/rparser.h>
 
 static cc64 source_file;
@@ -135,6 +136,28 @@ environment_initialize(i32 argument_count, char ** argument_list)
 i32
 environment_runtime()
 {
+
+    // --- Pool Testing --------------------------------------------------------
+    //
+    // In order to ensure consistency in the API, here we test the string pool
+    // hasing routine and resolution.
+    //
+
+#   if 0
+        string_pool test_pool;
+        string_pool_initialize(&test_pool, &primary_arena, SF_MEGABYTES(64));
+        sh64 a = string_pool_insert(&test_pool, "Hello");
+        sh64 b = string_pool_insert(&test_pool, "World");
+        sh64 c = string_pool_insert(&test_pool, "Foo");
+        sh64 d = string_pool_insert(&test_pool, "Bar");
+        sh64 e = string_pool_insert(&test_pool, "Hello");
+        sh64 f = string_pool_insert(&test_pool, "World");
+#   endif
+
+    //
+    //
+    //
+    // -------------------------------------------------------------------------
 
     u64 source_size = fileio_file_size(source_file);
     c64 source_buffer = malloc(sizeof(char) * (source_size + 1));

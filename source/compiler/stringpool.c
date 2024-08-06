@@ -25,24 +25,20 @@ string_pool_insert(string_pool *pool, cc64 string)
     while (true)
     {
 
+        // Empty spot, we can use it.
+        if (current->occupied != true)
+        {
+            break;
+        }
+
         // Entry already exists and is actually the string.
-        if (strcmp(current->string, string) == 0)
+        else if (strcmp(current->string, string) == 0)
         {
             return current;
         }
 
-        // An entry is here, collides, move forward one entry.
-        else if (current->occupied == true)
-        {
-            index++;
-            current = pool->table.entries + index;
-        }
-
-        // Otherwise, the spot is empty and we can occupy it.
-        else
-        {
-            break;
-        }
+        index++;
+        current = pool->table.entries + index;
 
     }
 
@@ -50,8 +46,8 @@ string_pool_insert(string_pool *pool, cc64 string)
     assert(current->occupied == false);
     assert(pool->buffer_offset + length + 1 < pool->buffer_size);
 
-    cc64 result = (cc64)pool->buffer_offset;
-    memcpy(pool->buffer_offset, string, length + 1);
+    cc64 result = pool->buffer + pool->buffer_offset;
+    memcpy(pool->buffer + pool->buffer_offset, string, length + 1);
     pool->buffer_offset += (length + 1);
 
     current->string = result;

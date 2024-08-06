@@ -2,6 +2,7 @@
 #define SOURCE_COMPILER_RPARSER_H
 #include <core/definitions.h>
 #include <core/arena.h>
+#include <compiler/stringpool.h>
 
 #define STRING_POOL_DEFAULT_SIZE    SF_MEGABYTES(256)
 #define SYMBOL_TABLE_DEFAULT_SIZE   SF_MEGABYTES(256)
@@ -325,9 +326,7 @@ typedef struct source_parser
 
     memory_arena *arena;
 
-    c64 string_pool_buffer;
-    u64 string_pool_offset;
-    u64 string_pool_size;
+    string_pool spool;
 
     syntax_node *entry;
     syntax_node *nodes;

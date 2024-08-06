@@ -1037,9 +1037,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     source_parser_consume_token(parser);
 
     // Reserve the string pool.
-    c64 string_pool_buffer = memory_arena_push_array(arena, char, STRING_POOL_DEFAULT_SIZE);
-    parser->string_pool_buffer = string_pool_buffer;
-    parser->string_pool_size = STRING_POOL_DEFAULT_SIZE;
+    string_pool_initialize(&parser->spool, arena, STRING_POOL_DEFAULT_SIZE);
 
     // Generate the tree.
     syntax_node* root = source_parser_match_expression(parser);
@@ -1212,34 +1210,9 @@ cc64
 source_parser_insert_into_string_pool(source_parser *parser, cc64 string)
 {
  
-    c64 current = parser->string_pool_buffer + parser->string_pool_offset;
-    u64 string_index = 0;
-    u64 string_length = strlen(string);
-    
-    // TODO(Chris): We should probably clean this up for error handling in the
-    //              future since we need to know when the pool buffer reaches
-    //              capacity. We also don't want to leave the pool buffer as a
-    //              trivial subroutine since this is a critical point of optimization.
-    assert(string_length + parser->string_pool_offset <= parser->string_pool_size);
-
-    while (true)
-    {
-        c64 i = parser->string_pool_buffer + parser->string_pool_offset + string_index;
-        *i = string[string_index];
-        if (string_index == '\0')
-        {
-            string_index++;
-            break;
-        }
-        else
-        {
-            string_index++;
-        }
-    }
-
-    parser->string_pool_offset = string_index;
-
-    return current;
+    sh64 pool_entry = string_pool_insert(&parser->spool, string);
+    cc64 result = string_pool_string_from_handle(pool_entry);
+    return result;
 
 }
 
@@ -1464,7 +1437,7 @@ parser_print_tree(syntax_node *root_node)
 
                 case OBJECT_IDENTIFIER: 
                 {
-                    printf("\"%s\"", root_node->primary.literal.identifier);
+                    printf("%s", root_node->primary.literal.identifier);
                 } break;
                 
                 default:
