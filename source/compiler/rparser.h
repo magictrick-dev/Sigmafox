@@ -215,6 +215,7 @@ typedef enum syntax_node_type
     IF_STATEMENT_NODE,
     ELSEIF_STATEMENT_NODE,
     PROCEDURE_STATEMENT_NODE,
+    PROGRAM_ROOT_NODE,
 } syntax_node_type;
 
 typedef enum syntax_operation_type

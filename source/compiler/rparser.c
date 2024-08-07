@@ -1035,7 +1035,7 @@ source_parser_match_program(source_parser *parser)
 
     arena_state mem_state = memory_arena_cache_state(parser->arena);
 
-    // Match the begin keyword.
+    // Match the begin keyword with trailing semicolon.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_BEGIN))
     {
         parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_PROGRAM_BEGIN);
@@ -1045,32 +1045,68 @@ source_parser_match_program(source_parser *parser)
     else
     {
         source_parser_consume_token(parser);
+
+        if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+        {
+            parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON);
+            return NULL;
+        }
+
+        source_parser_consume_token(parser);
+
     }
+
+    // Generate program syntax node.
+    syntax_node *program_node = source_parser_push_node(parser);
+    program_node->type = PROGRAM_ROOT_NODE;
 
     // Match all expression statements and create a statement chain.
     syntax_node *head_statement_node = NULL;
     syntax_node *last_statement_node = NULL;
-    while (!source_parser_expect_token(parser, TOKEN_KEYWORD_END))
+    while (!source_parser_match_token(parser, 2, TOKEN_KEYWORD_END, TOKEN_EOF))
     {
 
         syntax_node *statement = source_parser_match_expression_statement(parser);
-        source_parser_should_propagate_on_error(statement, parser, mem_state);
+        source_parser_should_propagate_error(statement, parser, mem_state);
 
         if (head_statement_node == NULL)
         {
             head_statement_node = statement;
+            last_statement_node = statement;
+        }
+
+        else
+        {
+            last_statement_node->next_node = statement;   
+            last_statement_node = statement;
         }
 
     }
 
-    // Match the end keyword.
+    program_node->next_node = head_statement_node;
+
+    // Match the end keyword with trailing semicolon.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_END))
     {
         parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_PROGRAM_END);
         return NULL;
     }
+    else
+    {
 
-    return NULL;
+        source_parser_consume_token(parser);
+
+        if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+        {
+            parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON);
+            return NULL;
+        }
+
+        source_parser_consume_token(parser);
+
+    }
+
+    return program_node;
 
 }
 
@@ -1099,6 +1135,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     // Reserve the string pool.
     string_pool_initialize(&parser->spool, arena, STRING_POOL_DEFAULT_SIZE);
 
+#if 0
     // Generate the tree.
     syntax_node* root = source_parser_match_expression_statement(parser);
     parser->entry = root;
@@ -1111,8 +1148,14 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
         printf("-- Failed to parse, no output has been generated.\n");
         memory_arena_restore_state(arena, mem_cache);
     }
+#endif
 
-    return root;
+    // Generate AST from program node.
+    syntax_node *program = source_parser_match_program(parser);
+    parser->entry = program;
+    parser->nodes = program;
+
+    return program;
 
 }
 
@@ -1475,6 +1518,19 @@ parser_print_tree(syntax_node *root_node)
 
     switch(root_node->type)
     {
+
+        case PROGRAM_ROOT_NODE:
+        {
+            
+            syntax_node *current_node = root_node->next_node;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+
+        } break;
 
         case BINARY_EXPRESSION_NODE:
         {
