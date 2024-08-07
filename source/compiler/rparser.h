@@ -199,6 +199,7 @@ typedef struct call_syntax_node     call_syntax_node;
 
 typedef enum syntax_node_type
 {
+    NULL_EXPRESSION_NODE,
     BINARY_EXPRESSION_NODE,
     UNARY_EXPRESSION_NODE,
     PRIMARY_EXPRESSION_NODE,
@@ -302,6 +303,7 @@ typedef struct syntax_node
 {
 
     syntax_node_type type;
+    syntax_node *next_node;
 
     union
     {
@@ -343,19 +345,24 @@ syntax_node* source_parser_match_equality(source_parser *parser);
 syntax_node* source_parser_match_assignment(source_parser *parser);
 syntax_node* source_parser_match_expression(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
+
 source_token source_parser_get_previous_token(source_parser *parser);
 source_token source_parser_get_current_token(source_parser *parser);
 source_token source_parser_get_next_token(source_parser *parser);
 source_token source_parser_consume_token(source_parser *parser);
+
 syntax_node* source_parser_push_node(source_parser *parser);
+
 cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
+
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
 b32 source_parser_should_propagate_error(void *check, source_parser *parser, arena_state state);
+
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
 object_type source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object);
-syntax_node* source_parser_create_ast(source_parser *parser, c64 source,
-        cc64 path, memory_arena *arena);
+
+syntax_node* source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_arena *arena);
 
 // --- Error Handling ----------------------------------------------------------
 //
@@ -375,6 +382,9 @@ typedef enum parse_error_type
     PRASE_ERROR_UNEXPECTED_EOF,
     PARSE_ERROR_MEM_CONSTRAINT_STRING_POOL,
     PARSE_ERROR_MEM_CONSTRAINT_SYMBOL_TABLE,
+    PARSE_ERROR_EXPECTED_PROGRAM_BEGIN,
+    PARSE_ERROR_EXPECTED_PROGRAM_END,
+    PARSE_ERROR_EXPECTED_SEMICOLON,
 } parse_error_type;
 
 typedef enum parse_warning_type

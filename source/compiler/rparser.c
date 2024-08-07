@@ -1006,11 +1006,71 @@ source_parser_match_expression(source_parser *parser)
 }
 
 syntax_node*
-source_parser_push_node(source_parser *parser)
+source_parser_match_expression_statement(source_parser *parser)
 {
+
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
     
-    syntax_node *allocation = memory_arena_push_type(parser->arena, syntax_node);
-    return allocation;
+    syntax_node *expression = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(expression, parser, mem_state)) return NULL;
+
+    // Expect a semi-colon at EOS.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON);
+        memory_arena_restore_state(parser->arena, mem_state);
+        return NULL;
+    }
+    else
+    {
+        source_parser_consume_token(parser);
+        return expression;
+    }
+
+}
+
+syntax_node*
+source_parser_match_program(source_parser *parser)
+{
+
+    arena_state mem_state = memory_arena_cache_state(parser->arena);
+
+    // Match the begin keyword.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_BEGIN))
+    {
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_PROGRAM_BEGIN);
+        return NULL;
+    }
+
+    else
+    {
+        source_parser_consume_token(parser);
+    }
+
+    // Match all expression statements and create a statement chain.
+    syntax_node *head_statement_node = NULL;
+    syntax_node *last_statement_node = NULL;
+    while (!source_parser_expect_token(parser, TOKEN_KEYWORD_END))
+    {
+
+        syntax_node *statement = source_parser_match_expression_statement(parser);
+        source_parser_should_propagate_on_error(statement, parser, mem_state);
+
+        if (head_statement_node == NULL)
+        {
+            head_statement_node = statement;
+        }
+
+    }
+
+    // Match the end keyword.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_END))
+    {
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_PROGRAM_END);
+        return NULL;
+    }
+
+    return NULL;
 
 }
 
@@ -1040,7 +1100,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     string_pool_initialize(&parser->spool, arena, STRING_POOL_DEFAULT_SIZE);
 
     // Generate the tree.
-    syntax_node* root = source_parser_match_expression(parser);
+    syntax_node* root = source_parser_match_expression_statement(parser);
     parser->entry = root;
     parser->nodes = root;
     
@@ -1053,6 +1113,18 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     }
 
     return root;
+
+}
+
+syntax_node*
+source_parser_push_node(source_parser *parser)
+{
+    
+    syntax_node *allocation = memory_arena_push_type(parser->arena, syntax_node);
+    allocation->type        = NULL_EXPRESSION_NODE;;
+    allocation->next_node   = NULL;
+
+    return allocation;
 
 }
 
@@ -1305,6 +1377,69 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
             printf("%s (%d,%d) (error:%d): expected matched ')' for expression.\n",
+                    file_name, line, column, error, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_PROGRAM_BEGIN:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d): expected program begin statement.\n",
+                    file_name, line, column, error, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_PROGRAM_END:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d): expected program end statement.\n",
+                    file_name, line, column, error, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_SEMICOLON:
+        {
+
+            source_token *error_at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d): expected semicolon at end of statement.\n",
                     file_name, line, column, error, token_encountered);
 
             source_token_string_unnullify(error_at, hold);
