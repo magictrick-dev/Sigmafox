@@ -333,7 +333,7 @@ typedef struct source_parser
 
     syntax_node *entry;
     syntax_node *nodes;
-    u64 node_count;
+    u64 error_count;
 } source_parser;
 
 syntax_node* source_parser_match_primary(source_parser *parser);
@@ -359,6 +359,7 @@ cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
 b32 source_parser_should_propagate_error(void *check, source_parser *parser, arena_state state);
+b32 source_parser_synchronize_to(source_parser *parser, source_token_type type);
 
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
 object_type source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object);
@@ -395,8 +396,6 @@ typedef enum parse_warning_type
 
 void    parser_error_handler_display_error(source_parser *parser, parse_error_type error);
 void    parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning);
-void    parser_error_handler_synchronize(source_parser *parser);
-b32     parser_error_handler_synchronize_to(source_parser *parser, source_token_type type);
 
 // --- Print Traversal ---------------------------------------------------------
 //

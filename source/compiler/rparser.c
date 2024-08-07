@@ -1067,14 +1067,22 @@ source_parser_match_program(source_parser *parser)
     {
 
         syntax_node *statement = source_parser_match_expression_statement(parser);
-        source_parser_should_propagate_error(statement, parser, mem_state);
 
+        // The statement could be NULL, indicating there was an error. Synchronize.
+        if (statement == NULL)
+        {
+            if (source_parser_synchronize_to(parser, TOKEN_SEMICOLON)) continue;
+            return NULL; // Non-recoverable.
+        }
+
+        // First statement.
         if (head_statement_node == NULL)
         {
             head_statement_node = statement;
             last_statement_node = statement;
         }
 
+        // All other statements.
         else
         {
             last_statement_node->next_node = statement;   
@@ -1083,6 +1091,7 @@ source_parser_match_program(source_parser *parser)
 
     }
 
+    // Set the program node's next node as the head statement.
     program_node->next_node = head_statement_node;
 
     // Match the end keyword with trailing semicolon.
@@ -1126,6 +1135,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     parser->current_token   = &parser->tokens[1];
     parser->next_token      = &parser->tokens[2];
     parser->arena           = arena;
+    parser->error_count     = 0;
 
     // Initialize the tokenizer then cycle in two tokens.
     source_tokenizer_initialize(&parser->tokenizer, source, path);
@@ -1154,6 +1164,8 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     syntax_node *program = source_parser_match_program(parser);
     parser->entry = program;
     parser->nodes = program;
+
+    if (parser->error_count > 0) return NULL;
 
     return program;
 
@@ -1370,6 +1382,28 @@ source_parser_should_propagate_error(void *check, source_parser *parser, arena_s
 
 }
 
+b32
+source_parser_synchronize_to(source_parser *parser, source_token_type type)
+{
+
+    while (!source_parser_match_token(parser, 2, type, TOKEN_EOF))
+    {
+        source_parser_consume_token(parser);
+    }
+
+    if (source_parser_expect_token(parser, type))
+    {
+        source_parser_consume_token(parser);
+        return true;
+    }
+
+    else
+    {
+        return false;
+    }
+
+}
+
 // --- Error Handling ----------------------------------------------------------
 //
 // These routines provide verbal error and warnings back to the user in a uniform
@@ -1379,6 +1413,8 @@ source_parser_should_propagate_error(void *check, source_parser *parser, arena_s
 void    
 parser_error_handler_display_error(source_parser *parser, parse_error_type error)
 {
+
+    parser->error_count++;
 
     switch (error)
     {
@@ -1522,6 +1558,7 @@ parser_print_tree(syntax_node *root_node)
         case PROGRAM_ROOT_NODE:
         {
             
+            printf("begin main;\n");
             syntax_node *current_node = root_node->next_node;
             while (current_node != NULL)
             {
@@ -1529,6 +1566,7 @@ parser_print_tree(syntax_node *root_node)
                 printf(";\n");
                 current_node = current_node->next_node;
             }
+            printf("end main;\n");
 
         } break;
 

@@ -160,8 +160,7 @@ environment_runtime()
     source_buffer[source_size] = '\0'; // Null-terminate.
 
     source_parser parser = {0};
-    syntax_node *root = source_parser_create_ast(&parser, source_buffer, 
-            source_file, &primary_arena);
+    syntax_node *root = source_parser_create_ast(&parser, source_buffer, source_file, &primary_arena);
     if (root != NULL) parser_print_tree(root);
     printf("\n\n");
 
