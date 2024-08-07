@@ -770,7 +770,7 @@ syntax_node*
 source_parser_match_primary(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
 
     // Literals.
     if (source_parser_match_token(parser, 3, TOKEN_REAL, TOKEN_INTEGER, TOKEN_STRING))
@@ -845,7 +845,7 @@ syntax_node*
 source_parser_match_unary(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
 
     if (source_parser_match_token(parser, 1, TOKEN_MINUS))
     {
@@ -875,7 +875,7 @@ syntax_node*
 source_parser_match_factor(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
 
     syntax_node *left = source_parser_match_unary(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -906,7 +906,7 @@ syntax_node*
 source_parser_match_term(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
 
     syntax_node *left = source_parser_match_factor(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -937,7 +937,7 @@ syntax_node*
 source_parser_match_comparison(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
 
     syntax_node *left = source_parser_match_term(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -969,7 +969,7 @@ syntax_node*
 source_parser_match_equality(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
 
     syntax_node *left = source_parser_match_comparison(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -1009,7 +1009,7 @@ syntax_node*
 source_parser_match_expression_statement(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
     
     syntax_node *expression = source_parser_match_expression(parser);
     if (source_parser_should_propagate_error(expression, parser, mem_state)) return NULL;
@@ -1018,7 +1018,7 @@ source_parser_match_expression_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
         parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON);
-        memory_arena_restore_state(parser->arena, mem_state);
+        memory_arena_restore(parser->arena, mem_state);
         return NULL;
     }
     else
@@ -1033,7 +1033,7 @@ syntax_node*
 source_parser_match_program(source_parser *parser)
 {
 
-    arena_state mem_state = memory_arena_cache_state(parser->arena);
+    u64 mem_state = memory_arena_save(parser->arena);
 
     // Match the begin keyword with trailing semicolon.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_BEGIN))
@@ -1126,7 +1126,7 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     assert(parser != NULL);
 
     // Cache our memory arena state in the event we need to unwind on error.
-    arena_state mem_cache = memory_arena_cache_state(arena);
+    u64 mem_cache = memory_arena_save(arena);
 
     // Initialize.
     parser->entry           = NULL;
@@ -1137,35 +1137,37 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     parser->arena           = arena;
     parser->error_count     = 0;
 
+    // Set the two arenas, the syntax tree arena is a fixed size of 64 megabytes,
+    // which equates to (if each syntax node is 48 bytes) to 1.4 million nodes.
+    // The transient arena takes the remaining area of the arena and is used for
+    // everything else.
+    memory_arena_partition(arena, &parser->syntax_tree_arena, SF_MEGABYTES(64));
+    memory_arena_partition(arena, &parser->transient_arena, arena->size - arena->commit);
+
     // Initialize the tokenizer then cycle in two tokens.
     source_tokenizer_initialize(&parser->tokenizer, source, path);
     source_parser_consume_token(parser);
     source_parser_consume_token(parser);
 
     // Reserve the string pool.
-    string_pool_initialize(&parser->spool, arena, STRING_POOL_DEFAULT_SIZE);
-
-#if 0
-    // Generate the tree.
-    syntax_node* root = source_parser_match_expression_statement(parser);
-    parser->entry = root;
-    parser->nodes = root;
-    
-    // If there was an error, we can just restore our last mem-cache point.
-    if (root == NULL)
-    {
-        printf("\n");
-        printf("-- Failed to parse, no output has been generated.\n");
-        memory_arena_restore_state(arena, mem_cache);
-    }
-#endif
+    string_pool_initialize(&parser->spool, &parser->transient_arena, STRING_POOL_DEFAULT_SIZE);
 
     // Generate AST from program node.
     syntax_node *program = source_parser_match_program(parser);
     parser->entry = program;
     parser->nodes = program;
 
-    if (parser->error_count > 0) return NULL;
+    // If there we errors, return NULL and indicate failure to parse.
+    if (parser->error_count > 0)
+    {
+        printf("\n");
+        printf("-- Failed to parse, no output has been generated.\n");
+        memory_arena_restore(arena, mem_cache);
+        return NULL;
+    }
+
+    // Pop the transient arena, since we don't need it anymore.
+    memory_arena_pop(arena, parser->transient_arena.size);
 
     return program;
 
@@ -1175,8 +1177,8 @@ syntax_node*
 source_parser_push_node(source_parser *parser)
 {
     
-    syntax_node *allocation = memory_arena_push_type(parser->arena, syntax_node);
-    allocation->type        = NULL_EXPRESSION_NODE;;
+    syntax_node *allocation = memory_arena_push_type(&parser->syntax_tree_arena, syntax_node);
+    allocation->type        = NULL_EXPRESSION_NODE;
     allocation->next_node   = NULL;
 
     return allocation;
@@ -1369,12 +1371,12 @@ source_parser_token_to_operation(source_token *token)
 }
 
 b32 
-source_parser_should_propagate_error(void *check, source_parser *parser, arena_state state)
+source_parser_should_propagate_error(void *check, source_parser *parser, u64 state)
 {
 
     if (check == NULL)
     {
-        memory_arena_restore_state(parser->arena, state);
+        memory_arena_restore(parser->arena, state);
         return true;
     }
 

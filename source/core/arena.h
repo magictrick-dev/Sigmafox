@@ -12,11 +12,10 @@ typedef struct memory_arena
     u64 commit;
 } memory_arena;
 
-typedef u64 arena_state;
-
-void* memory_arena_push(memory_arena *arena, u64 size);
-void memory_arena_pop(memory_arena *arena, u64 size);
-void memory_arena_restore_state(memory_arena *arena, arena_state cache);
-arena_state memory_arena_cache_state(memory_arena *arena);
+void*       memory_arena_push(memory_arena *arena, u64 size);
+void        memory_arena_pop(memory_arena *arena, u64 size);
+void        memory_arena_partition(memory_arena *parent, memory_arena *child, u64 size);
+u64         memory_arena_save(memory_arena *arena);
+void        memory_arena_restore(memory_arena *arena, u64 cache);
 
 #endif

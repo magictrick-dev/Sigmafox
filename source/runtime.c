@@ -202,7 +202,7 @@ environment_tests()
 {
 
     if (primary_arena.buffer == NULL) return false;
-    arena_state primary_arena_state = memory_arena_cache_state(&primary_arena);
+    u64 primary_u64 = memory_arena_save(&primary_arena);
 
 
     printf("\n");
@@ -221,7 +221,7 @@ environment_tests()
     //
 
     {
-        arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
+        u64 memory_copy_state = memory_arena_save(&primary_arena); 
         printf("-- Memory Copy Throughput Testing 1000 Reps @ 16KB\n");
         u64 test_size = SF_KILOBYTES(16);
         unit_test_memory_copy memcpy_params = {0};
@@ -236,11 +236,11 @@ environment_tests()
         unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
         printf("\n");
 
-        memory_arena_restore_state(&primary_arena, memory_copy_state);
+        memory_arena_restore(&primary_arena, memory_copy_state);
     }
 
     {
-        arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
+        u64 memory_copy_state = memory_arena_save(&primary_arena); 
         printf("-- Memory Copy Throughput Testing 1000 Reps @ 4MB\n");
         u64 test_size = SF_MEGABYTES(4);
         unit_test_memory_copy memcpy_params = {0};
@@ -255,11 +255,11 @@ environment_tests()
         unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
         printf("\n");
 
-        memory_arena_restore_state(&primary_arena, memory_copy_state);
+        memory_arena_restore(&primary_arena, memory_copy_state);
     }
 
     {
-        arena_state memory_copy_state = memory_arena_cache_state(&primary_arena); 
+        u64 memory_copy_state = memory_arena_save(&primary_arena); 
         printf("-- Memory Copy Throughput Testing 1000 Reps @ 32MB\n");
         u64 test_size = SF_MEGABYTES(32);
         unit_test_memory_copy memcpy_params = {0};
@@ -274,11 +274,11 @@ environment_tests()
         unit_test_repitition("c-stdlib memcpy()", 1000, unit_test_repfn_clib_memcpy, &memcpy_params);
         printf("\n");
 
-        memory_arena_restore_state(&primary_arena, memory_copy_state);
+        memory_arena_restore(&primary_arena, memory_copy_state);
     }
 
     // Return a valid test code.
-    memory_arena_restore_state(&primary_arena, primary_arena_state);
+    memory_arena_restore(&primary_arena, primary_u64);
     return true;
 
 }

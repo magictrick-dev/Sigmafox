@@ -328,6 +328,8 @@ typedef struct source_parser
     source_token *next_token;
 
     memory_arena *arena;
+    memory_arena syntax_tree_arena;
+    memory_arena transient_arena;
 
     string_pool spool;
 
@@ -358,7 +360,7 @@ cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
-b32 source_parser_should_propagate_error(void *check, source_parser *parser, arena_state state);
+b32 source_parser_should_propagate_error(void *check, source_parser *parser, u64 state);
 b32 source_parser_synchronize_to(source_parser *parser, source_token_type type);
 
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
@@ -404,6 +406,6 @@ void    parser_error_handler_display_warning(source_parser *parser, parse_warnin
 // used as production code.
 //
 
-void    parser_print_tree(syntax_node *root_node);
+void parser_print_tree(syntax_node *root_node);
 
 #endif

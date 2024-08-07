@@ -46,6 +46,8 @@ add_executable(Sigmafox
     "source/core/definitions.h"
     "source/core/arena.h"
     "source/core/arena.c"
+    "source/core/pool.h"
+    "source/core/pool.c"
     "source/core/cli.h"
     "source/core/cli.c"
     "source/core/memops.h"
