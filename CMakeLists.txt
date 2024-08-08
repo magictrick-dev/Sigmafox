@@ -39,6 +39,8 @@ add_executable(Sigmafox
     "source/compiler/rparser.c"
     "source/compiler/stringpool.h"
     "source/compiler/stringpool.c"
+    "source/compiler/symboltable.h"
+    "source/compiler/symboltable.c"
     
     "source/platform/fileio.h"
     "source/platform/system.h"

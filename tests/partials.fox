@@ -6,7 +6,9 @@ begin;
     variable baq 4 8 4 2 1;
     variable bac 4 8 4 2 1 2;
 
-    variable number_a 4 := 10;
-    variable number_b (4 + 10) := 9;
+    variable test 4 := 'hello';
+
+    variable number_a := 10;
+    variable number_b (4 + .) := 9;
 
 end;
