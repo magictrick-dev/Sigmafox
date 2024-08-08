@@ -9,7 +9,11 @@ memory_copy_simple(void *dest, const void *source, u64 size)
 
     for (u64 i = 0; i < size; ++i)
     {
-        *((u8*)dest + i) = *((u8*)source + i);
+
+        u8* dst_loc = (u8*)dest + i;
+        u8* src_loc = (u8*)source + i;
+        *dst_loc = *src_loc;
+
     }
 
 }
@@ -38,6 +42,52 @@ memory_copy_ext(void *dest, const void *source, u64 size)
     }
 
     assert(i == size);
+
+}
+
+void 
+memory_set_zero_simple(void *dest, u64 size)
+{
+
+    for (u64 i = 0; i < size; ++i)
+    {
+        u8* loc = (u8*)dest + i;
+        *loc = 0x00;
+    }
+
+}
+
+void 
+memory_set_zero_ext(void *dest, u64 size)
+{
+
+    __m256 zero_value = _mm256_setzero_ps();
+
+    u64 remainder = size % 128;
+    u64 i;
+    for (i = 0; i < size; i += 128)
+    {
+        float *dest_a = (float*)((__m256*)dest) + 0;
+        float *dest_b = (float*)((__m256*)dest) + 1;
+        float *dest_c = (float*)((__m256*)dest) + 2;
+        float *dest_d = (float*)((__m256*)dest) + 3;
+
+        _mm256_store_ps(dest_a, zero_value);
+        _mm256_store_ps(dest_b, zero_value);
+        _mm256_store_ps(dest_c, zero_value);
+        _mm256_store_ps(dest_d, zero_value);
+    }
+
+
+    // Remaining bytes.
+    for (; i < size; ++i)
+    {
+        u8* loc = (u8*)dest + i;
+        *loc = 0x00;
+    }
+
+    assert(i == size);
+    
 
 }
 
