@@ -37,7 +37,7 @@ string_pool_insert(string_pool *pool, cc64 string)
             return current;
         }
 
-        index++;
+        index = (index + 1) % pool->table.count;
         current = pool->table.entries + index;
 
     }

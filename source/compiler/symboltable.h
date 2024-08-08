@@ -18,6 +18,8 @@ typedef struct symbol
 {
     cc64 identifier;
     symbol_type type;
+    u32 hash;
+    b32 active;
 } symbol;
 
 typedef struct symbol_table
@@ -29,14 +31,14 @@ typedef struct symbol_table
 
     u64 symbol_buffer_length;
     u64 symbol_buffer_count;
-    r64 load_factor;
 } symbol_table;
 
 void            symbol_table_initialize(symbol_table *table, memory_arena *arena, u64 initialize_size);
 symbol*         symbol_table_insert(symbol_table *table, cc64 identifier, symbol_type type);
-symbol*         symbol_table_insert_global(symbol_table *table, cc64 identifier, symbol_type type);
 symbol*         symbol_table_search_from_current_table(symbol_table *table, cc64 identifier);
 symbol*         symbol_table_search_from_any_table(symbol_table *table, cc64 identifier);
+r64             symbol_table_load_factor(symbol_table *table);
+u32             symbol_table_hash_string(cc64 string);
 b32             symbol_table_resize(symbol_table *table);
 
 #endif
