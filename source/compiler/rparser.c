@@ -1012,13 +1012,18 @@ source_parser_match_expression_statement(source_parser *parser)
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
     
     syntax_node *expression = source_parser_match_expression(parser);
-    if (source_parser_should_propagate_error(expression, parser, mem_state)) return NULL;
+    if (source_parser_should_propagate_error(expression, parser, mem_state))
+    {
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+    }
 
     // Expect a semi-colon at EOS.
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
         parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON);
         source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
     }
     else
@@ -1047,6 +1052,7 @@ source_parser_match_variable_statement(source_parser *parser)
     {
         parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER);
         source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
     }
 
@@ -1065,7 +1071,11 @@ source_parser_match_variable_statement(source_parser *parser)
 
     // The first expression is required.
     syntax_node *size_expression = source_parser_match_expression(parser);
-    if (source_parser_should_propagate_error(size_expression, parser, mem_state)) return NULL;
+    if (source_parser_should_propagate_error(size_expression, parser, mem_state)) 
+    {
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+    }
 
     variable_node->variable.size = size_expression;
 
@@ -1073,16 +1083,18 @@ source_parser_match_variable_statement(source_parser *parser)
     // Stopping points are :=, ;, or EOF.
     syntax_node *head_dimension_expression = NULL;
     syntax_node *last_dimension_expression = NULL;
-    while (source_parser_match_token(parser, 2, TOKEN_SEMICOLON, TOKEN_COLON_EQUALS))
+    while (!source_parser_match_token(parser, 2, TOKEN_SEMICOLON, TOKEN_COLON_EQUALS))
     {
-        
+
+        if (source_parser_should_break_on_eof(parser)) break;
         syntax_node *expression = source_parser_match_expression(parser);
 
-        // The expression could be NULL, indicating there was an error. Synchronize.
-        if (expression == NULL)
+        // The expression could be NULL, indicating there was an error.
+        // Synchronize to the next semi-colon and return an invalid statement.
+        if (source_parser_should_propagate_error(expression, parser, mem_state))
         {
-            if (source_parser_synchronize_to(parser, TOKEN_SEMICOLON)) continue;
-            return NULL; // Non-recoverable.
+            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+            return NULL;
         }
 
         // First expression.
@@ -1095,7 +1107,7 @@ source_parser_match_variable_statement(source_parser *parser)
         // All other expressions.
         else
         {
-            head_dimension_expression->next_node = expression;   
+            last_dimension_expression->next_node = expression;   
             last_dimension_expression = expression;
         }
         
@@ -1103,6 +1115,33 @@ source_parser_match_variable_statement(source_parser *parser)
 
     // It is valid for this to evaluate as NULL, optional specification.
     variable_node->variable.dimensions = head_dimension_expression;
+
+    if (source_parser_expect_token(parser, TOKEN_COLON_EQUALS))
+    {
+
+        source_parser_consume_token(parser);
+        syntax_node *expression = source_parser_match_expression(parser);
+        if (source_parser_should_propagate_error(expression, parser, mem_state))
+        {
+            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+            return NULL;
+        }
+
+        variable_node->variable.assignment = expression;
+
+    }
+
+    // Check for semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        return NULL;
+    }
+    else
+    {
+        source_parser_consume_token(parser);
+    }
 
     return variable_node;
 
@@ -1167,13 +1206,14 @@ source_parser_match_program(source_parser *parser)
     while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_END))
     {
 
+        if (source_parser_should_break_on_eof(parser)) break;
         syntax_node *statement = source_parser_match_statement(parser);
 
-        // The statement could be NULL, indicating there was an error. Synchronize.
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
         if (statement == NULL)
         {
-            if (source_parser_synchronize_to(parser, TOKEN_SEMICOLON)) continue;
-            return NULL; // Non-recoverable.
+            continue;
         }
 
         // First statement.
@@ -1327,6 +1367,21 @@ source_parser_consume_token(source_parser *parser)
     }
     
     return *parser->previous_token;
+}
+
+b32 
+source_parser_should_break_on_eof(source_parser *parser)
+{
+    if (source_parser_match_token(parser, 4,
+            TOKEN_EOF, 
+            TOKEN_UNDEFINED,
+            TOKEN_UNDEFINED_EOF,
+            TOKEN_UNDEFINED_EOL))
+    {
+        return true;
+    }
+
+    return false;
 }
 
 b32 
@@ -1670,6 +1725,31 @@ parser_print_tree(syntax_node *root_node)
                 current_node = current_node->next_node;
             }
             printf("end main;\n");
+
+        } break;
+
+        case VARIABLE_STATEMENT_NODE:
+        {
+            
+            printf("var %s ", root_node->variable.name);
+            parser_print_tree(root_node->variable.size);
+
+            syntax_node *current_dim = root_node->variable.dimensions;
+            while (current_dim != NULL)
+            {
+                if (current_dim != NULL) printf(" ");
+                printf("(");
+                parser_print_tree(current_dim);
+                printf(")");
+                current_dim = current_dim->next_node;
+            }
+            
+            if (root_node->variable.assignment != NULL)
+            {
+                printf(" = ");
+                parser_print_tree(root_node->variable.assignment);
+            }
+
 
         } break;
 

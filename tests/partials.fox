@@ -1,7 +1,14 @@
 begin;
-    1 + 2;
-    3 - 4;
-    5 * 6;
-    6 / 7;
-    4 * (2 / (4 - 2)) <= index_value;
+    variable foo 4;
+    variable bar 4 8;
+    variable baz 4 8 4;
+    variable bax 4 8 4 2;
+    variable baq 4 8 4 2 1;
+    variable bac 4 8 4 2 1 2;
+
+    variable number_a 4 := 10;
+    variable number_b 4 := 9;
+
+    variable sum_ab 4 number_a + number_b;
+
 end;

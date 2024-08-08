@@ -80,10 +80,11 @@ typedef enum source_token_type
     TOKEN_KEYWORD_WHILE,
     TOKEN_KEYWORD_WRITE,
     TOKEN_NEW_LINE,
+
+    TOKEN_EOF = 1000,
     TOKEN_UNDEFINED,
     TOKEN_UNDEFINED_EOF,
     TOKEN_UNDEFINED_EOL,
-    TOKEN_EOF,
 } source_token_type;
 
 typedef struct source_token
@@ -308,6 +309,7 @@ typedef struct variable_syntax_node
 {
     syntax_node *size;
     syntax_node *dimensions;
+    syntax_node *assignment;
     cc64 name;
 } variable_syntax_node;
 
@@ -370,6 +372,7 @@ syntax_node* source_parser_push_node(source_parser *parser);
 
 cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 
+b32 source_parser_should_break_on_eof(source_parser *parser);
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
 b32 source_parser_should_propagate_error(void *check, source_parser *parser, u64 state);
