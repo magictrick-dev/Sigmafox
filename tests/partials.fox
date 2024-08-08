@@ -9,6 +9,6 @@ begin;
     variable number_a 4 := 10;
     variable number_b 4 := 9;
 
-    variable sum_ab 4 number_a + number_b;
+    variable sum_ab 4 number_a + number_b + 'abc;
 
 end;

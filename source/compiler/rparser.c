@@ -835,6 +835,13 @@ source_parser_match_primary(source_parser *parser)
 
 
     }
+    
+    // Error tokens.
+    else if (source_parser_match_token(parser, 3, TOKEN_UNDEFINED, TOKEN_UNDEFINED_EOF,
+                TOKEN_UNDEFINED_EOL))
+    {
+        return NULL;
+    }
 
     parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN);
     return NULL;
