@@ -770,7 +770,7 @@ syntax_node*
 source_parser_match_primary(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
     // Literals.
     if (source_parser_match_token(parser, 3, TOKEN_REAL, TOKEN_INTEGER, TOKEN_STRING))
@@ -845,7 +845,7 @@ syntax_node*
 source_parser_match_unary(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
     if (source_parser_match_token(parser, 1, TOKEN_MINUS))
     {
@@ -875,7 +875,7 @@ syntax_node*
 source_parser_match_factor(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
     syntax_node *left = source_parser_match_unary(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -906,7 +906,7 @@ syntax_node*
 source_parser_match_term(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
     syntax_node *left = source_parser_match_factor(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -937,7 +937,7 @@ syntax_node*
 source_parser_match_comparison(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
     syntax_node *left = source_parser_match_term(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -969,7 +969,7 @@ syntax_node*
 source_parser_match_equality(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
     syntax_node *left = source_parser_match_comparison(parser);
     if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
@@ -1009,7 +1009,7 @@ syntax_node*
 source_parser_match_expression_statement(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
     
     syntax_node *expression = source_parser_match_expression(parser);
     if (source_parser_should_propagate_error(expression, parser, mem_state)) return NULL;
@@ -1018,7 +1018,7 @@ source_parser_match_expression_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
         parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON);
-        memory_arena_restore(parser->arena, mem_state);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
         return NULL;
     }
     else
@@ -1030,10 +1030,111 @@ source_parser_match_expression_statement(source_parser *parser)
 }
 
 syntax_node*
+source_parser_match_variable_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+    
+    // Consume the VARIABLE token.
+    source_parser_consume_token(parser);
+
+    // Generate the variable node.
+    syntax_node *variable_node = source_parser_push_node(parser);
+    variable_node->type = VARIABLE_STATEMENT_NODE;
+
+    // Check for identifier.
+    if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        return NULL;
+    }
+
+    else
+    {
+
+        source_token identifier = source_parser_consume_token(parser);
+
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser, &identifier, &object);
+        assert(type == OBJECT_IDENTIFIER); // This should always be true.
+
+        variable_node->variable.name = object.identifier;
+
+    }
+
+    // The first expression is required.
+    syntax_node *size_expression = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(size_expression, parser, mem_state)) return NULL;
+
+    variable_node->variable.size = size_expression;
+
+    // Process all additional expression statement afterwards as array dimensions.
+    // Stopping points are :=, ;, or EOF.
+    syntax_node *head_dimension_expression = NULL;
+    syntax_node *last_dimension_expression = NULL;
+    while (source_parser_match_token(parser, 2, TOKEN_SEMICOLON, TOKEN_COLON_EQUALS))
+    {
+        
+        syntax_node *expression = source_parser_match_expression(parser);
+
+        // The expression could be NULL, indicating there was an error. Synchronize.
+        if (expression == NULL)
+        {
+            if (source_parser_synchronize_to(parser, TOKEN_SEMICOLON)) continue;
+            return NULL; // Non-recoverable.
+        }
+
+        // First expression.
+        if (head_dimension_expression == NULL)
+        {
+            head_dimension_expression = expression;
+            last_dimension_expression = expression;
+        }
+
+        // All other expressions.
+        else
+        {
+            head_dimension_expression->next_node = expression;   
+            last_dimension_expression = expression;
+        }
+        
+    }
+
+    // It is valid for this to evaluate as NULL, optional specification.
+    variable_node->variable.dimensions = head_dimension_expression;
+
+    return variable_node;
+
+}
+
+syntax_node*
+source_parser_match_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+    syntax_node *result = NULL;
+
+    // Variable statements.
+    if (source_parser_expect_token(parser, TOKEN_KEYWORD_VARIABLE))
+    {
+        result = source_parser_match_variable_statement(parser);
+    }
+
+    else
+    {
+        result = source_parser_match_expression_statement(parser);
+    }
+
+    return result;
+
+}
+
+syntax_node*
 source_parser_match_program(source_parser *parser)
 {
 
-    u64 mem_state = memory_arena_save(parser->arena);
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
     // Match the begin keyword with trailing semicolon.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_BEGIN))
@@ -1063,10 +1164,10 @@ source_parser_match_program(source_parser *parser)
     // Match all expression statements and create a statement chain.
     syntax_node *head_statement_node = NULL;
     syntax_node *last_statement_node = NULL;
-    while (!source_parser_match_token(parser, 2, TOKEN_KEYWORD_END, TOKEN_EOF))
+    while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_END))
     {
 
-        syntax_node *statement = source_parser_match_expression_statement(parser);
+        syntax_node *statement = source_parser_match_statement(parser);
 
         // The statement could be NULL, indicating there was an error. Synchronize.
         if (statement == NULL)
@@ -1376,7 +1477,7 @@ source_parser_should_propagate_error(void *check, source_parser *parser, u64 sta
 
     if (check == NULL)
     {
-        memory_arena_restore(parser->arena, state);
+        memory_arena_restore(&parser->syntax_tree_arena, state);
         return true;
     }
 

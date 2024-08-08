@@ -215,6 +215,7 @@ typedef enum syntax_node_type
     IF_STATEMENT_NODE,
     ELSEIF_STATEMENT_NODE,
     PROCEDURE_STATEMENT_NODE,
+    VARIABLE_STATEMENT_NODE,
     PROGRAM_ROOT_NODE,
 } syntax_node_type;
 
@@ -239,9 +240,12 @@ typedef union object_literal
     i64 signed_integer;
     b64 boolean;
     r64 real;
-    cc64 string;
-    cc64 identifier;
-    cc64 procedure_name;
+
+    union {
+        cc64 string;
+        cc64 identifier;
+    };
+
 } object_literal;
 
 typedef enum object_type
@@ -300,6 +304,13 @@ typedef struct assigment_syntax_node
     object_type type;
 } assignment_syntax_node;
 
+typedef struct variable_syntax_node
+{
+    syntax_node *size;
+    syntax_node *dimensions;
+    cc64 name;
+} variable_syntax_node;
+
 typedef struct syntax_node
 {
 
@@ -315,6 +326,7 @@ typedef struct syntax_node
         call_syntax_node        call;
         parameter_syntax_node   parameter;
         assignment_syntax_node  assignment;
+        variable_syntax_node    variable;
     };
 
 } syntax_node;
@@ -389,6 +401,7 @@ typedef enum parse_error_type
     PARSE_ERROR_EXPECTED_PROGRAM_BEGIN,
     PARSE_ERROR_EXPECTED_PROGRAM_END,
     PARSE_ERROR_EXPECTED_SEMICOLON,
+    PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER,
 } parse_error_type;
 
 typedef enum parse_warning_type
