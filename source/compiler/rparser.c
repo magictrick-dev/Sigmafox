@@ -837,9 +837,9 @@ source_parser_match_primary(source_parser *parser)
     }
     
     // Error tokens.
-    else if (source_parser_match_token(parser, 3, TOKEN_UNDEFINED, TOKEN_UNDEFINED_EOF,
-                TOKEN_UNDEFINED_EOL))
+    else if (source_parser_match_token(parser, 2, TOKEN_UNDEFINED_EOF, TOKEN_UNDEFINED_EOL))
     {
+        parser_error_handler_display_error(parser, PARSE_ERROR_UNEXPECTED_EXPRESSION_EOF_EOL);
         return NULL;
     }
 
@@ -1690,6 +1690,26 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
         } break;
 
+        case PARSE_ERROR_UNEXPECTED_EXPRESSION_EOF_EOL:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d): unexpected end-of-line or end-of-file.\n",
+                    file_name, line, column, error);
+
+            source_token_string_unnullify(error_at, hold);
+        } break;
+
         default:
         {
             assert(!"Uncaught error message handling routine.");
@@ -1745,9 +1765,9 @@ parser_print_tree(syntax_node *root_node)
             while (current_dim != NULL)
             {
                 if (current_dim != NULL) printf(" ");
-                printf("(");
+                printf("[ ");
                 parser_print_tree(current_dim);
-                printf(")");
+                printf(" ]");
                 current_dim = current_dim->next_node;
             }
             

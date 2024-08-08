@@ -7,8 +7,6 @@ begin;
     variable bac 4 8 4 2 1 2;
 
     variable number_a 4 := 10;
-    variable number_b 4 := 9;
-
-    variable sum_ab 4 number_a + number_b + 'abc;
+    variable number_b (4 + 10) := 9;
 
 end;
