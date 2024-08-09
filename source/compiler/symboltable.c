@@ -201,7 +201,7 @@ symbol_table_resize(symbol_table *table)
 
     // Commit pointer crimes here.
     u64 table_commit_distance = (u64)(table->symbol_buffer - table->arena->buffer);
-    table_commit_distance += (table->symbol_buffer_length);
+    table_commit_distance += (table->symbol_buffer_length * sizeof(symbol));
 
     if (table_commit_distance == table->arena->commit)
     {

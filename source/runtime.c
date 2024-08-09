@@ -12,8 +12,9 @@
 #include <core/arena.h>
 #include <core/cli.h>
 
-#include <compiler/stringpool.h>
 #include <compiler/rparser.h>
+#include <compiler/stringpool.h>
+#include <compiler/symboltable.h>
 
 static cc64 source_file;
 static memory_arena primary_arena;
@@ -147,6 +148,42 @@ environment_runtime()
         sh64 d = string_pool_insert(&test_pool, "Bar");
         sh64 e = string_pool_insert(&test_pool, "Hello");
         sh64 f = string_pool_insert(&test_pool, "World");
+#   endif
+
+    //
+    //
+    //
+    // -------------------------------------------------------------------------
+    
+    // --- Symbol Table Testing -----------------------------------------------
+    //
+    // Symbol table testing, resizing, etc.
+    //
+
+#   if 0
+        
+        symbol_table test_table;
+        symbol_table_initialize(&test_table, &primary_arena, SF_MEGABYTES(1));
+        symbol *foo_symbol = symbol_table_insert(&test_table, "foo", SYMBOL_TYPE_UNDEFINED);
+        symbol *bar_symbol = symbol_table_insert(&test_table, "bar", SYMBOL_TYPE_UNDEFINED);
+        symbol *foo_find = symbol_table_search_from_current_table(&test_table, "foo");
+        symbol *bar_find = symbol_table_search_from_current_table(&test_table, "bar");
+        assert(foo_find != NULL);
+        assert(bar_find != NULL);
+
+        b32 contiguous_resize = symbol_table_resize(&test_table);
+
+        memory_arena_push(&primary_arena, 8);
+        b32 discontiguous_resize = symbol_table_resize(&test_table);
+
+        memory_arena_pop(&primary_arena, 8);
+        b32 reattempt_resize = symbol_table_resize(&test_table);
+
+        assert(contiguous_resize == true);
+        assert(discontiguous_resize == false);
+        assert(reattempt_resize == true);
+
+
 #   endif
 
     //
