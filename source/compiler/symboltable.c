@@ -178,7 +178,40 @@ b32
 symbol_table_resize(symbol_table *table)
 {
 
-    return true;
+    // NOTE(Chris): Resizing is a very strict procedure that requires certain
+    //              conditions to be guaranteed for it to work. Since sparse
+    //              hash tables are a bit more complex, only contiguous reallocs
+    //              are supported.
+    //
+    //              1.  In order to resize, the arena the table is associated with
+    //                  directly points to tail end of the commit offset. This ensures
+    //                  that a new allocation is directly on the tail end of the hash
+    //                  table and can be resized.
+    //
+    //              2.  Second, we need to allocate space equal to 2x the current
+    //                  size of the hash table. Call block A the initial hash table,
+    //                  and blocks B and C correspond to the region now just allocated.
+    //                  We copy the contents of A into C, zero out A, then iterate
+    //                  over C and re-enter all the entries of C back into A+B. This
+    //                  facilitates the resize process.
+    //
+    //              3.  Pop the original size of the buffer once, thereby leaving
+    //                  the original hash table, doubled. The hash table has been
+    //                  resized.
+
+    // Commit pointer crimes here.
+    u64 table_commit_distance = (u64)(table->symbol_buffer - table->arena->buffer);
+    table_commit_distance += (table->symbol_buffer_length);
+
+    if (table_commit_distance == table->arena->commit)
+    {
+
+        // Resize is possible.
+        return true;
+
+    }
+
+    return false;
 }
 
 
