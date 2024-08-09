@@ -203,7 +203,7 @@ symbol_table_resize(symbol_table *table)
     u64 table_commit_distance = (u64)(table->symbol_buffer - table->arena->buffer);
     table_commit_distance += (table->symbol_buffer_length * sizeof(symbol));
 
-    if (table_commit_distance == table->arena->commit)
+    if (table_commit_distance == table->arena->commit_bottom)
     {
 
         // Resize is possible.

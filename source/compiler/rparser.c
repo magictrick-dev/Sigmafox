@@ -1290,7 +1290,9 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     // The transient arena takes the remaining area of the arena and is used for
     // everything else.
     memory_arena_partition(arena, &parser->syntax_tree_arena, SF_MEGABYTES(64));
-    memory_arena_partition(arena, &parser->transient_arena, arena->size - arena->commit);
+
+    u64 primary_arena_remainder_size = memory_arena_free_size(arena);
+    memory_arena_partition(arena, &parser->transient_arena, primary_arena_remainder_size);
 
     // Initialize the tokenizer then cycle in two tokens.
     source_tokenizer_initialize(&parser->tokenizer, source, path);

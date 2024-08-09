@@ -34,6 +34,7 @@ add_executable(Sigmafox
     "source/main.c"
     "source/runtime.h"
     "source/runtime.c"
+    "source/state.h"
 
     "source/compiler/rparser.h"
     "source/compiler/rparser.c"
@@ -54,6 +55,8 @@ add_executable(Sigmafox
     "source/core/cli.c"
     "source/core/memops.h"
     "source/core/memops.c"
+    "source/core/resource.h"
+    "source/core/resource.c"
 
     ${PLATFORM_FILES}
 )
