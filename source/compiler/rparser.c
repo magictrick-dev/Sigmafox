@@ -1268,7 +1268,7 @@ source_parser_match_program(source_parser *parser)
 }
 
 syntax_node*    
-source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_arena *arena)
+source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
 {
 
     assert(parser != NULL);
@@ -1290,12 +1290,21 @@ source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_ar
     // The transient arena takes the remaining area of the arena and is used for
     // everything else.
     memory_arena_partition(arena, &parser->syntax_tree_arena, SF_MEGABYTES(64));
-
     u64 primary_arena_remainder_size = memory_arena_free_size(arena);
     memory_arena_partition(arena, &parser->transient_arena, primary_arena_remainder_size);
 
+    // Pull the file source file into memory.
+    u64 source_size = fileio_file_size(path);
+    char *source_buffer = (char*)memory_arena_push_top(&parser->transient_arena, source_size + 1);
+    fileio_file_read(path, source_buffer, source_size, source_size + 1);
+    source_buffer[source_size] = '\0'; // Null-terminate.
+
+    // Allocate the global symbol table.
+    parser->symbol_table = memory_arena_push_type(&parser->transient_arena, symbol_table);
+    symbol_table_initialize(parser->symbol_table, &parser->transient_arena, 1024);
+
     // Initialize the tokenizer then cycle in two tokens.
-    source_tokenizer_initialize(&parser->tokenizer, source, path);
+    source_tokenizer_initialize(&parser->tokenizer, source_buffer, path);
     source_parser_consume_token(parser);
     source_parser_consume_token(parser);
 
@@ -1570,6 +1579,37 @@ source_parser_synchronize_to(source_parser *parser, source_token_type type)
     }
 
 }
+
+void 
+source_parser_push_symbol_table(source_parser *parser)
+{
+
+    assert(parser != NULL);
+    assert(parser->symbol_table != NULL);
+
+    symbol_table *parent = parser->symbol_table;
+    symbol_table *table = memory_arena_push_type(&parser->transient_arena, symbol_table);
+    symbol_table_initialize(table, &parser->transient_arena, 1024);
+
+    table->parent = parent;
+    parser->symbol_table = table;
+
+}
+
+void 
+source_parser_pop_symbol_table(source_parser *parser)
+{
+
+    assert(parser != NULL);
+    assert(parser->symbol_table != NULL);
+    assert(parser->symbol_table->parent != NULL);
+
+    symbol_table *parent_table = parser->symbol_table->parent;
+    symbol_table_collapse_arena(parser->symbol_table);
+    memory_arena_pop_type(&parser->transient_arena, symbol_table);
+
+}
+
 
 // --- Error Handling ----------------------------------------------------------
 //

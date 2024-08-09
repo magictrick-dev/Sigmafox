@@ -1,7 +1,7 @@
-#include <runtime.h>
 #include <core/arena.h>
 #include <core/cli.h>
 #include <platform/system.h>
+#include <compiler/rparser.h>
 
 int
 main(int argc, char ** argv)
@@ -31,21 +31,31 @@ main(int argc, char ** argv)
 
     // Allocate the primary memory arena.
     void *primary_memory_buffer = system_virtual_alloc(NULL, parameters.memory_limit);
-
     if (primary_memory_buffer == NULL)
     {
         printf("-- Unable to reserve memory for primary memory pool.\n");
         return 1;
     }
 
+    // Initialize the primary memory arena.
     memory_arena_initialize(&primary_arena, primary_memory_buffer, parameters.memory_limit);
 
-    if (!environment_initialize(&parameters, &primary_arena))
+    // Begin the parser routine.
+    source_parser parser = {0};
+    syntax_node *root = source_parser_create_ast(&parser, parameters.source_file_path, &primary_arena);
+
+    if (root != NULL)
     {
-        printf("-- Transpiler initialized failed, unable to transpiler.\n");
-        return 1;
+        parser_print_tree(root);
+        printf("\n\n");
+        printf("Transpilation was successful.\n");
+        return 0;
     }
 
-    return environment_runtime(&parameters, &primary_arena);
+    else
+    {
+        printf("Transpilation failed.\n");
+        return 1;
+    }
 
 }

@@ -199,20 +199,29 @@ symbol_table_resize(symbol_table *table)
     //                  the original hash table, doubled. The hash table has been
     //                  resized.
 
-    // Commit pointer crimes here.
+    assert(symbol_table_is_adjustable(table));
+
+    return true;
+}
+
+b32
+symbol_table_is_adjustable(symbol_table *table)
+{
+
     u64 table_commit_distance = (u64)(table->symbol_buffer - table->arena->buffer);
     table_commit_distance += (table->symbol_buffer_length * sizeof(symbol));
 
-    if (table_commit_distance == table->arena->commit_bottom)
-    {
+    b32 adjustable = (table_commit_distance == table->arena->commit_bottom);
+    return adjustable;
 
-        // Resize is possible.
-        return true;
-
-    }
-
-    return false;
 }
 
+void
+symbol_table_collapse_arena(symbol_table *table)
+{
+    
+    assert(symbol_table_is_adjustable(table));
+    memory_arena_pop(table->arena, sizeof(symbol) * table->symbol_buffer_length);
+    return;
 
-
+}

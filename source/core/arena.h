@@ -2,14 +2,17 @@
 #define SOURCE_CORE_ARENA_H
 #include <core/definitions.h>
 
-#define memory_arena_push_type(arena, type) \
-    (type*)memory_arena_push(arena, sizeof(type))
-#define memory_arena_push_type_top(arena, type) \
-    (type*)memory_arena_push_top(arena, sizeof(type))
-#define memory_arena_push_array(arena, type, count) \
-    (type*)memory_arena_push(arena, sizeof(type)*(count))
-#define memory_arena_push_array_top(arena, type, count) \
-    (type*)memory_arena_push_top(arena, sizeof(type)*(count))
+// Push macros.
+#define memory_arena_push_type(arena, type) (type*)memory_arena_push(arena, sizeof(type))
+#define memory_arena_push_type_top(arena, type) (type*)memory_arena_push_top(arena, sizeof(type))
+#define memory_arena_push_array(arena, type, count) (type*)memory_arena_push(arena, sizeof(type)*(count))
+#define memory_arena_push_array_top(arena, type, count) (type*)memory_arena_push_top(arena, sizeof(type)*(count))
+
+// Pop macros.
+#define memory_arena_pop_type(arena, type) memory_arena_pop(arena, sizeof(type))
+#define memory_arena_pop_type_top(arena, type) memory_arena_pop_top(arena, sizeof(type))
+#define memory_arena_pop_array(arena, type, count) memory_arena_pop(arena, sizeof(type)*(count))
+#define memory_arena_pop_array_top(arena, type, count) memory_arena_pop_top(arena, sizeof(type)*(count))
 
 // --- Memory Arena ------------------------------------------------------------
 //

@@ -40,5 +40,7 @@ symbol*         symbol_table_search_from_any_table(symbol_table *table, cc64 ide
 r64             symbol_table_load_factor(symbol_table *table);
 u32             symbol_table_hash_string(cc64 string);
 b32             symbol_table_resize(symbol_table *table);
+b32             symbol_table_is_adjustable(symbol_table *table);
+void            symbol_table_collapse_arena(symbol_table *table);
 
 #endif

@@ -3,6 +3,7 @@
 #include <core/definitions.h>
 #include <core/arena.h>
 #include <compiler/stringpool.h>
+#include <compiler/symboltable.h>
 
 #define STRING_POOL_DEFAULT_SIZE    SF_MEGABYTES(256)
 #define SYMBOL_TABLE_DEFAULT_SIZE   SF_MEGABYTES(256)
@@ -346,6 +347,7 @@ typedef struct source_parser
     memory_arena transient_arena;
 
     string_pool spool;
+    symbol_table *symbol_table;
 
     syntax_node *entry;
     syntax_node *nodes;
@@ -372,6 +374,9 @@ syntax_node* source_parser_push_node(source_parser *parser);
 
 cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 
+void source_parser_push_symbol_table(source_parser *parser);
+void source_parser_pop_symbol_table(source_parser *parser);
+
 b32 source_parser_should_break_on_eof(source_parser *parser);
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
@@ -381,7 +386,7 @@ b32 source_parser_synchronize_to(source_parser *parser, source_token_type type);
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
 object_type source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object);
 
-syntax_node* source_parser_create_ast(source_parser *parser, c64 source, cc64 path, memory_arena *arena);
+syntax_node* source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena);
 
 // --- Error Handling ----------------------------------------------------------
 //

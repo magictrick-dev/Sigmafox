@@ -32,8 +32,6 @@ endif (WIN32)
  
 add_executable(Sigmafox
     "source/main.c"
-    "source/runtime.h"
-    "source/runtime.c"
 
     "source/compiler/rparser.h"
     "source/compiler/rparser.c"

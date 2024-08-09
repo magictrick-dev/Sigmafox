@@ -72,7 +72,7 @@ memory_arena_push_top(memory_arena *arena, u64 size)
     assert(arena != NULL);
     assert(memory_arena_can_accomodate(arena, size));
 
-    arena->commit_bottom += size;
+    arena->commit_top += size;
     void *buffer = (u8*)arena->buffer + (arena->size - arena->commit_top);
     
     return buffer;
