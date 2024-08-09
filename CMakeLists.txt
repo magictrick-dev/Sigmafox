@@ -34,7 +34,6 @@ add_executable(Sigmafox
     "source/main.c"
     "source/runtime.h"
     "source/runtime.c"
-    "source/state.h"
 
     "source/compiler/rparser.h"
     "source/compiler/rparser.c"
