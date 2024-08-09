@@ -179,27 +179,82 @@ symbol_table_resize(symbol_table *table)
 {
 
     // NOTE(Chris): Resizing is a very strict procedure that requires certain
-    //              conditions to be guaranteed for it to work. Since sparse
-    //              hash tables are a bit more complex, only contiguous reallocs
-    //              are supported.
-    //
-    //              1.  In order to resize, the arena the table is associated with
-    //                  directly points to tail end of the commit offset. This ensures
-    //                  that a new allocation is directly on the tail end of the hash
-    //                  table and can be resized.
-    //
-    //              2.  Second, we need to allocate space equal to 2x the current
-    //                  size of the hash table. Call block A the initial hash table,
-    //                  and blocks B and C correspond to the region now just allocated.
-    //                  We copy the contents of A into C, zero out A, then iterate
-    //                  over C and re-enter all the entries of C back into A+B. This
-    //                  facilitates the resize process.
-    //
-    //              3.  Pop the original size of the buffer once, thereby leaving
-    //                  the original hash table, doubled. The hash table has been
-    //                  resized.
+    //              conditions to be guaranteed for it to work.
 
     assert(symbol_table_is_adjustable(table));
+    u64 table_size = symbol_table_size(table);
+    u64 resize_requirement = table_size * 2;
+
+    // Create the working region which contains the double size, then create
+    // the copy region which we move our old table to.
+    void *work_region = memory_arena_push(table->arena, resize_requirement);
+    void *copy_region = (u8*)work_region + table_size;
+
+    // Copy the old table to copy region.
+    memory_copy_ext(copy_region, table->symbol_buffer, table_size);
+
+    // Clear the old table and the first half of the work regon.
+    memory_set_zero_ext(table->symbol_buffer, table_size * 2);
+
+    // Double the symbol buffer length and reset the count.
+    u64 previous_length = table->symbol_buffer_length;
+    table->symbol_buffer_length = previous_length * 2;
+    table->symbol_buffer_count = 0;
+
+    // From the copy buffer, iterate and rehash everything.
+    symbol *symbol_array = (symbol*)copy_region;
+    for (u64 i = 0; i < previous_length; ++i)
+    {
+        symbol *old_symbol = symbol_array + i;
+
+        // If the symbol we just found is active, we need to move it over
+        // to the new spot it needs to occupy.
+        if (old_symbol->active == true)
+        {
+
+            u32 hash = old_symbol->hash;
+            u32 index = (hash % table->symbol_buffer_length);
+            symbol *current = table->symbol_buffer + index;
+            while (true)
+            {
+
+                if (current->active == false)
+                {
+                    break;
+
+                }
+
+                else
+                {
+
+                    if (strcmp(current->identifier, old_symbol->identifier) == 0)
+                    {
+
+                        assert(!"Inserting on an identifier that already exists, most likely an error.");
+
+                    }
+                    else
+                    {
+
+                        index = (index + 1) % table->symbol_buffer_length;
+                        current = table->symbol_buffer + index;
+                        continue;
+
+                    }
+
+                }
+
+
+            }
+
+            // Move the symbol by copying it over.
+            *current = *old_symbol;
+            
+        }
+    }
+
+    // We can now pop the copy buffer and exit.
+    memory_arena_pop(table->arena, table_size);
 
     return true;
 }
@@ -209,7 +264,7 @@ symbol_table_is_adjustable(symbol_table *table)
 {
 
     u64 table_commit_distance = (u64)(table->symbol_buffer - table->arena->buffer);
-    table_commit_distance += (table->symbol_buffer_length * sizeof(symbol));
+    table_commit_distance += (symbol_table_size(table));
 
     b32 adjustable = (table_commit_distance == table->arena->commit_bottom);
     return adjustable;
@@ -221,7 +276,15 @@ symbol_table_collapse_arena(symbol_table *table)
 {
     
     assert(symbol_table_is_adjustable(table));
-    memory_arena_pop(table->arena, sizeof(symbol) * table->symbol_buffer_length);
+    memory_arena_pop(table->arena, symbol_table_size(table));
     return;
 
 }
+
+u64
+symbol_table_size(symbol_table *table)
+{
+    u64 size = table->symbol_buffer_length * sizeof(symbol);
+    return size;
+}
+
