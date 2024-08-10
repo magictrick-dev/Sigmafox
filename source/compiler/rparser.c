@@ -798,6 +798,14 @@ source_parser_match_primary(source_parser *parser)
         object_literal object = {0};
         object_type type = source_parser_token_to_literal(parser, &identifier, &object);
 
+        // Determine if the identifier is declared for use in expressions.
+        if (!source_parser_identifier_is_declared(parser, object.identifier))
+        {
+            parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_VARIABLE_IN_EXPRESSION);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
         syntax_node *primary_node = source_parser_push_node(parser);
         primary_node->type = PRIMARY_EXPRESSION_NODE;
         primary_node->primary.literal = object;
@@ -1148,6 +1156,17 @@ source_parser_match_variable_statement(source_parser *parser)
     else
     {
         source_parser_consume_token(parser);
+    }
+
+    // Variable is considered valid, we can insert into symbol table.
+    symbol *identifier = source_parser_insert_into_symbol_table(parser, variable_node->variable.name);
+    if (variable_node->variable.assignment != NULL)
+    {
+        identifier->type = SYMBOL_TYPE_VARIABLE;
+    }
+    else
+    {
+        identifier->type = SYMBOL_TYPE_UNDEFINED;
     }
 
     return variable_node;
@@ -1610,6 +1629,62 @@ source_parser_pop_symbol_table(source_parser *parser)
 
 }
 
+symbol*
+source_parser_insert_into_symbol_table(source_parser *parser, cc64 identifier)
+{
+
+    assert(parser != NULL);
+    assert(parser->symbol_table != NULL);
+    symbol *result = symbol_table_insert(parser->symbol_table, identifier, SYMBOL_TYPE_UNDEFINED);
+
+    r64 current_load_factor = symbol_table_load_factor(parser->symbol_table);
+    if (current_load_factor >= 0.66)
+    {
+        printf("-- Current symbol table reached load factor limit of 0.66, resizing.\n");
+        symbol_table_resize(parser->symbol_table);
+    }
+
+    return result;
+
+
+}
+
+b32 
+source_parser_identifier_is_declared(source_parser *parser, cc64 identifier)
+{
+
+    symbol *result = symbol_table_search_from_any_table(parser->symbol_table, identifier);
+
+    if (result == NULL)
+    {
+        return false;
+    }
+
+    else
+    {
+        return true;
+    }
+
+}
+
+b32 
+source_parser_identifier_is_defined(source_parser *parser, cc64 identifier)
+{
+
+    symbol *result = symbol_table_search_from_any_table(parser->symbol_table, identifier);
+
+    if (result != NULL && result->type != SYMBOL_TYPE_UNDEFINED)
+    {
+        return true;
+    }
+
+    else
+    {
+        return false;
+    }
+
+}
+
 
 // --- Error Handling ----------------------------------------------------------
 //
@@ -1750,6 +1825,48 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
                     file_name, line, column, error);
 
             source_token_string_unnullify(error_at, hold);
+        } break;
+
+        case PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION:
+        {
+
+            source_token *error_at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d): undeclared identifer in expression: '%s'.\n",
+                    file_name, line, column, error, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_UNDEFINED_VARIABLE_IN_EXPRESSION:
+        {
+
+            source_token *error_at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d): undefined variable used in expression: '%s'.\n",
+                    file_name, line, column, error, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
         } break;
 
         default:

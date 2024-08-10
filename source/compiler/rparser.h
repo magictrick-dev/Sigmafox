@@ -376,6 +376,9 @@ cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 
 void source_parser_push_symbol_table(source_parser *parser);
 void source_parser_pop_symbol_table(source_parser *parser);
+symbol* source_parser_insert_into_symbol_table(source_parser *parser, cc64 identifier);
+b32 source_parser_identifier_is_declared(source_parser *parser, cc64 identifier);
+b32 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier);
 
 b32 source_parser_should_break_on_eof(source_parser *parser);
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
@@ -411,6 +414,8 @@ typedef enum parse_error_type
     PARSE_ERROR_EXPECTED_PROGRAM_END,
     PARSE_ERROR_EXPECTED_SEMICOLON,
     PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER,
+    PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION,
+    PARSE_ERROR_UNDEFINED_VARIABLE_IN_EXPRESSION,
 } parse_error_type;
 
 typedef enum parse_warning_type
