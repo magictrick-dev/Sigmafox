@@ -8,6 +8,7 @@ typedef struct symbol_table symbol_table;
 
 typedef enum symbol_type
 {
+    SYMBOL_TYPE_UNDECLARED,
     SYMBOL_TYPE_UNDEFINED,
     SYMBOL_TYPE_VARIABLE,
     SYMBOL_TYPE_PROCEDURE,

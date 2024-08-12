@@ -207,6 +207,7 @@ typedef enum syntax_node_type
     PRIMARY_EXPRESSION_NODE,
     CALL_EXPRESSION_NODE,
     GROUPING_EXPRESSION_NODE,
+    ASSIGNMENT_EXPRESSION_NODE,
     EXPRESSION_STATEMENT_NODE,
     COMMENT_STATEMENT_NODE,
     NEWLINE_STATEMENT_NODE,
@@ -234,6 +235,7 @@ typedef enum syntax_operation_type
     OPERATION_LESS_THAN_EQUALS,
     OPERATION_GREATER_THAN,
     OPERATION_GREATER_THAN_EQUALS,
+    OPERATION_ASSIGNMENT,
 } syntax_operation_type;
 
 typedef union object_literal
@@ -258,6 +260,7 @@ typedef enum object_type
     OBJECT_REAL,
     OBJECT_STRING,
     OBJECT_PROCEDURE,
+    OBJECT_FUNCTION,
     OBJECT_IDENTIFIER,
 } object_type;
 
@@ -291,6 +294,12 @@ typedef struct parameter_syntax_node
     syntax_node *next_parameter;
 } parameter_syntax_node;
 
+typedef struct assignment_syntax_node
+{
+    cc64 identifier;
+    syntax_node *right;
+} assignment_syntax_node;
+
 typedef struct call_syntax_node 
 {
     object_literal call_identifier;
@@ -298,13 +307,6 @@ typedef struct call_syntax_node
     syntax_node *parameter_list;
     u64 parameter_count; 
 } call_syntax_node;
-
-typedef struct assigment_syntax_node
-{
-    syntax_node *expression;
-    object_literal literal;
-    object_type type;
-} assignment_syntax_node;
 
 typedef struct variable_syntax_node
 {
@@ -328,8 +330,8 @@ typedef struct syntax_node
         grouping_syntax_node    grouping;
         call_syntax_node        call;
         parameter_syntax_node   parameter;
-        assignment_syntax_node  assignment;
         variable_syntax_node    variable;
+        assignment_syntax_node  assignment;
     };
 
 } syntax_node;
@@ -377,11 +379,14 @@ cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
 void source_parser_push_symbol_table(source_parser *parser);
 void source_parser_pop_symbol_table(source_parser *parser);
 symbol* source_parser_insert_into_symbol_table(source_parser *parser, cc64 identifier);
+symbol* source_parser_locate_symbol(source_parser *parser, cc64 identifer);
 b32 source_parser_identifier_is_declared(source_parser *parser, cc64 identifier);
+b32 source_parser_identifier_is_declared_in_scope(source_parser *parser, cc64 identifier);
 b32 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier);
 
 b32 source_parser_should_break_on_eof(source_parser *parser);
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
+b32 source_parser_next_token_is(source_parser *parser, source_token_type type);
 b32 source_parser_match_token(source_parser *parser, u32 count, ...);
 b32 source_parser_should_propagate_error(void *check, source_parser *parser, u64 state);
 b32 source_parser_synchronize_to(source_parser *parser, source_token_type type);
@@ -413,9 +418,12 @@ typedef enum parse_error_type
     PARSE_ERROR_EXPECTED_PROGRAM_BEGIN,
     PARSE_ERROR_EXPECTED_PROGRAM_END,
     PARSE_ERROR_EXPECTED_SEMICOLON,
+    PARSE_ERROR_EXPECTED_ASSIGNMENT,
     PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER,
     PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION,
     PARSE_ERROR_UNDEFINED_VARIABLE_IN_EXPRESSION,
+    PARSE_ERROR_SYMBOL_UNLOCATABLE,
+    PARSE_ERROR_VARIABLE_REDECLARATION,
 } parse_error_type;
 
 typedef enum parse_warning_type
@@ -423,7 +431,7 @@ typedef enum parse_warning_type
     PARSE_WARNING_SHADOWED_VARIABLE,
 } parse_warning_type;
 
-void    parser_error_handler_display_error(source_parser *parser, parse_error_type error);
+void    parser_error_handler_display_error(source_parser *parser, parse_error_type error, u64 sline);
 void    parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning);
 
 // --- Print Traversal ---------------------------------------------------------
