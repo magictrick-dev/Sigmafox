@@ -321,8 +321,24 @@ typedef struct scope_syntax_node
     syntax_node *body_statements;
 } scope_syntax_node;
 
+typedef struct while_syntax_node
+{
+    syntax_node *evaluation_expression;
+    syntax_node *body_statements;
+} while_syntax_node;
+
+typedef struct loop_syntax_node
+{
+    cc64 iterator_identifier;
+    syntax_node *initial_value_expression;
+    syntax_node *terminate_value_expression;
+    syntax_node *step_value_expression;
+    syntax_node *body_statements;
+} loop_syntax_node;
+
 typedef struct program_syntax_node
 {
+    syntax_node *global_statements;
     syntax_node *body_statements;
 } program_syntax_node;
 
@@ -338,11 +354,13 @@ typedef struct syntax_node
         unary_syntax_node       unary;
         primary_syntax_node     primary;
         grouping_syntax_node    grouping;
-        call_syntax_node        call;
-        parameter_syntax_node   parameter;
-        variable_syntax_node    variable;
         assignment_syntax_node  assignment;
+
+        variable_syntax_node    variable;
         scope_syntax_node       scope;
+        while_syntax_node       while_loop;
+        loop_syntax_node        for_loop;
+
         program_syntax_node     program;
     };
 
