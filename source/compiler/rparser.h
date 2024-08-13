@@ -316,6 +316,11 @@ typedef struct variable_syntax_node
     cc64 name;
 } variable_syntax_node;
 
+typedef struct scope_syntax_node
+{
+    syntax_node *body_statements;
+} scope_syntax_node;
+
 typedef struct syntax_node
 {
 
@@ -332,6 +337,7 @@ typedef struct syntax_node
         parameter_syntax_node   parameter;
         variable_syntax_node    variable;
         assignment_syntax_node  assignment;
+        scope_syntax_node       scope;
     };
 
 } syntax_node;
@@ -385,6 +391,7 @@ symbol* source_parser_insert_into_symbol_table(source_parser *parser, cc64 ident
 symbol* source_parser_locate_symbol(source_parser *parser, cc64 identifer);
 b32 source_parser_identifier_is_declared(source_parser *parser, cc64 identifier);
 b32 source_parser_identifier_is_declared_in_scope(source_parser *parser, cc64 identifier);
+b32 source_parser_identifier_is_declared_above_scope(source_parser *parser, cc64 identifier);
 b32 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier);
 
 b32 source_parser_should_break_on_eof(source_parser *parser);
@@ -437,7 +444,7 @@ typedef enum parse_warning_type
 } parse_warning_type;
 
 void    parser_error_handler_display_error(source_parser *parser, parse_error_type error, u64 sline);
-void    parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning);
+void    parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning, u64 sline);
 
 // --- Print Traversal ---------------------------------------------------------
 //

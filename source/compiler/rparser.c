@@ -1163,6 +1163,11 @@ source_parser_match_variable_statement(source_parser *parser)
             return NULL;
         }
 
+        else if (source_parser_identifier_is_declared_above_scope(parser, object.identifier))
+        {
+            parser_error_handler_display_warning(parser, PARSE_WARNING_SHADOWED_VARIABLE, __LINE__);
+        }
+
         variable_node->variable.name = object.identifier;
 
     }
@@ -1329,7 +1334,7 @@ source_parser_match_scope_statement(source_parser *parser)
 
     // Pop the symbol table.
     source_parser_pop_symbol_table(parser);
-    scope_node->next_node = head_statement_node;
+    scope_node->scope.body_statements = head_statement_node;
 
     // We assume now that the ending token is the end scope token.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDSCOPE))
@@ -1890,6 +1895,26 @@ source_parser_identifier_is_declared_in_scope(source_parser *parser, cc64 identi
 }
 
 b32 
+source_parser_identifier_is_declared_above_scope(source_parser *parser, cc64 identifier)
+{
+
+    if (parser->symbol_table->parent == NULL) return false;
+    symbol *result = symbol_table_search_from_any_table(parser->symbol_table->parent, identifier);
+
+    if (result == NULL)
+    {
+        return false;
+    }
+
+    else
+    {
+        return true;
+    }
+
+}
+
+
+b32 
 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier)
 {
 
@@ -2213,8 +2238,39 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 }
 
 void    
-parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning)
+parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning, u64 sline)
 {
+
+    switch (warning)
+    {
+
+        case PARSE_WARNING_SHADOWED_VARIABLE:
+        {
+            source_token *at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(at, &hold);
+
+            printf("%s (%d,%d) (warning:%d:%llu): "
+                   "variable declaration shadows previous declaration: '%s'.\n",
+                    file_name, line, column, warning, sline, token_encountered);
+
+            source_token_string_unnullify(at, hold);
+        } break;
+
+        default:
+        {
+            assert(!"Uncaught warning message handling routine.");
+            return;
+        } break;
+
+    }
 
 }
 
@@ -2251,7 +2307,7 @@ parser_print_tree(syntax_node *root_node)
         {
             
             printf("{\n");
-            syntax_node *current_node = root_node->next_node;
+            syntax_node *current_node = root_node->scope.body_statements;
             while (current_node != NULL)
             {
                 parser_print_tree(current_node);

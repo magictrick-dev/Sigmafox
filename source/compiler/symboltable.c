@@ -19,7 +19,7 @@ symbol_table_initialize(symbol_table *table, memory_arena *arena, u64 length)
 
     // Memory setting symbol buffer to zero ensures that entries are
     // marked as inactive.
-    memory_set_zero_ext(symbol_buffer, size);
+    memory_set_zero_simple(symbol_buffer, size);
 
 }
 
@@ -118,7 +118,7 @@ symbol_table_search_from_any_table(symbol_table *table, cc64 identifier)
     while (current_table != NULL)
     {
 
-        result = __symbol_table_search_at(table, hash, identifier);
+        result = __symbol_table_search_at(current_table, hash, identifier);
 
         if (result != NULL)
         {
@@ -191,10 +191,10 @@ symbol_table_resize(symbol_table *table)
     void *copy_region = (u8*)work_region + table_size;
 
     // Copy the old table to copy region.
-    memory_copy_ext(copy_region, table->symbol_buffer, table_size);
+    memory_copy_simple(copy_region, table->symbol_buffer, table_size);
 
     // Clear the old table and the first half of the work regon.
-    memory_set_zero_ext(table->symbol_buffer, table_size * 2);
+    memory_set_zero_simple(table->symbol_buffer, table_size * 2);
 
     // Double the symbol buffer length and reset the count.
     u64 previous_length = table->symbol_buffer_length;
