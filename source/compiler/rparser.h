@@ -321,6 +321,11 @@ typedef struct scope_syntax_node
     syntax_node *body_statements;
 } scope_syntax_node;
 
+typedef struct program_syntax_node
+{
+    syntax_node *body_statements;
+} program_syntax_node;
+
 typedef struct syntax_node
 {
 
@@ -338,6 +343,7 @@ typedef struct syntax_node
         variable_syntax_node    variable;
         assignment_syntax_node  assignment;
         scope_syntax_node       scope;
+        program_syntax_node     program;
     };
 
 } syntax_node;

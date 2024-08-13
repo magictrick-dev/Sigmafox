@@ -1457,7 +1457,7 @@ source_parser_match_program(source_parser *parser)
     }
 
     // Set the program node's next node as the head statement.
-    program_node->next_node = head_statement_node;
+    program_node->program.body_statements = head_statement_node;
 
     // Match the end keyword with trailing semicolon.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_END))
@@ -2292,7 +2292,7 @@ parser_print_tree(syntax_node *root_node)
         {
             
             printf("begin main;\n");
-            syntax_node *current_node = root_node->next_node;
+            syntax_node *current_node = root_node->program.body_statements;
             while (current_node != NULL)
             {
                 parser_print_tree(current_node);
