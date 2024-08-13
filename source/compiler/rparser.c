@@ -799,9 +799,18 @@ source_parser_match_primary(source_parser *parser)
         object_type type = source_parser_token_to_literal(parser, &identifier, &object);
 
         // Determine if the identifier is declared for use in expressions.
-        if (!source_parser_identifier_is_defined(parser, object.identifier))
+        if (!source_parser_identifier_is_declared(parser, object.identifier))
         {
-            parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_VARIABLE_IN_EXPRESSION, __LINE__);
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION, __LINE__);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        else if (!source_parser_identifier_is_defined(parser, object.identifier))
+        {
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION, __LINE__);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -826,7 +835,8 @@ source_parser_match_primary(source_parser *parser)
 
         if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
         {
-            parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS, __LINE__);
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS, __LINE__);
             return NULL;
         }
 
@@ -1035,7 +1045,8 @@ source_parser_match_assignment(source_parser *parser)
         if (!source_parser_identifier_is_declared(parser, identifier))
         {
 
-            parser_error_handler_display_error(parser, PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION, __LINE__); 
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT, __LINE__); 
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
 
@@ -1072,66 +1083,6 @@ source_parser_match_assignment(source_parser *parser)
 
     syntax_node *forward = source_parser_match_equality(parser);
     return forward;
-
-    // This is the old way, which doesn't properly validate identifier declarations.
-#if 0
-    syntax_node *left = source_parser_match_equality(parser);
-    if (source_parser_should_propagate_error(left, parser, mem_state)) return NULL;
-
-    // If left evaluated as a primary node, it is potentially an identifier.
-    if (left->type == PRIMARY_EXPRESSION_NODE && left->primary.type == OBJECT_IDENTIFIER)
-    {
-        
-        // Verify that the identifier is at least declared.
-        cc64 identifier = left->primary.literal.identifier;
-        if (!source_parser_identifier_is_declared(parser, identifier))
-        {
-            parser_error_handler_display_error(parser, PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION, __LINE__); 
-            source_parser_should_propagate_error(NULL, parser, mem_state);
-            return NULL;
-        }
-
-        if (!source_parser_expect_token(parser, TOKEN_COLON_EQUALS))
-        {
-            parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_ASSIGNMENT, __LINE__);
-            source_parser_should_propagate_error(NULL, parser, mem_state);
-            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
-            return NULL;
-        }
-
-        // Consume assignment token.
-        source_parser_consume_token(parser);
-
-        // Match the right hand side.
-        syntax_node *right = source_parser_match_assignment(parser);
-        if (source_parser_should_propagate_error(right, parser, mem_state)) return NULL;
-
-        // At this point, the LHS may be undefined, but since it was just assigned to,
-        // it is now defined.
-        symbol *variable_symbol = source_parser_locate_symbol(parser, identifier);
-        if (source_parser_should_propagate_error(variable_symbol, parser, mem_state))
-        {
-            parser_error_handler_display_error(parser, PARSE_ERROR_SYMBOL_UNLOCATABLE, __LINE__);
-            return NULL;
-        }
-
-        variable_symbol->type = SYMBOL_TYPE_VARIABLE;
-
-        // Generate the syntax node and update it.
-        syntax_node *result = source_parser_push_node(parser);
-        result->type = BINARY_EXPRESSION_NODE;
-        result->binary.left = left;
-        result->binary.right = right;
-        result->binary.type = OPERATION_ASSIGNMENT;
-
-        // Update left.
-        left = result;
-
-    }
-
-    return left;
-#endif
-
 
 }
 
@@ -2037,7 +1988,7 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
         } break;
 
-        case PARSE_ERROR_UNDEFINED_VARIABLE_IN_EXPRESSION:
+        case PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION:
         {
 
             source_token *error_at = parser->previous_token;
@@ -2051,10 +2002,32 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s (%d,%d) (error:%d:%llu): undefined variable used in expression: '%s'.\n",
+            printf("%s (%d,%d) (error:%d:%llu): undefined identifier used in expression: '%s'.\n",
                     file_name, line, column, error, sline, token_encountered);
 
             source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): undefined variable used in statement: '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
 
         } break;
 
