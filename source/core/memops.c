@@ -99,3 +99,15 @@ memory_set_zero_ext(void *dest, u64 size)
 
 }
 
+void 
+memory_set_byte_simple(void *dest, u8 byte, u64 size)
+{
+
+    for (u64 i = 0; i < size; ++i)
+    {
+        u8* loc = (u8*)dest + i;
+        *loc = byte;
+    }
+
+}
+
