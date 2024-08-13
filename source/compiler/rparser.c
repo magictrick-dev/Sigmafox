@@ -1256,6 +1256,111 @@ source_parser_match_variable_statement(source_parser *parser)
 
 }
 
+syntax_node* 
+source_parser_match_scope_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    // Consume the scope token.
+    source_parser_consume_token(parser);
+
+    // If no semicolon, synchronize to the end scope.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        // Synchronize to endscope, then check for semicolon. If it is, consume it
+        // so that we align to the next area of parsable code. If not, there is yet
+        // another error that needs to be processed.
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDSCOPE))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume semicolon.
+    source_parser_consume_token(parser);
+
+    // Create the scope node.
+    syntax_node *scope_node = source_parser_push_node(parser);
+    scope_node->type = SCOPE_STATEMENT_NODE;
+
+    // Push a new symbol table.
+    source_parser_push_symbol_table(parser);
+
+    // Process all statements inside the scope block.
+    syntax_node *head_statement_node = NULL;
+    syntax_node *last_statement_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_ENDSCOPE))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        syntax_node *statement = source_parser_match_statement(parser);
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_statement_node == NULL)
+        {
+            head_statement_node = statement;
+            last_statement_node = statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_statement_node->next_node = statement;   
+            last_statement_node = statement;
+        }
+
+    }
+
+    // Pop the symbol table.
+    source_parser_pop_symbol_table(parser);
+    scope_node->next_node = head_statement_node;
+
+    // We assume now that the ending token is the end scope token.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDSCOPE))
+    {
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_ENDSCOPE, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDSCOPE);
+        return NULL;
+    }
+
+    // Consume endscope.
+    source_parser_consume_token(parser);
+
+    // If no semicolon, synchronize.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+
+    }
+
+    // Consume semiclon.
+    source_parser_consume_token(parser);
+
+    return scope_node;
+
+}
+
 syntax_node*
 source_parser_match_statement(source_parser *parser)
 {
@@ -1267,6 +1372,11 @@ source_parser_match_statement(source_parser *parser)
     if (source_parser_expect_token(parser, TOKEN_KEYWORD_VARIABLE))
     {
         result = source_parser_match_variable_statement(parser);
+    }
+
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_SCOPE))
+    {
+        result = source_parser_match_scope_statement(parser);
     }
 
     else
@@ -1401,7 +1511,10 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     fileio_file_read(path, source_buffer, source_size, source_size + 1);
     source_buffer[source_size] = '\0'; // Null-terminate.
 
-    // Allocate the global symbol table.
+    // Reserve the string pool and the bottom of the transient arena.
+    string_pool_initialize(&parser->spool, &parser->transient_arena, STRING_POOL_DEFAULT_SIZE);
+
+    // Allocate the global symbol table at the bottom of symbol table.
     parser->symbol_table = memory_arena_push_type(&parser->transient_arena, symbol_table);
     symbol_table_initialize(parser->symbol_table, &parser->transient_arena, 1024);
 
@@ -1409,9 +1522,6 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     source_tokenizer_initialize(&parser->tokenizer, source_buffer, path);
     source_parser_consume_token(parser);
     source_parser_consume_token(parser);
-
-    // Reserve the string pool.
-    string_pool_initialize(&parser->spool, &parser->transient_arena, STRING_POOL_DEFAULT_SIZE);
 
     // Generate AST from program node.
     syntax_node *program = source_parser_match_program(parser);
@@ -1719,6 +1829,8 @@ source_parser_pop_symbol_table(source_parser *parser)
     symbol_table_collapse_arena(parser->symbol_table);
     memory_arena_pop_type(&parser->transient_arena, symbol_table);
 
+    parser->symbol_table = parent_table;
+
 }
 
 symbol*
@@ -1900,6 +2012,27 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
             printf("%s (%d,%d) (error:%d:%llu): expected program end statement.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_ENDSCOPE:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected endscope keyword.\n",
                     file_name, line, column, error, sline, token_encountered);
 
             source_token_string_unnullify(error_at, hold);
@@ -2111,6 +2244,21 @@ parser_print_tree(syntax_node *root_node)
                 current_node = current_node->next_node;
             }
             printf("end main;\n");
+
+        } break;
+
+        case SCOPE_STATEMENT_NODE:
+        {
+            
+            printf("{\n");
+            syntax_node *current_node = root_node->next_node;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+            printf("}");
 
         } break;
 

@@ -365,6 +365,9 @@ syntax_node* source_parser_match_comparison(source_parser *parser);
 syntax_node* source_parser_match_equality(source_parser *parser);
 syntax_node* source_parser_match_assignment(source_parser *parser);
 syntax_node* source_parser_match_expression(source_parser *parser);
+syntax_node* source_parser_match_variable_statement(source_parser *parser);
+syntax_node* source_parser_match_scope_statement(source_parser *parser);
+syntax_node* source_parser_match_statement(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 
 source_token source_parser_get_previous_token(source_parser *parser);
@@ -417,6 +420,7 @@ typedef enum parse_error_type
     PARSE_ERROR_MEM_CONSTRAINT_SYMBOL_TABLE,
     PARSE_ERROR_EXPECTED_PROGRAM_BEGIN,
     PARSE_ERROR_EXPECTED_PROGRAM_END,
+    PARSE_ERROR_EXPECTED_ENDSCOPE,
     PARSE_ERROR_EXPECTED_SEMICOLON,
     PARSE_ERROR_EXPECTED_ASSIGNMENT,
     PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER,

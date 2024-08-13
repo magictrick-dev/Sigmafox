@@ -1,7 +1,9 @@
 begin;
-    variable foo 4 := alpha - beta + 10;
+    variable foo 4;
     variable bar 4;
     foo := 10;
     bar := 20;
     variable baz 4 := foo + bar;
+    scope;
+    endscope;
 end;

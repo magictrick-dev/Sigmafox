@@ -263,10 +263,13 @@ b32
 symbol_table_is_adjustable(symbol_table *table)
 {
 
-    u64 table_commit_distance = (u64)(table->symbol_buffer - table->arena->buffer);
-    table_commit_distance += (symbol_table_size(table));
+    // Determine if the table is adjustable, the table would need to be located
+    // at the commit_bottom - table size.
+    u64 symbol_table_offset = (u64)table->symbol_buffer;
+    u64 arena_offset = (u64)((u8*)table->arena->buffer + table->arena->commit_bottom);
+    arena_offset -= symbol_table_size(table);
 
-    b32 adjustable = (table_commit_distance == table->arena->commit_bottom);
+    b32 adjustable = (symbol_table_offset == arena_offset);
     return adjustable;
 
 }
