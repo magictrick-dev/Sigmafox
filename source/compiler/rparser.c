@@ -1576,8 +1576,244 @@ source_parser_match_if_statement(source_parser *parser)
     
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
+    // Consume the IF token.
+    source_parser_consume_token(parser);
 
-    return NULL;
+    // The first part of the if-statment is a eval-expression, if there's an error,
+    // we will probably match until ENDIF to make things easier on the error checker.
+    syntax_node *if_expression = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(if_expression, parser, mem_state))
+    {
+
+        // Synchronize to the ENDWHILE token.
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // We have the expression, now we need to terminate the semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    // Generate the syntax node.
+    syntax_node *if_node = source_parser_push_node(parser);
+    if_node->type = IF_STATEMENT_NODE;
+    if_node->if_conditional.evaluation_expression = if_expression;
+
+    // Push a new symbol table.
+    source_parser_push_symbol_table(parser);
+
+    // This is the tricky bit here, we need to match to either an ENDIF or an ELSEIF.
+    syntax_node *head_statement_node = NULL;
+    syntax_node *last_statement_node = NULL;
+    while (!source_parser_match_token(parser, 2, TOKEN_KEYWORD_ELSEIF, TOKEN_KEYWORD_ENDIF))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        syntax_node *statement = source_parser_match_statement(parser);
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_statement_node == NULL)
+        {
+            head_statement_node = statement;
+            last_statement_node = statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_statement_node->next_node = statement;   
+            last_statement_node = statement;
+        }
+
+    }
+
+    // Pop the symbol table.
+    source_parser_pop_symbol_table(parser);
+    if_node->if_conditional.body_statements = head_statement_node;
+
+    // Now, we process *all* elseif blocks. It's sort of like we're recursively
+    // descending, but this behavior tends to be more self-contained than what is
+    // normally done.
+    syntax_node *else_head = NULL;
+    syntax_node *else_last = NULL;
+    while (source_parser_match_token(parser, 1, TOKEN_KEYWORD_ELSEIF))
+    {
+
+        // Consume the ELSEIF token or break on EOF.
+        source_parser_consume_token(parser);
+        if (source_parser_should_break_on_eof(parser)) break; 
+
+        // The following is the elseif eval.
+        syntax_node *elseif_expression = source_parser_match_expression(parser);
+        if (source_parser_should_propagate_error(elseif_expression, parser, mem_state))
+        {
+
+            // Synchronize to the ENDWHILE token.
+            if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
+            {
+                if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                    source_parser_consume_token(parser);
+            }
+
+            return NULL;
+
+        }
+        
+        // Now we have a semicolon to take care of.
+        if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+        {
+
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+
+            if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
+            {
+                if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                    source_parser_consume_token(parser);
+            }
+
+            return NULL;
+
+        }
+
+        // Consume the semicolon.
+        source_parser_consume_token(parser);
+
+        // Consume all statements until we reach ELSEIF/ENDIF as-per-usual.
+        source_parser_push_symbol_table(parser);
+
+        // This is the tricky bit here, we need to match to either an ENDIF or an ELSEIF.
+        syntax_node *head_statement_node = NULL;
+        syntax_node *last_statement_node = NULL;
+        while (!source_parser_match_token(parser, 2, TOKEN_KEYWORD_ELSEIF, TOKEN_KEYWORD_ENDIF))
+        {
+
+            if (source_parser_should_break_on_eof(parser)) break;
+            syntax_node *statement = source_parser_match_statement(parser);
+
+            // The statement could be NULL, which we ignore and move on. Synchronization
+            // happens inside statements.
+            if (statement == NULL)
+            {
+                continue;
+            }
+
+            // First statement.
+            if (head_statement_node == NULL)
+            {
+                head_statement_node = statement;
+                last_statement_node = statement;
+            }
+
+            // All other statements.
+            else
+            {
+                last_statement_node->next_node = statement;   
+                last_statement_node = statement;
+            }
+
+        }
+
+        // Pop the symbol table.
+        source_parser_pop_symbol_table(parser);
+
+        // So we have the eval-expression and the body statements, now we need to
+        // connect them all together.
+        syntax_node *elseif_node = source_parser_push_node(parser);
+        elseif_node->type = ELSEIF_STATEMENT_NODE;
+        elseif_node->elseif_conditional.body_statements = head_statement_node;
+        elseif_node->elseif_conditional.evaluation_expression = elseif_expression;
+
+        if (else_head == NULL)
+        {
+
+            // Prepare the chain.
+            else_head = elseif_node;
+            else_last = elseif_node;
+
+        }
+        
+        else
+        {
+
+            // Chain elseif node.
+            else_last->elseif_conditional.else_statement = elseif_node;
+            else_last = elseif_node;
+
+        }
+
+    }
+
+    // We need to set the elseif root node.
+    if_node->if_conditional.else_statement = else_head;
+
+    // With all that done, we should *expect* the following token to be a ENDIF
+    // token or an error, which ever it may be.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDIF))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_ENDIF, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF);
+        return NULL;
+    }
+
+    // Consume the ENDIF token.
+    source_parser_consume_token(parser);
+
+    // Now, at the end of all this jank, we expect the semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    return if_node;
 
 }
 
@@ -2470,6 +2706,27 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
         } break;
 
+        case PARSE_ERROR_EXPECTED_ENDIF:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected endif keyword.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
         case PARSE_ERROR_EXPECTED_SEMICOLON:
         {
 
@@ -2746,6 +3003,47 @@ parser_print_tree(syntax_node *root_node)
                 current_node = current_node->next_node;
             }
             printf("}");
+
+        } break;
+
+        case ELSEIF_STATEMENT_NODE:
+        {
+            printf("elseif: ");
+            parser_print_tree(root_node->elseif_conditional.evaluation_expression);
+            printf("\n");
+            printf("{\n");
+            syntax_node *current_node = root_node->elseif_conditional.body_statements;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+            printf("}");
+        } break;
+
+        case IF_STATEMENT_NODE:
+        {
+
+            printf("if: ");
+            parser_print_tree(root_node->if_conditional.evaluation_expression);
+            printf("\n");
+            printf("{\n");
+            syntax_node *current_node = root_node->if_conditional.body_statements;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+            printf("}");
+
+            syntax_node *else_node = root_node->if_conditional.else_statement;
+            while (else_node != NULL)
+            {
+                parser_print_tree(else_node);
+                else_node = else_node->elseif_conditional.else_statement;
+            }
 
         } break;
 

@@ -340,14 +340,14 @@ typedef struct elseif_syntax_node
 {
     syntax_node *evaluation_expression;
     syntax_node *body_statements;
-    syntax_node *else;
+    syntax_node *else_statement;
 } elseif_syntax_node;
 
 typedef struct if_syntax_node
 {
     syntax_node *evaluation_expression;
     syntax_node *body_statements;
-    syntax_node *else;
+    syntax_node *else_statement;
 } if_syntax_node;
 
 typedef struct program_syntax_node
@@ -473,6 +473,7 @@ typedef enum parse_error_type
     PARSE_ERROR_EXPECTED_ENDSCOPE,
     PARSE_ERROR_EXPECTED_ENDWHILE,
     PARSE_ERROR_EXPECTED_ENDLOOP,
+    PARSE_ERROR_EXPECTED_ENDIF,
     PARSE_ERROR_EXPECTED_SEMICOLON,
     PARSE_ERROR_EXPECTED_ASSIGNMENT,
     PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER,
