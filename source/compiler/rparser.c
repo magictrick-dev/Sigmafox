@@ -1377,6 +1377,106 @@ source_parser_match_scope_statement(source_parser *parser)
 
 }
 
+syntax_node*
+source_parser_match_loop_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    // Consume the LOOP token.
+    source_parser_consume_token(parser);
+
+    // The first parameter of a loop is an identifier.
+    if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+    }
+
+    // The second part of a loop is the initial bounds.
+    syntax_node *initial_bounds = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(initial_bounds, parser, mem_state))
+    {
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // The third part of the loop is the exit bounds.
+    syntax_node *exit_bounds = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(exit_bounds, parser, mem_state))
+    {
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // The fourth part is optional, so only check if the following token
+    // isn't the semicolon.
+    syntax_node *increment = NULL;
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+        increment = source_parser_match_expression(parser);
+        if (source_parser_should_propagate_error(increment, parser, mem_state))
+        {
+
+            if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP))
+            {
+                if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                    source_parser_consume_token(parser);
+            }
+
+            return NULL;
+
+        }
+    }
+
+    // Finally, we require the last token to be a semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    return NULL;
+
+}
+
 syntax_node* 
 source_parser_match_while_statement(source_parser *parser)
 {
@@ -1526,6 +1626,12 @@ source_parser_match_statement(source_parser *parser)
     else if (source_parser_expect_token(parser, TOKEN_KEYWORD_WHILE))
     {
         result = source_parser_match_while_statement(parser);
+    }
+
+    // Loop statmeents.
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_LOOP))
+    {
+        result = source_parser_match_loop_statement(parser);
     }
 
     else
@@ -2335,6 +2441,28 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
             source_token_string_unnullify(error_at, hold);
 
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in loop declaration: "
+                   " encountered '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
 
         } break;
 

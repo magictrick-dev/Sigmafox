@@ -395,9 +395,11 @@ syntax_node* source_parser_match_comparison(source_parser *parser);
 syntax_node* source_parser_match_equality(source_parser *parser);
 syntax_node* source_parser_match_assignment(source_parser *parser);
 syntax_node* source_parser_match_expression(source_parser *parser);
+
 syntax_node* source_parser_match_variable_statement(source_parser *parser);
 syntax_node* source_parser_match_scope_statement(source_parser *parser);
 syntax_node* source_parser_match_while_statement(source_parser *parser);
+syntax_node* source_parser_match_loop_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 
@@ -459,6 +461,7 @@ typedef enum parse_error_type
     PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION,
     PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION,
     PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT,
+    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP,
     PARSE_ERROR_SYMBOL_UNLOCATABLE,
     PARSE_ERROR_VARIABLE_REDECLARATION,
 } parse_error_type;
