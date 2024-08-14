@@ -1570,6 +1570,17 @@ source_parser_match_loop_statement(source_parser *parser)
 
 }
 
+syntax_node*
+source_parser_match_if_statement(source_parser *parser)
+{
+    
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+
+    return NULL;
+
+}
+
 syntax_node* 
 source_parser_match_while_statement(source_parser *parser)
 {
@@ -1725,6 +1736,12 @@ source_parser_match_statement(source_parser *parser)
     else if (source_parser_expect_token(parser, TOKEN_KEYWORD_LOOP))
     {
         result = source_parser_match_loop_statement(parser);
+    }
+
+    // If statements.
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_IF))
+    {
+        result = source_parser_match_if_statement(parser);
     }
 
     else

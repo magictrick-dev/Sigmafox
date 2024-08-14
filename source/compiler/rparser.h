@@ -336,6 +336,20 @@ typedef struct loop_syntax_node
     syntax_node *body_statements;
 } loop_syntax_node;
 
+typedef struct elseif_syntax_node
+{
+    syntax_node *evaluation_expression;
+    syntax_node *body_statements;
+    syntax_node *else;
+} elseif_syntax_node;
+
+typedef struct if_syntax_node
+{
+    syntax_node *evaluation_expression;
+    syntax_node *body_statements;
+    syntax_node *else;
+} if_syntax_node;
+
 typedef struct program_syntax_node
 {
     syntax_node *global_statements;
@@ -360,6 +374,8 @@ typedef struct syntax_node
         scope_syntax_node       scope;
         while_syntax_node       while_loop;
         loop_syntax_node        for_loop;
+        if_syntax_node          if_conditional;
+        elseif_syntax_node      elseif_conditional;
 
         program_syntax_node     program;
     };
