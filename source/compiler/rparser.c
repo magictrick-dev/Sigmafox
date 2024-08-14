@@ -1402,6 +1402,12 @@ source_parser_match_loop_statement(source_parser *parser)
         return NULL;
     }
 
+    // Consume the identifier and then convert it to an object.
+    source_token identifier = source_parser_consume_token(parser);
+    object_literal object = {0};
+    object_type type = source_parser_token_to_literal(parser, &identifier, &object);
+    assert(type == OBJECT_IDENTIFIER); // This should always be true.
+
     // The second part of a loop is the initial bounds.
     syntax_node *initial_bounds = source_parser_match_expression(parser);
     if (source_parser_should_propagate_error(initial_bounds, parser, mem_state))
@@ -1472,6 +1478,65 @@ source_parser_match_loop_statement(source_parser *parser)
 
     // Consume the semicolon.
     source_parser_consume_token(parser);
+
+    // Create the while node.
+    syntax_node *loop_node = source_parser_push_node(parser);
+    loop_node->type = WHILE_STATEMENT_NODE;
+    loop_node->for_loop.iterator_identifier = object.identifier;
+    loop_node->for_loop.initial_value_expression = initial_bounds;
+    loop_node->for_loop.terminate_value_expression = exit_bounds;
+    loop_node->for_loop.step_value_expression = increment;
+
+    // Push a new symbol table.
+    source_parser_push_symbol_table(parser);
+
+    // Process all statements inside the scope block.
+    syntax_node *head_statement_node = NULL;
+    syntax_node *last_statement_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_ENDLOOP))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        syntax_node *statement = source_parser_match_statement(parser);
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_statement_node == NULL)
+        {
+            head_statement_node = statement;
+            last_statement_node = statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_statement_node->next_node = statement;   
+            last_statement_node = statement;
+        }
+
+    }
+
+    // Pop the symbol table.
+    source_parser_pop_symbol_table(parser);
+    loop_node->for_loop.body_statements = head_statement_node;
+
+    // We are assuming the following the token is ENDWHILE token.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDLOOP))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_ENDLOOP, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP);
+        return NULL;
+    }
+
+
 
     return NULL;
 
@@ -1573,7 +1638,7 @@ source_parser_match_while_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDWHILE))
     {
         parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_ENDSCOPE, __LINE__);
+                PARSE_ERROR_EXPECTED_ENDWHILE, __LINE__);
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDWHILE);
         return NULL;
@@ -2312,6 +2377,48 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
             printf("%s (%d,%d) (error:%d:%llu): expected endscope keyword.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_ENDWHILE:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected endwhile keyword.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_ENDLOOP:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected endloop keyword.\n",
                     file_name, line, column, error, sline, token_encountered);
 
             source_token_string_unnullify(error_at, hold);
