@@ -1481,14 +1481,26 @@ source_parser_match_loop_statement(source_parser *parser)
 
     // Create the while node.
     syntax_node *loop_node = source_parser_push_node(parser);
-    loop_node->type = WHILE_STATEMENT_NODE;
+    loop_node->type = LOOP_STATEMENT_NODE;
     loop_node->for_loop.iterator_identifier = object.identifier;
     loop_node->for_loop.initial_value_expression = initial_bounds;
     loop_node->for_loop.terminate_value_expression = exit_bounds;
     loop_node->for_loop.step_value_expression = increment;
 
-    // Push a new symbol table.
+    // Push the iterator symbol into the current table. This iterator is a known
+    // variable with a known initial value. This value corresponds to the initial
+    // value expression, and each iterator gets reset to the next iterator step value
+    // which is by default to be one.
+    //
+    // NOTE(Chris): We may want to slightly adjust the procedure here to take a
+    //              variable node instead, setting it to have an assignment to the
+    //              initial value expression. Either way works, but the actual transpilation
+    //              will need to take the current format into account that the actual
+    //              value of this iterator value is the initial expression + iterator.
+    //              Ugly, for sure.
     source_parser_push_symbol_table(parser);
+    symbol *iterator_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
+    iterator_symbol->type = SYMBOL_TYPE_VARIABLE;
 
     // Process all statements inside the scope block.
     syntax_node *head_statement_node = NULL;
@@ -1526,7 +1538,7 @@ source_parser_match_loop_statement(source_parser *parser)
     source_parser_pop_symbol_table(parser);
     loop_node->for_loop.body_statements = head_statement_node;
 
-    // We are assuming the following the token is ENDWHILE token.
+    // We are assuming the following the token is ENDLOOP token.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDLOOP))
     {
         parser_error_handler_display_error(parser,
@@ -1536,9 +1548,25 @@ source_parser_match_loop_statement(source_parser *parser)
         return NULL;
     }
 
+    // Consume ENDLOOP.
+    source_parser_consume_token(parser);
 
+    // If no semicolon, synchronize to the next semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
 
-    return NULL;
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+
+    }
+
+    // Consume SEMICOLON.
+    source_parser_consume_token(parser);
+
+    return loop_node;
 
 }
 
@@ -2712,6 +2740,33 @@ parser_print_tree(syntax_node *root_node)
             printf("\n");
             printf("{\n");
             syntax_node *current_node = root_node->while_loop.body_statements;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+            printf("}");
+
+        } break;
+
+        case LOOP_STATEMENT_NODE:
+        {
+            printf("for %s = ", root_node->for_loop.iterator_identifier);
+            parser_print_tree(root_node->for_loop.initial_value_expression);
+            printf("; %s < ", root_node->for_loop.iterator_identifier);
+            parser_print_tree(root_node->for_loop.terminate_value_expression);
+            printf("; %s += ", root_node->for_loop.iterator_identifier);
+            if (root_node->for_loop.step_value_expression == NULL)
+                printf("1\n");
+            else
+            {
+                parser_print_tree(root_node->for_loop.step_value_expression);
+                printf("\n");
+            }
+
+            printf("{\n");
+            syntax_node *current_node = root_node->for_loop.body_statements;
             while (current_node != NULL)
             {
                 parser_print_tree(current_node);

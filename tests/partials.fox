@@ -17,4 +17,16 @@ begin;
         variable foo 4 := 10;
     endwhile;
 
+    loop idx (5 + 3 - 7) 10;
+        variable hello 4 := 10;
+        variable world 4 := foo;
+        variable foo 4 := 10;
+
+        { This should cause an error since idx is in scope. }
+        { variable idx 4 := 1000; }
+    endloop;
+
+    variable hello 4 := 10;
+    { variable world 4 := foo * idx; }
+
 end;
