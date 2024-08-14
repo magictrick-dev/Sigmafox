@@ -1377,6 +1377,132 @@ source_parser_match_scope_statement(source_parser *parser)
 
 }
 
+syntax_node* 
+source_parser_match_while_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    // Consume the while token.
+    source_parser_consume_token(parser);
+
+    // The following expression is the check expression. If we can't get the expression,
+    // we synchronize to the ENDWHILE token which ensures interior statements aren't
+    // leaked into further parsing.
+    syntax_node *check_expression = source_parser_match_equality(parser);
+    if (source_parser_should_propagate_error(check_expression, parser, mem_state))
+    {
+
+        // Synchronize to the ENDWHILE token.
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDWHILE))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // If no semicolon, synchronize to the ENDWHILE token.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDWHILE))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    // Create the while node.
+    syntax_node *while_node = source_parser_push_node(parser);
+    while_node->type = WHILE_STATEMENT_NODE;
+    while_node->while_loop.evaluation_expression = check_expression;
+
+    // Push a new symbol table.
+    source_parser_push_symbol_table(parser);
+
+    // Process all statements inside the scope block.
+    syntax_node *head_statement_node = NULL;
+    syntax_node *last_statement_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_ENDWHILE))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        syntax_node *statement = source_parser_match_statement(parser);
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_statement_node == NULL)
+        {
+            head_statement_node = statement;
+            last_statement_node = statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_statement_node->next_node = statement;   
+            last_statement_node = statement;
+        }
+
+    }
+
+    // Pop the symbol table.
+    source_parser_pop_symbol_table(parser);
+    while_node->while_loop.body_statements = head_statement_node;
+
+    // We are assuming the following the token is ENDWHILE token.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDWHILE))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_ENDSCOPE, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDWHILE);
+        return NULL;
+    }
+
+    // Consume ENDWHILE.
+    source_parser_consume_token(parser);
+
+    // If no semicolon, synchronize to the next semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+
+    }
+
+    // Consume SEMICOLON.
+    source_parser_consume_token(parser);
+
+    return while_node;
+
+
+}
+
+
 syntax_node*
 source_parser_match_statement(source_parser *parser)
 {
@@ -1390,9 +1516,16 @@ source_parser_match_statement(source_parser *parser)
         result = source_parser_match_variable_statement(parser);
     }
 
+    // Scope statements.
     else if (source_parser_expect_token(parser, TOKEN_KEYWORD_SCOPE))
     {
         result = source_parser_match_scope_statement(parser);
+    }
+
+    // While statements.
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_WHILE))
+    {
+        result = source_parser_match_while_statement(parser);
     }
 
     else
@@ -2326,6 +2459,24 @@ parser_print_tree(syntax_node *root_node)
             
             printf("{\n");
             syntax_node *current_node = root_node->scope.body_statements;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+            printf("}");
+
+        } break;
+
+        case WHILE_STATEMENT_NODE:
+        {
+            
+            printf("while: ");
+            parser_print_tree(root_node->while_loop.evaluation_expression);
+            printf("\n");
+            printf("{\n");
+            syntax_node *current_node = root_node->while_loop.body_statements;
             while (current_node != NULL)
             {
                 parser_print_tree(current_node);

@@ -397,6 +397,7 @@ syntax_node* source_parser_match_assignment(source_parser *parser);
 syntax_node* source_parser_match_expression(source_parser *parser);
 syntax_node* source_parser_match_variable_statement(source_parser *parser);
 syntax_node* source_parser_match_scope_statement(source_parser *parser);
+syntax_node* source_parser_match_while_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 

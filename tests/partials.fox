@@ -5,14 +5,16 @@ begin;
     bar := 20;
     variable baz 4 := foo + bar;
 
-    { So far, scopes act empty. }
     scope;
         variable hello 4 := 10;
         variable world 4 := foo;
         variable foo 4 := 10;
     endscope;
 
-    variable bax 4 := 10;
-    foo := bar * bax;
+    while foo < 10;
+        variable hello 4 := 10;
+        variable world 4 := foo;
+        variable foo 4 := 10;
+    endwhile;
 
 end;
