@@ -57,6 +57,14 @@ begin;
         endif;
     endscope;
 
+    procedure add_numbers a b;
+        { variable a 4 := 10;  }
+        { variable b 4 := 10; } 
+        a := 10;
+        b := 20;
+        variable sum 4 := a + b;
+    endprocedure;
+
     variable before_end_statement 4;
 
 end;

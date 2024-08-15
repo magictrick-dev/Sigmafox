@@ -1991,19 +1991,14 @@ source_parser_match_procedure_statement(source_parser *parser)
 
     }
 
-    // The procedure wasn't declared, so we define it.
+    // The procedure wasn't declared, so we define it here. This goes in the parent
+    // scope.
+    //
+    // NOTE(Chris): Do we want to limit the scope depth of function/procedure decs?
+    //              We can probably do this grammatically rather than coding for an
+    //              edge case.
     symbol *param_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
     param_symbol->type = SYMBOL_TYPE_PROCEDURE;
-
-    //
-    // 
-    // TODO(Chris): We need to check to see if this identifier is already declared.
-    //              Then, we add it to the current scope. We will need to modify the
-    //              descent tree so that this occurs only in the global scope or in
-    //              the begin body. When we descend, we descend either globally which
-    //              allows definitions of procedures & functions.
-    //
-    //
 
     // Push the node.
     syntax_node *procedure_node = source_parser_push_node(parser);
@@ -2092,16 +2087,77 @@ source_parser_match_procedure_statement(source_parser *parser)
     procedure_node->procedure.parameters = head_parameter_node;
 
     // Finally, we process all body statements.
+    syntax_node *head_statement_node = NULL;
+    syntax_node *last_statement_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_ENDPROCEDURE))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        syntax_node *statement = source_parser_match_statement(parser);
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_statement_node == NULL)
+        {
+            head_statement_node = statement;
+            last_statement_node = statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_statement_node->next_node = statement;   
+            last_statement_node = statement;
+        }
+
+    }
 
 
+    // Expecting the ENDPROCEDURE.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDPROCEDURE))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_ENDPROCEDURE, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE);
+        return NULL;
+    }
 
-
-
+    // Consume the ENDIF token.
+    source_parser_consume_token(parser);
 
     // Pop the scope once we're done.
     source_parser_pop_symbol_table(parser);
+    procedure_node->procedure.body_statements = head_statement_node;
 
-    return NULL;
+    // Now, at the end of all this jank, we expect the semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    return procedure_node;
 }
 
 syntax_node* 
@@ -2887,6 +2943,48 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
         } break;
 
+        case PARSE_ERROR_EXPECTED_ENDPROCEDURE:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected endprocedure keyword.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_ENDFUNCTION:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected endfunction keyword.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
         case PARSE_ERROR_EXPECTED_ENDIF:
         {
 
@@ -3305,6 +3403,36 @@ parser_print_tree(syntax_node *root_node)
             
             printf("{\n");
             syntax_node *current_node = root_node->scope.body_statements;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+            printf("}");
+
+        } break;
+
+        case PARAMETER_STATEMENT_NODE:
+        {
+            printf("%s", root_node->parameter.name);
+        } break;
+
+        case PROCEDURE_STATEMENT_NODE:
+        {
+
+            printf("procedure %s ( ", root_node->procedure.name);
+            syntax_node *params = root_node->procedure.parameters;
+            while (params != NULL)
+            {
+                parser_print_tree(params);
+                if (params->parameter.next_parameter != NULL) printf(", ");
+                params = params->parameter.next_parameter;
+            }
+
+            printf(" )\n");
+            printf("{\n");
+            syntax_node *current_node = root_node->procedure.body_statements;
             while (current_node != NULL)
             {
                 parser_print_tree(current_node);
