@@ -1022,6 +1022,15 @@ source_parser_match_equality(source_parser *parser)
 }
 
 syntax_node*
+source_parser_match_expression(source_parser *parser)
+{
+
+    syntax_node *expression = source_parser_match_equality(parser);
+    return expression;
+
+}
+
+syntax_node*
 source_parser_match_assignment(source_parser *parser)
 {
 
@@ -1058,7 +1067,7 @@ source_parser_match_assignment(source_parser *parser)
         source_parser_consume_token(parser); // Assignment.
 
         // Now we can generate the remaining part of the expression.          
-        syntax_node *assignment_expression = source_parser_match_equality(parser);
+        syntax_node *assignment_expression = source_parser_match_expression(parser);
         if (source_parser_should_propagate_error(assignment_expression, parser, mem_state))
             return NULL;
 
@@ -1084,17 +1093,8 @@ source_parser_match_assignment(source_parser *parser)
         
     }
 
-    syntax_node *forward = source_parser_match_equality(parser);
+    syntax_node *forward = source_parser_match_expression(parser);
     return forward;
-
-}
-
-syntax_node*
-source_parser_match_expression(source_parser *parser)
-{
-
-    syntax_node *expression = source_parser_match_assignment(parser);
-    return expression;
 
 }
 
@@ -1104,7 +1104,7 @@ source_parser_match_expression_statement(source_parser *parser)
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
     
-    syntax_node *expression = source_parser_match_expression(parser);
+    syntax_node *expression = source_parser_match_assignment(parser);
     if (source_parser_should_propagate_error(expression, parser, mem_state))
     {
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -1829,7 +1829,7 @@ source_parser_match_while_statement(source_parser *parser)
     // The following expression is the check expression. If we can't get the expression,
     // we synchronize to the ENDWHILE token which ensures interior statements aren't
     // leaked into further parsing.
-    syntax_node *check_expression = source_parser_match_equality(parser);
+    syntax_node *check_expression = source_parser_match_expression(parser);
     if (source_parser_should_propagate_error(check_expression, parser, mem_state))
     {
 
@@ -1942,6 +1942,174 @@ source_parser_match_while_statement(source_parser *parser)
 
 }
 
+syntax_node* 
+source_parser_match_procedure_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    // Consume the PROCEDURE token.
+    source_parser_consume_token(parser);
+
+    // The first identifier is the name of procedure.
+    if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+    }
+
+    // Get the identifier.
+    source_token identifier = source_parser_consume_token(parser);
+    object_literal object = {0};
+    object_type type = source_parser_token_to_literal(parser, &identifier, &object);
+    assert(type == OBJECT_IDENTIFIER); // This should always be true.
+
+    // We need to check if the identifier for the procedure is already declared.
+    if (source_parser_identifier_is_declared(parser, object.identifier))
+    {
+        
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // The procedure wasn't declared, so we define it.
+    symbol *param_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
+    param_symbol->type = SYMBOL_TYPE_PROCEDURE;
+
+    //
+    // 
+    // TODO(Chris): We need to check to see if this identifier is already declared.
+    //              Then, we add it to the current scope. We will need to modify the
+    //              descent tree so that this occurs only in the global scope or in
+    //              the begin body. When we descend, we descend either globally which
+    //              allows definitions of procedures & functions.
+    //
+    //
+
+    // Push the node.
+    syntax_node *procedure_node = source_parser_push_node(parser);
+    procedure_node->type = PROCEDURE_STATEMENT_NODE;
+    procedure_node->procedure.name = object.identifier;
+
+    // We can push the scope here.
+    source_parser_push_symbol_table(parser);
+
+    // Process all identifiers until semicolon, these are the parameters. These
+    // parameters are also shoved into the scope for validation.
+    syntax_node *head_parameter_node = NULL;
+    syntax_node *last_parameter_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_SEMICOLON))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        
+        // Each parameter must be an identifier.
+        if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+        {
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS, __LINE__);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+
+            if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
+            {
+                if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                    source_parser_consume_token(parser);
+            }
+
+            return NULL;
+        }
+
+        // Get the identifier.
+        source_token identifier = source_parser_consume_token(parser);
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser, &identifier, &object);
+        assert(type == OBJECT_IDENTIFIER); // This should always be true.
+
+        // Create the parameter node.
+        syntax_node *param_node = source_parser_push_node(parser);
+        param_node->type = PARAMETER_STATEMENT_NODE;
+        param_node->parameter.name = object.identifier;
+        param_node->parameter.next_parameter = NULL;
+
+        symbol *param_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
+        param_symbol->type = SYMBOL_TYPE_UNDEFINED;
+
+        if (head_parameter_node == NULL)
+        {
+            head_parameter_node = param_node;
+            last_parameter_node = param_node;
+        }
+
+        else
+        {
+            last_parameter_node->parameter.next_parameter = param_node;
+            last_parameter_node = param_node;
+        }
+
+    }
+
+    // We should be at the semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    // Set the parameter node in the procedure. This may be NULL, which is fine.
+    procedure_node->procedure.parameters = head_parameter_node;
+
+    // Finally, we process all body statements.
+
+
+
+
+
+
+    // Pop the scope once we're done.
+    source_parser_pop_symbol_table(parser);
+
+    return NULL;
+}
+
+syntax_node* 
+source_parser_match_function_statement(source_parser *parser)
+{
+    
+    return NULL;
+}
 
 syntax_node*
 source_parser_match_statement(source_parser *parser)
@@ -1980,6 +2148,19 @@ source_parser_match_statement(source_parser *parser)
         result = source_parser_match_if_statement(parser);
     }
 
+    // Procedure statement.
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_PROCEDURE))
+    {
+        result = source_parser_match_procedure_statement(parser);
+    }
+    
+    // Function statement.
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_FUNCTION))
+    {
+        result = source_parser_match_function_statement(parser);
+    }
+
+    // All other expression statements.
     else
     {
         result = source_parser_match_expression_statement(parser);
@@ -2873,6 +3054,134 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
             source_token_string_unnullify(error_at, hold);
 
+        } break;
+
+        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in procedure declaration: "
+                   " encountered '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in procedure parameter: "
+                   " encountered '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function parameter: "
+                   " encountered '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION:
+        {
+
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration: "
+                   " encountered '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED:
+        {
+            source_token *error_at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration: "
+                   " encountered '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
+        } break;
+
+        case PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED:
+        {
+            source_token *error_at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration: "
+                   " encountered '%s'.\n",
+                    file_name, line, column, error, sline, token_encountered);
+
+            source_token_string_unnullify(error_at, hold);
         } break;
 
         case PARSE_ERROR_EXPECTED_ASSIGNMENT:

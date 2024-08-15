@@ -139,13 +139,9 @@ void    source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc6
 //
 //      program                 :   (global_statement)* "begin" (statement)* "end" ; EOF
 //      global_statement        :   import_statement | procedure_statement | function_statement
-//                                  comment_statement | newline_statement
 //      statement               :   declaration_statement | expression_statement | invoke_statement
 //                                  scope_statement | while_statement | loop_statement
 //                                  conditional_statement | procedure_statement | function_statement
-//                                  comment_statement | newline_statement
-//      comment_statement       :   "{" * "}"
-//      newline_statement       :   "\n"
 //      import_statement        :   "import" identifier ;
 //      function_statement      :   "function" identifier (identifier)* ; (statement)* "endfunction" ;
 //      procedure_statement     :   "procedure" identifer (identifier)* ; (statement)* "endprocedure" ;
@@ -218,6 +214,8 @@ typedef enum syntax_node_type
     IF_STATEMENT_NODE,
     ELSEIF_STATEMENT_NODE,
     PROCEDURE_STATEMENT_NODE,
+    FUNCTION_STATEMENT_NODE,
+    PARAMETER_STATEMENT_NODE,
     VARIABLE_STATEMENT_NODE,
     PROGRAM_ROOT_NODE,
 } syntax_node_type;
@@ -288,12 +286,6 @@ typedef struct primary_syntax_node
     object_type type;
 } primary_syntax_node;
 
-typedef struct parameter_syntax_node
-{
-    syntax_node *expression;
-    syntax_node *next_parameter;
-} parameter_syntax_node;
-
 typedef struct assignment_syntax_node
 {
     cc64 identifier;
@@ -350,6 +342,25 @@ typedef struct if_syntax_node
     syntax_node *else_statement;
 } if_syntax_node;
 
+typedef struct procedure_syntax_node
+{
+    cc64 name;
+    syntax_node *body_statements;
+    syntax_node *parameters;
+} procedure_syntax_node;
+
+typedef struct function_syntax_node
+{
+    cc64 name;
+    syntax_node *body_statements;
+} function_syntax_node;
+
+typedef struct parameter_syntax_node
+{
+    cc64 name;
+    syntax_node *next_parameter;
+} parameter_syntax_node;
+
 typedef struct program_syntax_node
 {
     syntax_node *global_statements;
@@ -369,14 +380,15 @@ typedef struct syntax_node
         primary_syntax_node     primary;
         grouping_syntax_node    grouping;
         assignment_syntax_node  assignment;
-
         variable_syntax_node    variable;
         scope_syntax_node       scope;
         while_syntax_node       while_loop;
         loop_syntax_node        for_loop;
         if_syntax_node          if_conditional;
         elseif_syntax_node      elseif_conditional;
-
+        procedure_syntax_node   procedure;
+        function_syntax_node    function;
+        parameter_syntax_node   parameter;
         program_syntax_node     program;
     };
 
@@ -402,22 +414,36 @@ typedef struct source_parser
     u64 error_count;
 } source_parser;
 
+// --- Expressions -------------------------------------------------------------
+
 syntax_node* source_parser_match_primary(source_parser *parser);
-syntax_node* source_parser_match_call(source_parser *parser);
+syntax_node* source_parser_match_function_call(source_parser *parser);
 syntax_node* source_parser_match_unary(source_parser *parser);
 syntax_node* source_parser_match_factor(source_parser *parser);
 syntax_node* source_parser_match_term(source_parser *parser);
 syntax_node* source_parser_match_comparison(source_parser *parser);
 syntax_node* source_parser_match_equality(source_parser *parser);
-syntax_node* source_parser_match_assignment(source_parser *parser);
 syntax_node* source_parser_match_expression(source_parser *parser);
+
+// --- Expression Statements ---------------------------------------------------
+
+syntax_node* source_parser_match_procedure_call(source_parser *parser);
+syntax_node* source_parser_match_assignment(source_parser *parser);
+
+// --- Root Statements ---------------------------------------------------------
 
 syntax_node* source_parser_match_variable_statement(source_parser *parser);
 syntax_node* source_parser_match_scope_statement(source_parser *parser);
 syntax_node* source_parser_match_while_statement(source_parser *parser);
 syntax_node* source_parser_match_loop_statement(source_parser *parser);
+syntax_node* source_parser_match_procedure_statement(source_parser *parser);
+syntax_node* source_parser_match_function_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
+
+syntax_node* source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena);
+
+// --- Helpers -----------------------------------------------------------------
 
 source_token source_parser_get_previous_token(source_parser *parser);
 source_token source_parser_get_current_token(source_parser *parser);
@@ -427,15 +453,6 @@ source_token source_parser_consume_token(source_parser *parser);
 syntax_node* source_parser_push_node(source_parser *parser);
 
 cc64 source_parser_insert_into_string_pool(source_parser *parser, cc64 string);
-
-void source_parser_push_symbol_table(source_parser *parser);
-void source_parser_pop_symbol_table(source_parser *parser);
-symbol* source_parser_insert_into_symbol_table(source_parser *parser, cc64 identifier);
-symbol* source_parser_locate_symbol(source_parser *parser, cc64 identifer);
-b32 source_parser_identifier_is_declared(source_parser *parser, cc64 identifier);
-b32 source_parser_identifier_is_declared_in_scope(source_parser *parser, cc64 identifier);
-b32 source_parser_identifier_is_declared_above_scope(source_parser *parser, cc64 identifier);
-b32 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier);
 
 b32 source_parser_should_break_on_eof(source_parser *parser);
 b32 source_parser_expect_token(source_parser *parser, source_token_type type);
@@ -447,7 +464,16 @@ b32 source_parser_synchronize_to(source_parser *parser, source_token_type type);
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
 object_type source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object);
 
-syntax_node* source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena);
+// --- Symbol Table Helpers ----------------------------------------------------
+
+void source_parser_push_symbol_table(source_parser *parser);
+void source_parser_pop_symbol_table(source_parser *parser);
+symbol* source_parser_insert_into_symbol_table(source_parser *parser, cc64 identifier);
+symbol* source_parser_locate_symbol(source_parser *parser, cc64 identifer);
+b32 source_parser_identifier_is_declared(source_parser *parser, cc64 identifier);
+b32 source_parser_identifier_is_declared_in_scope(source_parser *parser, cc64 identifier);
+b32 source_parser_identifier_is_declared_above_scope(source_parser *parser, cc64 identifier);
+b32 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier);
 
 // --- Error Handling ----------------------------------------------------------
 //
@@ -481,6 +507,12 @@ typedef enum parse_error_type
     PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION,
     PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP,
+    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE,
+    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS,
+    PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED,
+    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION,
+    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS,
+    PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED,
     PARSE_ERROR_SYMBOL_UNLOCATABLE,
     PARSE_ERROR_VARIABLE_REDECLARATION,
 } parse_error_type;
