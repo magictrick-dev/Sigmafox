@@ -353,6 +353,7 @@ typedef struct function_syntax_node
 {
     cc64 name;
     syntax_node *body_statements;
+    syntax_node *parameters;
 } function_syntax_node;
 
 typedef struct parameter_syntax_node
@@ -514,6 +515,7 @@ typedef enum parse_error_type
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS,
     PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED,
+    PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED,
     PARSE_ERROR_EXPECTED_ENDFUNCTION,
     PARSE_ERROR_SYMBOL_UNLOCATABLE,
     PARSE_ERROR_VARIABLE_REDECLARATION,

@@ -2143,13 +2143,7 @@ source_parser_match_procedure_statement(source_parser *parser)
         parser_error_handler_display_error(parser,
                 PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
         source_parser_should_propagate_error(NULL, parser, mem_state);
-
-        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
-        {
-            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
-                source_parser_consume_token(parser);
-        }
-
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
 
     }
@@ -2163,8 +2157,230 @@ source_parser_match_procedure_statement(source_parser *parser)
 syntax_node* 
 source_parser_match_function_statement(source_parser *parser)
 {
-    
-    return NULL;
+ 
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    // Consume the FUNCTION token.
+    source_parser_consume_token(parser);
+
+    // The first identifier is the name of procedure.
+    if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+    }
+
+    // Get the identifier.
+    source_token identifier = source_parser_consume_token(parser);
+    object_literal object = {0};
+    object_type type = source_parser_token_to_literal(parser, &identifier, &object);
+    assert(type == OBJECT_IDENTIFIER); // This should always be true.
+
+    // We need to check if the identifier for the procedure is already declared.
+    if (source_parser_identifier_is_declared(parser, object.identifier))
+    {
+        
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // The procedure wasn't declared, so we define it here. This goes in the parent
+    // scope.
+    //
+    // NOTE(Chris): Do we want to limit the scope depth of function/procedure decs?
+    //              We can probably do this grammatically rather than coding for an
+    //              edge case.
+    symbol *param_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
+    param_symbol->type = SYMBOL_TYPE_FUNCTION;
+
+    // Push the node.
+    syntax_node *function_node = source_parser_push_node(parser);
+    function_node->type = FUNCTION_STATEMENT_NODE;
+    function_node->function.name = object.identifier;
+
+    // We can push the scope here.
+    source_parser_push_symbol_table(parser);
+
+    // Push the return symbol onto the stack. When we do this, the variable must evaluate
+    // to be defined by the end of the function call, otherwise it is an error.
+    symbol *return_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
+    return_symbol->type = SYMBOL_TYPE_UNDEFINED;
+
+    // Process all identifiers until semicolon, these are the parameters. These
+    // parameters are also shoved into the scope for validation.
+    syntax_node *head_parameter_node = NULL;
+    syntax_node *last_parameter_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_SEMICOLON))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        
+        // Each parameter must be an identifier.
+        if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+        {
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS, __LINE__);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+
+            if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
+            {
+                if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                    source_parser_consume_token(parser);
+            }
+
+            return NULL;
+        }
+
+        // Get the identifier.
+        source_token identifier = source_parser_consume_token(parser);
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser, &identifier, &object);
+        assert(type == OBJECT_IDENTIFIER); // This should always be true.
+
+        // Create the parameter node.
+        syntax_node *param_node = source_parser_push_node(parser);
+        param_node->type = PARAMETER_STATEMENT_NODE;
+        param_node->parameter.name = object.identifier;
+        param_node->parameter.next_parameter = NULL;
+
+        symbol *param_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
+        param_symbol->type = SYMBOL_TYPE_VARIABLE;
+
+        if (head_parameter_node == NULL)
+        {
+            head_parameter_node = param_node;
+            last_parameter_node = param_node;
+        }
+
+        else
+        {
+            last_parameter_node->parameter.next_parameter = param_node;
+            last_parameter_node = param_node;
+        }
+
+    }
+
+    // We should be at the semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+
+        if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
+        {
+            if (source_parser_expect_token(parser, TOKEN_SEMICOLON))
+                source_parser_consume_token(parser);
+        }
+
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    // Set the parameter node in the procedure. This may be NULL, which is fine.
+    function_node->function.parameters = head_parameter_node;
+
+    // Finally, we process all body statements.
+    syntax_node *head_statement_node = NULL;
+    syntax_node *last_statement_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_ENDFUNCTION))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        syntax_node *statement = source_parser_match_statement(parser);
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_statement_node == NULL)
+        {
+            head_statement_node = statement;
+            last_statement_node = statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_statement_node->next_node = statement;   
+            last_statement_node = statement;
+        }
+
+    }
+
+    // Expecting the ENDFUNCTION.
+    if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDFUNCTION))
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_ENDFUNCTION, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION);
+        return NULL;
+    }
+
+
+    // Consume the ENDFUNCTION.
+    source_parser_consume_token(parser);
+
+    // Here's the kicker, we need to now make sure the function's name is considered
+    // defined. We can easily check that.
+    if (return_symbol->type != SYMBOL_TYPE_VARIABLE)
+    {
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+    }
+
+    // Pop the scope once we're done.
+    source_parser_pop_symbol_table(parser);
+    function_node->function.body_statements = head_statement_node;
+
+    // Now, at the end of all this jank, we expect the semicolon.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+
+    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    return function_node;
+
 }
 
 syntax_node*
@@ -2901,6 +3117,27 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
         } break;
 
+        case PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED:
+        {
+
+            source_token *error_at = parser->previous_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): return value of function not defined.\n",
+                    file_name, line, column, error, sline);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
         case PARSE_ERROR_EXPECTED_ENDWHILE:
         {
 
@@ -3234,7 +3471,7 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration: "
+            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration:"
                    " encountered '%s'.\n",
                     file_name, line, column, error, sline, token_encountered);
 
@@ -3255,7 +3492,7 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration: "
+            printf("%s (%d,%d) (error:%d:%llu): procedure name already defined in scope:"
                    " encountered '%s'.\n",
                     file_name, line, column, error, sline, token_encountered);
 
@@ -3275,7 +3512,7 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration: "
+            printf("%s (%d,%d) (error:%d:%llu): function name already defined in scope:"
                    " encountered '%s'.\n",
                     file_name, line, column, error, sline, token_encountered);
 
@@ -3416,6 +3653,31 @@ parser_print_tree(syntax_node *root_node)
         case PARAMETER_STATEMENT_NODE:
         {
             printf("%s", root_node->parameter.name);
+        } break;
+
+        case FUNCTION_STATEMENT_NODE:
+        {
+
+            printf("function %s ( ", root_node->procedure.name);
+            syntax_node *params = root_node->procedure.parameters;
+            while (params != NULL)
+            {
+                parser_print_tree(params);
+                if (params->parameter.next_parameter != NULL) printf(", ");
+                params = params->parameter.next_parameter;
+            }
+
+            printf(" )\n");
+            printf("{\n");
+            syntax_node *current_node = root_node->procedure.body_statements;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                printf(";\n");
+                current_node = current_node->next_node;
+            }
+            printf("}");
+
         } break;
 
         case PROCEDURE_STATEMENT_NODE:

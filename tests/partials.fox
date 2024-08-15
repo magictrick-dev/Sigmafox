@@ -65,6 +65,15 @@ begin;
         variable sum 4 := a + b;
     endprocedure;
 
+    function square a;
+        variable result 4 := a * a;
+        square := result;
+        variable other_stuff 4 := a / a;
+        if a # 1;
+            a := 1;
+        endif;
+    endfunction;
+
     variable before_end_statement 4;
 
 end;
