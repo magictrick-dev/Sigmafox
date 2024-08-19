@@ -21,6 +21,7 @@ typedef struct symbol
     symbol_type type;
     u32 hash;
     b32 active;
+    i32 arity;
 } symbol;
 
 typedef struct symbol_table

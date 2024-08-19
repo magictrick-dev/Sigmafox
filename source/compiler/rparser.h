@@ -292,6 +292,18 @@ typedef struct assignment_syntax_node
     syntax_node *right;
 } assignment_syntax_node;
 
+typedef struct procedure_call_syntax_node
+{
+    cc64 identifier;
+    syntax_node *parameters;
+} procedure_call_syntax_node;
+
+typedef struct function_call_syntax_node 
+{
+    cc64 identifier;
+    syntax_node *parameters;
+} function_call_syntax_node;
+
 typedef struct call_syntax_node 
 {
     object_literal call_identifier;
@@ -391,6 +403,8 @@ typedef struct syntax_node
         function_syntax_node    function;
         parameter_syntax_node   parameter;
         program_syntax_node     program;
+        procedure_call_syntax_node  proc_call;
+        function_call_syntax_node   func_call;
     };
 
 } syntax_node;
@@ -428,8 +442,8 @@ syntax_node* source_parser_match_expression(source_parser *parser);
 
 // --- Expression Statements ---------------------------------------------------
 
-syntax_node* source_parser_match_procedure_call(source_parser *parser);
 syntax_node* source_parser_match_assignment(source_parser *parser);
+syntax_node* source_parser_match_procedure_call(source_parser *parser);
 
 // --- Root Statements ---------------------------------------------------------
 
@@ -515,6 +529,8 @@ typedef enum parse_error_type
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS,
     PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED,
+    PARSE_ERROR_EXPECTED_PRIMARY_IN_PROC_CALL,
+    PARSE_ERROR_EXPECTED_PRIMARY_IN_FUNC_CALL,
     PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED,
     PARSE_ERROR_EXPECTED_ENDFUNCTION,
     PARSE_ERROR_SYMBOL_UNLOCATABLE,

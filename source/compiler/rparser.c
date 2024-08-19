@@ -1030,6 +1030,80 @@ source_parser_match_expression(source_parser *parser)
 
 }
 
+syntax_node* 
+source_parser_match_procedure_call(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    if (source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser,
+                parser->current_token, &object);
+        cc64 identifier = object.identifier;
+
+        // If it isn't defined, then its probably not a procedure.
+        if (!source_parser_identifier_is_defined(parser, identifier))
+        {
+            syntax_node *forward = source_parser_match_expression(parser);
+            return forward;
+        }
+
+        // Check if it is procedure call.
+        symbol *procedure_call = source_parser_locate_symbol(parser, identifier);
+        if (procedure_call->type != SYMBOL_TYPE_PROCEDURE)
+        {
+            syntax_node *forward = source_parser_match_expression(parser);
+            return forward;
+        }
+
+        // Consume the identifier token.
+        source_parser_consume_token(parser);
+
+        // Now we process expressions until semicolon. Expressions are self-validating
+        // and therefore we only need to collect them.
+        syntax_node *head_parameter_node = NULL;
+        syntax_node *last_parameter_node = NULL;
+        i32 arity_count = 0;
+        while (!source_parser_match_token(parser, 1, TOKEN_SEMICOLON))
+        {
+
+            if (source_parser_should_break_on_eof(parser)) break;
+ 
+            // TODO(Chris): Collect expression statements.
+
+            // Create the parameter node.
+            syntax_node *param_node = source_parser_push_node(parser);
+            param_node->type = PARAMETER_STATEMENT_NODE;
+            param_node->parameter.name = object.identifier;
+            param_node->parameter.next_parameter = NULL;
+
+            if (head_parameter_node == NULL)
+            {
+                head_parameter_node = param_node;
+                last_parameter_node = param_node;
+            }
+
+            else
+            {
+                last_parameter_node->parameter.next_parameter = param_node;
+                last_parameter_node = param_node;
+            }
+
+            arity_count++;
+
+        }
+        
+
+    }
+
+    syntax_node *forward = source_parser_match_expression(parser);
+    return forward;
+
+}
+
 syntax_node*
 source_parser_match_assignment(source_parser *parser)
 {
@@ -1093,7 +1167,7 @@ source_parser_match_assignment(source_parser *parser)
         
     }
 
-    syntax_node *forward = source_parser_match_expression(parser);
+    syntax_node *forward = source_parser_match_procedure_call(parser);
     return forward;
 
 }
@@ -2012,6 +2086,7 @@ source_parser_match_procedure_statement(source_parser *parser)
     // parameters are also shoved into the scope for validation.
     syntax_node *head_parameter_node = NULL;
     syntax_node *last_parameter_node = NULL;
+    i32 arity_count = 0;
     while (!source_parser_match_token(parser, 1, TOKEN_SEMICOLON))
     {
 
@@ -2060,6 +2135,8 @@ source_parser_match_procedure_statement(source_parser *parser)
             last_parameter_node = param_node;
         }
 
+        arity_count++;
+
     }
 
     // We should be at the semicolon.
@@ -2085,6 +2162,7 @@ source_parser_match_procedure_statement(source_parser *parser)
 
     // Set the parameter node in the procedure. This may be NULL, which is fine.
     procedure_node->procedure.parameters = head_parameter_node;
+    param_symbol->arity = arity_count;
 
     // Finally, we process all body statements.
     syntax_node *head_statement_node = NULL;
@@ -2229,6 +2307,7 @@ source_parser_match_function_statement(source_parser *parser)
     // parameters are also shoved into the scope for validation.
     syntax_node *head_parameter_node = NULL;
     syntax_node *last_parameter_node = NULL;
+    i32 arity_count = 0;
     while (!source_parser_match_token(parser, 1, TOKEN_SEMICOLON))
     {
 
@@ -2277,6 +2356,8 @@ source_parser_match_function_statement(source_parser *parser)
             last_parameter_node = param_node;
         }
 
+        arity_count++;
+
     }
 
     // We should be at the semicolon.
@@ -2302,6 +2383,7 @@ source_parser_match_function_statement(source_parser *parser)
 
     // Set the parameter node in the procedure. This may be NULL, which is fine.
     function_node->function.parameters = head_parameter_node;
+    param_symbol->arity = arity_count;
 
     // Finally, we process all body statements.
     syntax_node *head_statement_node = NULL;
@@ -3537,6 +3619,46 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
                     file_name, line, column, error, sline);
 
             source_token_string_unnullify(error_at, hold);
+        } break;
+
+        case PARSE_ERROR_EXPECTED_PRIMARY_IN_PROC_CALL:
+        {
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected primary in procedure call args.\n",
+                    file_name, line, column, error, sline);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_EXPECTED_PRIMARY_IN_FUNC_CALL:
+        {
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected primary in function call args.\n",
+                    file_name, line, column, error, sline);
+
+            source_token_string_unnullify(error_at, hold);
+
         } break;
 
         case PARSE_ERROR_VARIABLE_REDECLARATION:
