@@ -204,6 +204,8 @@ typedef enum syntax_node_type
     CALL_EXPRESSION_NODE,
     GROUPING_EXPRESSION_NODE,
     ASSIGNMENT_EXPRESSION_NODE,
+    PROCEDURE_CALL_EXPRESSION_NODE,
+    FUNCTION_CALL_EXPRESSION_NODE,
     EXPRESSION_STATEMENT_NODE,
     COMMENT_STATEMENT_NODE,
     NEWLINE_STATEMENT_NODE,
@@ -303,14 +305,6 @@ typedef struct function_call_syntax_node
     cc64 identifier;
     syntax_node *parameters;
 } function_call_syntax_node;
-
-typedef struct call_syntax_node 
-{
-    object_literal call_identifier;
-    object_type call_type;
-    syntax_node *parameter_list;
-    u64 parameter_count; 
-} call_syntax_node;
 
 typedef struct variable_syntax_node
 {
@@ -529,8 +523,8 @@ typedef enum parse_error_type
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS,
     PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED,
-    PARSE_ERROR_EXPECTED_PRIMARY_IN_PROC_CALL,
-    PARSE_ERROR_EXPECTED_PRIMARY_IN_FUNC_CALL,
+    PARSE_ERROR_PROCEDURE_ARITY_MISMATCH,
+    PARSE_ERROR_FUNCTION_ARITY_MISMATCH,
     PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED,
     PARSE_ERROR_EXPECTED_ENDFUNCTION,
     PARSE_ERROR_SYMBOL_UNLOCATABLE,

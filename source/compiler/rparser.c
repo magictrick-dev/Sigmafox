@@ -1072,30 +1072,59 @@ source_parser_match_procedure_call(source_parser *parser)
 
             if (source_parser_should_break_on_eof(parser)) break;
  
-            // TODO(Chris): Collect expression statements.
+            syntax_node *parameter = source_parser_match_expression(parser);
+            if (source_parser_should_propagate_error(parameter, parser, mem_state))
+            {
+                source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+                return NULL;
+            }
 
-            // Create the parameter node.
-            syntax_node *param_node = source_parser_push_node(parser);
-            param_node->type = PARAMETER_STATEMENT_NODE;
-            param_node->parameter.name = object.identifier;
-            param_node->parameter.next_parameter = NULL;
-
+            // Set the parameter.
             if (head_parameter_node == NULL)
             {
-                head_parameter_node = param_node;
-                last_parameter_node = param_node;
+                head_parameter_node = parameter;
+                last_parameter_node = parameter;
             }
 
             else
             {
-                last_parameter_node->parameter.next_parameter = param_node;
-                last_parameter_node = param_node;
+                last_parameter_node->next_node = parameter;
+                last_parameter_node = parameter;
             }
 
             arity_count++;
 
         }
+
+        syntax_node *call_node = source_parser_push_node(parser);
+        call_node->type = PROCEDURE_CALL_EXPRESSION_NODE;
+        call_node->proc_call.identifier = identifier;
+        call_node->proc_call.parameters = head_parameter_node;
         
+        if (arity_count != procedure_call->arity)
+        {
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_PROCEDURE_ARITY_MISMATCH, __LINE__); 
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // Get that semicolon.
+        if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+        {
+
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+            return NULL;
+
+        }
+
+        // Consume it.
+        source_parser_consume_token(parser);
+        
+        return call_node;
 
     }
 
@@ -3621,7 +3650,7 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             source_token_string_unnullify(error_at, hold);
         } break;
 
-        case PARSE_ERROR_EXPECTED_PRIMARY_IN_PROC_CALL:
+        case PARSE_ERROR_PROCEDURE_ARITY_MISMATCH:
         {
             source_token *error_at = parser->current_token;
             cc64 file_name = parser->tokenizer.file_path;
@@ -3634,14 +3663,14 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s (%d,%d) (error:%d:%llu): expected primary in procedure call args.\n",
+            printf("%s (%d,%d) (error:%d:%llu): argument count in procedure call is incorrect.\n",
                     file_name, line, column, error, sline);
 
             source_token_string_unnullify(error_at, hold);
 
         } break;
 
-        case PARSE_ERROR_EXPECTED_PRIMARY_IN_FUNC_CALL:
+        case PARSE_ERROR_FUNCTION_ARITY_MISMATCH:
         {
             source_token *error_at = parser->current_token;
             cc64 file_name = parser->tokenizer.file_path;
@@ -3654,7 +3683,7 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
             char hold;
             cc64 token_encountered = source_token_string_nullify(error_at, &hold);
 
-            printf("%s (%d,%d) (error:%d:%llu): expected primary in function call args.\n",
+            printf("%s (%d,%d) (error:%d:%llu): argument count in function call is incorrect.\n",
                     file_name, line, column, error, sline);
 
             source_token_string_unnullify(error_at, hold);
