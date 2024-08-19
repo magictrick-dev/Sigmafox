@@ -867,6 +867,119 @@ source_parser_match_primary(source_parser *parser)
 }
 
 syntax_node*
+source_parser_match_function_call(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    if (source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser,
+                parser->current_token, &object);
+        cc64 identifier = object.identifier;
+
+        // If it isn't defined, then its probably not a procedure.
+        if (!source_parser_identifier_is_defined(parser, identifier))
+        {
+            syntax_node *forward = source_parser_match_primary(parser);
+            return forward;
+        }
+
+        // Check if it is procedure call.
+        symbol *procedure_call = source_parser_locate_symbol(parser, identifier);
+        if (procedure_call->type != SYMBOL_TYPE_FUNCTION)
+        {
+            syntax_node *forward = source_parser_match_primary(parser);
+            return forward;
+        }
+
+        // Consume the identifier token.
+        source_parser_consume_token(parser);
+
+        // Check for left bracket.
+        if (!source_parser_expect_token(parser, TOKEN_LEFT_PARENTHESIS))
+        {
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_FUNCTION_MISSING_LEFT_PARENTHESIS, __LINE__); 
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // Consume left parenthesis.
+        source_parser_consume_token(parser);
+
+        // Now we process expressions until semicolon. Expressions are self-validating
+        // and therefore we only need to collect them.
+        syntax_node *head_parameter_node = NULL;
+        syntax_node *last_parameter_node = NULL;
+        i32 arity_count = 0;
+        while (!source_parser_match_token(parser, 2, TOKEN_RIGHT_PARENTHESIS, TOKEN_SEMICOLON))
+        {
+
+            if (source_parser_should_break_on_eof(parser)) break;
+ 
+            syntax_node *parameter = source_parser_match_expression(parser);
+            if (source_parser_should_propagate_error(parameter, parser, mem_state))
+            {
+                return NULL;
+            }
+
+            // Set the parameter.
+            if (head_parameter_node == NULL)
+            {
+                head_parameter_node = parameter;
+                last_parameter_node = parameter;
+            }
+
+            else
+            {
+                last_parameter_node->next_node = parameter;
+                last_parameter_node = parameter;
+            }
+
+            arity_count++;
+
+        }
+
+        // Check for right bracket.
+        if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
+        {
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_FUNCTION_MISSING_RIGHT_PARENTHESIS, __LINE__); 
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // Consume right parenthesis.
+        source_parser_consume_token(parser);
+
+        syntax_node *call_node = source_parser_push_node(parser);
+        call_node->type = FUNCTION_CALL_EXPRESSION_NODE;
+        call_node->func_call.identifier = identifier;
+        call_node->func_call.parameters = head_parameter_node;
+        
+        if (arity_count != procedure_call->arity)
+        {
+            parser_error_handler_display_error(parser,
+                    PARSE_ERROR_FUNCTION_ARITY_MISMATCH, __LINE__); 
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // We don't check for semicolons here.
+        
+        return call_node;
+
+    }
+
+    syntax_node *forward = source_parser_match_primary(parser);
+    return forward;
+
+}
+
+syntax_node*
 source_parser_match_unary(source_parser *parser)
 {
 
@@ -890,7 +1003,7 @@ source_parser_match_unary(source_parser *parser)
 
     }
 
-    syntax_node *right = source_parser_match_primary(parser);
+    syntax_node *right = source_parser_match_function_call(parser);
 
     return right;
 
@@ -1109,20 +1222,7 @@ source_parser_match_procedure_call(source_parser *parser)
             return NULL;
         }
 
-        // Get that semicolon.
-        if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
-        {
-
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
-            source_parser_should_propagate_error(NULL, parser, mem_state);
-            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
-            return NULL;
-
-        }
-
-        // Consume it.
-        source_parser_consume_token(parser);
+        // We don't check for semicolons here.
         
         return call_node;
 
@@ -3690,6 +3790,46 @@ parser_error_handler_display_error(source_parser *parser, parse_error_type error
 
         } break;
 
+        case PARSE_ERROR_FUNCTION_MISSING_LEFT_PARENTHESIS:
+        {
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected '(' in expression for function call.\n",
+                    file_name, line, column, error, sline);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
+        case PARSE_ERROR_FUNCTION_MISSING_RIGHT_PARENTHESIS:
+        {
+            source_token *error_at = parser->current_token;
+            cc64 file_name = parser->tokenizer.file_path;
+
+            i32 line;
+            i32 column;
+
+            source_token_position(error_at, &line, &column);
+
+            char hold;
+            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
+
+            printf("%s (%d,%d) (error:%d:%llu): expected ')' in expression for function call.\n",
+                    file_name, line, column, error, sline);
+
+            source_token_string_unnullify(error_at, hold);
+
+        } break;
+
         case PARSE_ERROR_VARIABLE_REDECLARATION:
         {
             source_token *error_at = parser->previous_token;
@@ -3798,6 +3938,36 @@ parser_print_tree(syntax_node *root_node)
                 current_node = current_node->next_node;
             }
             printf("}");
+
+        } break;
+
+        case PROCEDURE_CALL_EXPRESSION_NODE:
+        {
+
+            printf("%s(", root_node->proc_call.identifier);
+            syntax_node *params = root_node->proc_call.parameters;
+            while(params != NULL)
+            {
+                parser_print_tree(params);
+                if (params->next_node != NULL) printf(", ");
+                params = params->next_node;
+            }
+            printf(")");
+
+        } break;
+
+        case FUNCTION_CALL_EXPRESSION_NODE:
+        {
+
+            printf("f:%s(", root_node->proc_call.identifier);
+            syntax_node *params = root_node->proc_call.parameters;
+            while(params != NULL)
+            {
+                parser_print_tree(params);
+                if (params->next_node != NULL) printf(", ");
+                params = params->next_node;
+            }
+            printf(")");
 
         } break;
 

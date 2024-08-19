@@ -74,6 +74,9 @@ begin;
         endif;
     endfunction;
 
+    add_numbers foo (bar + 91);
+    variable fcall_test 4 := square(foo) * (10/5);
+
     variable before_end_statement 4;
 
 end;
