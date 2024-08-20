@@ -112,3 +112,48 @@ fileio_file_is_file(const char* file_path)
         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 
 }
+
+// --- File Streaming ----------------------------------------------------------
+
+void* 
+fileio_write_stream_open(cc64 path)
+{
+    HANDLE file_handle = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_WRITE,
+            NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file_handle == INVALID_HANDLE_VALUE)
+        return NULL;
+    return file_handle;
+}
+
+void 
+fileio_write_stream_close(void *handle)
+{
+    assert(handle != NULL);
+    CloseHandle((HANDLE)handle);
+}
+
+void 
+fileio_write_stream_write(void *handle, void* buffer, u64 size)
+{
+
+    DWORD bytes_written = 0;
+    BOOL write_status = WriteFile((HANDLE)handle, buffer, (DWORD)size, &bytes_written, NULL);
+
+    // Check for write error.
+    DWORD errorMessageID = GetLastError();
+    if(errorMessageID != 0 && errorMessageID != ERROR_ALREADY_EXISTS)
+    {
+        LPSTR messageBuffer = NULL;
+        u64 size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID, 
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+        
+        printf("-- Write Error: %s\n", messageBuffer);
+        
+        LocalFree(messageBuffer);
+    }
+    
+    assert(size == bytes_written);
+
+}
+

@@ -19,4 +19,10 @@ void fileio_file_get_full_path(cc64 path, c64 path_buffer, u64 buffer_size);
 b32 fileio_file_is_directory(cc64 file_path);
 b32 fileio_file_is_file(cc64 file_path);
 
+// --- File Streaming ----------------------------------------------------------
+
+void* fileio_write_stream_open(cc64 path);
+void fileio_write_stream_close(void *handle);
+void fileio_write_stream_write(void *handle, void* buffer, u64 size);
+
 #endif

@@ -39,6 +39,8 @@ add_executable(Sigmafox
     "source/compiler/stringpool.c"
     "source/compiler/symboltable.h"
     "source/compiler/symboltable.c"
+    "source/compiler/generation.h"
+    "source/compiler/generation.c"
     
     "source/platform/fileio.h"
     "source/platform/system.h"

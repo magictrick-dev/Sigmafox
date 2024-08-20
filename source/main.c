@@ -2,6 +2,7 @@
 #include <core/cli.h>
 #include <platform/system.h>
 #include <compiler/rparser.h>
+#include <compiler/generation.h>
 
 int
 main(int argc, char ** argv)
@@ -46,15 +47,16 @@ main(int argc, char ** argv)
 
     if (root != NULL)
     {
-        parser_print_tree(root);
-        printf("\n\n");
-        printf("Transpilation was successful.\n");
+        //parser_print_tree(root);
+        transpile_syntax_tree(root, &primary_arena, "project.cpp");
+        
+        printf("-- Transpilation was successful.\n");
         return 0;
     }
 
     else
     {
-        printf("Transpilation failed.\n");
+        printf("-- Transpilation failed.\n");
         return 1;
     }
 
