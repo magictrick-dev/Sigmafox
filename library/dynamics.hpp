@@ -1,0 +1,5 @@
+#ifndef SIGMAFOX_LIBRARY_DYNAMICS_HPP
+#define SIGMAFOX_LIBRARY_DYNAMICS_HPP
+#include <cstdint>
+
+#endif
