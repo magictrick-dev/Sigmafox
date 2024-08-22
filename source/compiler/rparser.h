@@ -238,12 +238,15 @@ typedef enum syntax_operation_type
     OPERATION_ASSIGNMENT,
 } syntax_operation_type;
 
-typedef union object_literal
+typedef struct object_literal
 {
-    u64 unsigned_integer;
-    i64 signed_integer;
-    b64 boolean;
-    r64 real;
+
+    union {
+        u64 unsigned_integer;
+        i64 signed_integer;
+        b64 boolean;
+        r64 real;
+    };
 
     union {
         cc64 string;

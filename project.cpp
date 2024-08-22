@@ -5,8 +5,18 @@
 int
 main(int argc, char **argv)
 {
-    
-    std::string message = "Hello, world!";
-    std::cout << message << std::endl;
-    
+
+    int a = 4;
+    int b = 6;
+    int result = a + b;
+
+    {
+
+        int a = 7;
+        int b = 3;
+        int result = a + b;
+
+    };
+
+
 }

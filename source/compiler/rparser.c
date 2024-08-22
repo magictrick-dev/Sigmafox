@@ -2940,6 +2940,8 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
 
             char hold;
             cc64 token_string = source_token_string_nullify(token, &hold);
+            cc64 pool_string = source_parser_insert_into_string_pool(parser, token_string);
+            object->identifier = pool_string;
 
             double result = atof(token_string);
             object->real = result;
@@ -2955,6 +2957,8 @@ source_parser_token_to_literal(source_parser *parser, source_token *token, objec
 
             char hold;
             cc64 token_string = source_token_string_nullify(token, &hold);
+            cc64 pool_string = source_parser_insert_into_string_pool(parser, token_string);
+            object->identifier = pool_string;
 
             i64 result = atoll(token_string);
             object->signed_integer = result;

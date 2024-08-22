@@ -35,13 +35,20 @@ typedef struct source_file
 
 // --- Traversals --------------------------------------------------------------
 
+void transpile_binary_node(syntax_node *root_node, source_file *file, memory_arena *arena);
+void transpile_unary_node(syntax_node *root_node, source_file *file, memory_arena *arena);
+void transpile_grouping_node(syntax_node *root_node, source_file *file, memory_arena *arena);
+void transpile_scope_node(syntax_node *root_node, source_file *file, memory_arena *arena);
+void transpile_variable_node(syntax_node *root_node, source_file *file, memory_arena *arena);
 void transpile_program_node(syntax_node *root_node, source_file *file, memory_arena *arena);
+void transpile_node(syntax_node *root_node, source_file *file, memory_arena *arena);
 void transpile_syntax_tree(syntax_node *root_node, memory_arena *arena, cc64 output_name);
 
 // --- Helpers -----------------------------------------------------------------
 
 void push_tabs_at(source_section *section);
 void pop_tabs_at(source_section *section);
+void insert_tabbing_at(source_section *section, memory_arena *arena);
 void insert_text_at(source_section *section, memory_arena *arena, cc64 text);
 
 #endif

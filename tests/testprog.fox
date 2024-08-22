@@ -1,0 +1,10 @@
+begin;
+    variable a 4 := 4;
+    variable b 4 := 6;
+    variable result 4 := a + b;
+    scope;
+        variable a 4 := 7;
+        variable b 4 := 3;
+        variable result 4 := a + b;
+    endscope;
+end;

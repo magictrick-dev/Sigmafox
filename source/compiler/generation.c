@@ -8,6 +8,8 @@ transpile_scope_node(syntax_node *root_node, source_file *file, memory_arena *ar
 
     assert(root_node->type == SCOPE_STATEMENT_NODE);
 
+    insert_text_at(file->body, arena, "\n");
+    insert_tabbing_at(file->body, arena);
     insert_text_at(file->body, arena, "{\n\n");
     push_tabs_at(file->body);
         
@@ -15,13 +17,15 @@ transpile_scope_node(syntax_node *root_node, source_file *file, memory_arena *ar
         while(current_node != NULL)
         {
             
-            transpile_node(current_node);
-            current_node = root_node->next_node;
+            transpile_node(current_node, file, arena);
+            current_node = current_node->next_node;
 
         }
 
     pop_tabs_at(file->body);
-    insert_text_at(file->body, arena, "\n\n}");
+    insert_text_at(file->body, arena, "\n");
+    insert_tabbing_at(file->body, arena);
+    insert_text_at(file->body, arena, "};\n\n");
 
 }
 
@@ -40,29 +44,30 @@ transpile_program_node(syntax_node *root_node, source_file *file, memory_arena *
         while (current_node != NULL)
         {
 
-            transpile_node(current_node);
+            transpile_node(current_node, file, arena);
             current_node = current_node->next_node;
 
         }
 
     pop_tabs_at(file->body);
-    insert_text_at(file->body, arena, "\n\n}\n");
+    insert_text_at(file->body, arena, "\n}\n");
 
 }
 
 void
-transpile_variable_statement(syntax_node *root_node, source_file *file, memory_arena *arena)
+transpile_variable_node(syntax_node *root_node, source_file *file, memory_arena *arena)
 {
 
-    assert(root_node->VARIABLE_STATEMENT_NODE);
+    assert(root_node->type == VARIABLE_STATEMENT_NODE);
 
+    insert_tabbing_at(file->body, arena);
     insert_text_at(file->body, arena, "int ");
     insert_text_at(file->body, arena, root_node->variable.name);
 
     if (root_node->variable.assignment != NULL)
     {
-        printf(" = ");
-        transpile_node(root_node->variable.assignment);
+        insert_text_at(file->body, arena, " = ");
+        transpile_node(root_node->variable.assignment, file, arena);
     }
 
     insert_text_at(file->body, arena, ";\n");
@@ -73,7 +78,7 @@ void
 transpile_binary_node(syntax_node *root_node, source_file *file, memory_arena *arena)
 {
 
-    transpile_node(root_node->binary.left);
+    transpile_node(root_node->binary.left, file, arena);
 
     switch (root_node->binary.type)
     {
@@ -99,7 +104,7 @@ transpile_binary_node(syntax_node *root_node, source_file *file, memory_arena *a
         } break;
     }
 
-    transpile_node(root_node->binary.right);
+    transpile_node(root_node->binary.right, file, arena);
 
 }
 
@@ -108,7 +113,6 @@ transpile_unary_node(syntax_node *root_node, source_file *file, memory_arena *ar
 {
 
     assert(root_node->type == UNARY_EXPRESSION_NODE);
-
 
     switch (root_node->unary.type)
     {
@@ -125,8 +129,41 @@ transpile_unary_node(syntax_node *root_node, source_file *file, memory_arena *ar
 
     };
 
-    transpile_node(root_node->unary.right);
+    transpile_node(root_node->unary.right, file, arena);
 
+}
+
+void
+transpile_grouping_node(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == GROUPING_EXPRESSION_NODE);
+
+    insert_text_at(file->body, arena, "( ");
+        transpile_node(root_node->grouping.grouping, file, arena);
+    insert_text_at(file->body, arena, " )");
+
+}
+
+void
+transpile_assignment_node(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == ASSIGNMENT_EXPRESSION_NODE);
+
+    insert_text_at(file->body, arena, root_node->assignment.identifier);
+    insert_text_at(file->body, arena, " = ");
+    transpile_node(root_node->assignment.right, file, arena);
+    insert_text_at(file->body, arena, ";\n");
+
+}
+
+void
+transpile_primary_node(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == PRIMARY_EXPRESSION_NODE);
+    insert_text_at(file->body, arena, root_node->primary.literal.identifier);
 
 }
 
@@ -151,7 +188,7 @@ transpile_node(syntax_node *root_node, source_file *file, memory_arena *arena)
 
         case VARIABLE_STATEMENT_NODE:
         {
-            transpile_scope_node(root_node, file, arena);
+            transpile_variable_node(root_node, file, arena);
             return;
         } break;
 
@@ -164,6 +201,24 @@ transpile_node(syntax_node *root_node, source_file *file, memory_arena *arena)
         case UNARY_EXPRESSION_NODE:
         {
             transpile_unary_node(root_node, file, arena);
+            return;
+        } break;
+
+        case PRIMARY_EXPRESSION_NODE:
+        {
+            transpile_primary_node(root_node, file, arena);
+            return;
+        }
+
+        case ASSIGNMENT_EXPRESSION_NODE:
+        {
+            transpile_assignment_node(root_node, file, arena);
+            return;
+        } return;
+
+        case GROUPING_EXPRESSION_NODE:
+        {
+            transpile_grouping_node(root_node, file, arena);
             return;
         } break;
 
@@ -259,20 +314,46 @@ pop_tabs_at(source_section *section)
     section->tab_depth -= TAB_SPACE_SIZE;
 }
 
+void
+insert_tabbing_at(source_section *section, memory_arena *arena)
+{
+
+    u64 string_length = section->tab_depth;
+    c64 string_buffer = memory_arena_push(arena, string_length + 1);
+    for (u64 i = 0; i < string_length; ++i) string_buffer[i] = ' ';
+    string_buffer[string_length] = '\0';
+
+    source_string *insert = memory_arena_push_type(arena, source_string);
+    insert->buffer = string_buffer;
+    insert->size = string_length;
+    insert->next = NULL;
+
+    if (section->start == NULL)
+    {
+        section->start = insert;
+        section->end = insert;
+    }
+
+    else
+    {
+        section->end->next = insert;
+        section->end = insert;
+    }
+
+}
+
 void 
 insert_text_at(source_section *section, memory_arena *arena, cc64 text)
 {
 
     u64 string_length = strlen(text) + 1;
-    u64 buffer_length = string_length + section->tab_depth;
-    c64 string_buffer = memory_arena_push(arena, buffer_length);
+    c64 string_buffer = memory_arena_push(arena, string_length);
 
-    for (u64 t = 0; t < section->tab_depth; ++t) string_buffer[t] = ' ';
-    memory_copy_simple(string_buffer + section->tab_depth, text, string_length);
+    memory_copy_simple(string_buffer, text, string_length);
 
     source_string *insert = memory_arena_push_type(arena, source_string);
     insert->buffer = string_buffer;
-    insert->size = buffer_length - 1;
+    insert->size = string_length - 1;
     insert->next = NULL;
 
     if (section->start == NULL)
