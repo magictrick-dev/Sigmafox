@@ -2,6 +2,29 @@
 
 // --- AST Transpilation Routine -----------------------------------------------
 
+void
+transpile_scope_node(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == SCOPE_STATEMENT_NODE);
+
+    insert_text_at(file->body, arena, "{\n\n");
+    push_tabs_at(file->body);
+        
+        syntax_node *current_node = root_node->scope.body_statements;
+        while(current_node != NULL)
+        {
+            
+            transpile_node(current_node);
+            current_node = root_node->next_node;
+
+        }
+
+    pop_tabs_at(file->body);
+    insert_text_at(file->body, arena, "\n\n}");
+
+}
+
 void 
 transpile_program_node(syntax_node *root_node, source_file *file, memory_arena *arena)
 {
@@ -10,14 +33,147 @@ transpile_program_node(syntax_node *root_node, source_file *file, memory_arena *
 
     insert_text_at(file->body, arena, "int\n");
     insert_text_at(file->body, arena, "main(int argc, char **argv)\n");
-    insert_text_at(file->body, arena, "{\n");
+    insert_text_at(file->body, arena, "{\n\n");
     push_tabs_at(file->body);
-        insert_text_at(file->body, arena, "\n");
-        insert_text_at(file->body, arena, "std::string message = \"Hello, world!\";\n");
-        insert_text_at(file->body, arena, "std::cout << message << std::endl;\n");
-        insert_text_at(file->body, arena, "\n");
+
+        syntax_node *current_node = root_node->program.body_statements;
+        while (current_node != NULL)
+        {
+
+            transpile_node(current_node);
+            current_node = current_node->next_node;
+
+        }
+
     pop_tabs_at(file->body);
-    insert_text_at(file->body, arena, "}\n");
+    insert_text_at(file->body, arena, "\n\n}\n");
+
+}
+
+void
+transpile_variable_statement(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->VARIABLE_STATEMENT_NODE);
+
+    insert_text_at(file->body, arena, "int ");
+    insert_text_at(file->body, arena, root_node->variable.name);
+
+    if (root_node->variable.assignment != NULL)
+    {
+        printf(" = ");
+        transpile_node(root_node->variable.assignment);
+    }
+
+    insert_text_at(file->body, arena, ";\n");
+
+}
+
+void 
+transpile_binary_node(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    transpile_node(root_node->binary.left);
+
+    switch (root_node->binary.type)
+    {
+
+        case OPERATION_ADDITION:            insert_text_at(file->body, arena, " + "); break;
+        case OPERATION_SUBTRACTION:         insert_text_at(file->body, arena, " - "); break;
+        case OPERATION_MULTIPLICATION:      insert_text_at(file->body, arena, " * "); break;
+        case OPERATION_DIVISION:            insert_text_at(file->body, arena, " / "); break;
+        case OPERATION_EQUALS:              insert_text_at(file->body, arena, " == "); break;
+        case OPERATION_NOT_EQUALS:          insert_text_at(file->body, arena, " != "); break;
+        case OPERATION_LESS_THAN:           insert_text_at(file->body, arena, " < "); break;
+        case OPERATION_LESS_THAN_EQUALS:    insert_text_at(file->body, arena, " <= "); break;
+        case OPERATION_GREATER_THAN:        insert_text_at(file->body, arena, " > "); break;
+        case OPERATION_GREATER_THAN_EQUALS: insert_text_at(file->body, arena, " >= "); break;
+        case OPERATION_ASSIGNMENT:          insert_text_at(file->body, arena, " = "); break;
+        
+        default:
+        {
+
+            assert(!"Unimplemented operation for binary expression.");
+            return;
+
+        } break;
+    }
+
+    transpile_node(root_node->binary.right);
+
+}
+
+void
+transpile_unary_node(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == UNARY_EXPRESSION_NODE);
+
+
+    switch (root_node->unary.type)
+    {
+
+        case OPERATION_NEGATIVE_ASSOCIATE: insert_text_at(file->body, arena, "-"); break;
+
+        default:
+        {
+
+            assert(!"Unimplemented operation for unary expression printing.");
+            return;
+
+        } break;
+
+    };
+
+    transpile_node(root_node->unary.right);
+
+
+}
+
+void
+transpile_node(syntax_node *root_node, source_file *file, memory_arena *arena)
+{
+
+    switch(root_node->type)
+    {
+        
+        case PROGRAM_ROOT_NODE:
+        {
+            transpile_program_node(root_node, file, arena);
+            return;
+        } break;
+
+        case SCOPE_STATEMENT_NODE:
+        {
+            transpile_scope_node(root_node, file, arena);
+            return; 
+        } break;
+
+        case VARIABLE_STATEMENT_NODE:
+        {
+            transpile_scope_node(root_node, file, arena);
+            return;
+        } break;
+
+        case BINARY_EXPRESSION_NODE:
+        {
+            transpile_binary_node(root_node, file, arena);
+            return;
+        } break;
+
+        case UNARY_EXPRESSION_NODE:
+        {
+            transpile_unary_node(root_node, file, arena);
+            return;
+        } break;
+
+        default:
+        {
+            assert(!"Uncaught transpilation case for syntax node.");
+            return;
+        }
+
+    };
 
 }
 
