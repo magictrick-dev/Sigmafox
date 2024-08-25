@@ -41,6 +41,21 @@ main(int argc, char **argv)
 
         idx = __idx_iter;
 
+    };
+
+    if (a != 0)
+    {
+
+        int hello = 20;
+
     }
+
+    else if (1)
+    {
+
+        int world = 40;
+
+    }
+
 
 }

@@ -3,6 +3,72 @@
 // --- AST Transpilation Routine -----------------------------------------------
 
 void
+transpile_elseif_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == ELSEIF_STATEMENT_NODE);
+
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "else if (");
+    transpile_node(root_node->elseif_conditional.evaluation_expression, section, file, arena);
+    insert_text_at(section, arena, ")\n");
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "{\n\n");
+    push_tabs_at(section);
+    
+        syntax_node *current_node = root_node->elseif_conditional.body_statements;
+        while (current_node != NULL)
+        {
+
+            transpile_node(current_node, section, file, arena);
+            current_node = current_node->next_node;
+
+        }
+
+    pop_tabs_at(section);
+    insert_text_at(section, arena, "\n");
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "}\n\n");
+
+}
+
+void
+transpile_if_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == IF_STATEMENT_NODE);
+
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "if (");
+    transpile_node(root_node->if_conditional.evaluation_expression, section, file, arena);
+    insert_text_at(section, arena, ")\n");
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "{\n\n");
+    push_tabs_at(section);
+
+        syntax_node *current_node = root_node->if_conditional.body_statements;
+        while (current_node != NULL)
+        {
+
+            transpile_node(current_node, section, file, arena);
+            current_node = current_node->next_node;
+
+        }
+
+    pop_tabs_at(section);
+    insert_text_at(section, arena, "\n");
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "}\n\n");
+
+    syntax_node *else_node = root_node->if_conditional.else_statement;
+    while (else_node != NULL)
+    {
+        transpile_node(else_node, section, file, arena);
+        else_node = else_node->elseif_conditional.else_statement;
+    }
+}
+
+void
 transpile_loop_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
 {
     
@@ -58,7 +124,7 @@ transpile_loop_node(syntax_node *root_node, source_section *section, source_file
 
     pop_tabs_at(section);
     insert_tabbing_at(section, arena);
-    insert_text_at(section, arena, "}\n");
+    insert_text_at(section, arena, "};\n\n");
         
 }
 
@@ -267,6 +333,18 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
         case PROGRAM_ROOT_NODE:
         {
             transpile_program_node(root_node, section, file, arena);
+            return;
+        } break;
+
+        case IF_STATEMENT_NODE:
+        {
+            transpile_if_node(root_node, section, file, arena);
+            return;
+        } break;
+
+        case ELSEIF_STATEMENT_NODE:
+        {
+            transpile_elseif_node(root_node, section, file, arena);
             return;
         } break;
 

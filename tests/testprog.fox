@@ -19,4 +19,10 @@ begin;
         d := d + (idx * b);
     endloop;
 
+    if a # 0;
+        variable hello 4 := 20;
+    elseif 1;
+        variable world 4 := 40;
+    endif;
+
 end;
