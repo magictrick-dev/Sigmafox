@@ -4,6 +4,25 @@
 #include <string>
 
 
+void add_numbers(a, b)
+{
+
+    int result = a + b;
+
+}
+
+int fn_square_number(a)
+{
+
+    int square_number;
+
+    int result = a * a;
+    square_number = result;
+
+    return square_number;
+
+}
+
 int
 main(int argc, char **argv)
 {
@@ -57,5 +76,6 @@ main(int argc, char **argv)
 
     }
 
+    add_numbers(10, square_number(4));
 
 }

@@ -44,6 +44,10 @@ void transpile_while_node(syntax_node *root_node, source_section *section, sourc
 void transpile_if_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_elseif_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_variable_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
+void transpile_procedure_call_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
+void transpile_function_call_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
+void transpile_procedure_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
+void transpile_function_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_program_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_syntax_tree(syntax_node *root_node, memory_arena *arena, cc64 output_name);

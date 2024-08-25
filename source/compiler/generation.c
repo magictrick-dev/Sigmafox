@@ -3,6 +3,149 @@
 // --- AST Transpilation Routine -----------------------------------------------
 
 void
+transpile_parameter_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == PARAMETER_STATEMENT_NODE);
+    insert_text_at(section, arena, root_node->parameter.name);
+
+}
+
+void
+transpile_procedure_call_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == PROCEDURE_CALL_EXPRESSION_NODE);
+
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, root_node->proc_call.identifier);
+    insert_text_at(section, arena, "(");
+
+    syntax_node *params = root_node->proc_call.parameters;
+    while(params != NULL)
+    {
+        transpile_node(params, section, file, arena);
+        if (params->next_node != NULL) 
+            insert_text_at(section, arena, ", ");
+        params = params->next_node;
+    }
+
+    insert_text_at(section, arena, ");\n");
+
+}
+
+void
+transpile_function_call_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == FUNCTION_CALL_EXPRESSION_NODE);
+
+    insert_text_at(section, arena, root_node->func_call.identifier);
+    insert_text_at(section, arena, "(");
+
+    syntax_node *params = root_node->func_call.parameters;
+    while(params != NULL)
+    {
+        transpile_node(params, section, file, arena);
+        if (params->next_node != NULL) 
+            insert_text_at(section, arena, ", ");
+        params = params->next_node;
+    }
+
+    insert_text_at(section, arena, ")");
+
+}
+
+void
+transpile_procedure_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == PROCEDURE_STATEMENT_NODE);
+    section = file->header;
+
+    insert_text_at(section, arena, "void ");
+    insert_text_at(section, arena, root_node->procedure.name);
+    insert_text_at(section, arena, "(");
+
+    syntax_node *params = root_node->procedure.parameters;
+    while (params != NULL)
+    {
+        transpile_node(params, section, file, arena);
+        if (params->parameter.next_parameter != NULL) 
+            insert_text_at(section, arena, ", ");
+        params = params->parameter.next_parameter;
+    }
+
+    insert_text_at(section, arena, ")\n");
+    insert_text_at(section, arena, "{\n\n");
+    push_tabs_at(section);
+
+        syntax_node *current_node = root_node->procedure.body_statements;
+        while (current_node != NULL)
+        {
+
+            transpile_node(current_node, section, file, arena);
+            current_node = current_node->next_node;
+
+        }
+
+    pop_tabs_at(section);
+    insert_text_at(section, arena, "\n");
+    insert_text_at(section, arena, "}\n\n");
+
+}
+
+void
+transpile_function_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == FUNCTION_STATEMENT_NODE);
+    section = file->header;
+
+    insert_text_at(section, arena, "int fn_");
+    insert_text_at(section, arena, root_node->function.name);
+    insert_text_at(section, arena, "(");
+
+    syntax_node *params = root_node->function.parameters;
+    while (params != NULL)
+    {
+        transpile_node(params, section, file, arena);
+        if (params->parameter.next_parameter != NULL) 
+            insert_text_at(section, arena, ", ");
+        params = params->parameter.next_parameter;
+    }
+
+    insert_text_at(section, arena, ")\n");
+    insert_text_at(section, arena, "{\n\n");
+    push_tabs_at(section);
+
+        insert_tabbing_at(section, arena);
+        insert_text_at(section, arena, "int ");
+        insert_text_at(section, arena, root_node->function.name);
+        insert_text_at(section, arena, ";\n\n");
+
+        syntax_node *current_node = root_node->function.body_statements;
+        while (current_node != NULL)
+        {
+
+            transpile_node(current_node, section, file, arena);
+            current_node = current_node->next_node;
+
+        }
+
+        insert_text_at(section, arena, "\n");
+        insert_tabbing_at(section, arena);
+        insert_text_at(section, arena, "return ");
+        insert_text_at(section, arena, root_node->function.name);
+        insert_text_at(section, arena, ";\n");
+
+    pop_tabs_at(section);
+    insert_text_at(section, arena, "\n");
+    insert_text_at(section, arena, "}\n\n");
+
+}
+
+void
 transpile_elseif_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
 {
 
@@ -332,8 +475,50 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
         
         case PROGRAM_ROOT_NODE:
         {
+
             transpile_program_node(root_node, section, file, arena);
             return;
+
+        } break;
+
+        case PROCEDURE_CALL_EXPRESSION_NODE:
+        {
+
+            transpile_procedure_call_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case FUNCTION_CALL_EXPRESSION_NODE:
+        {
+
+            transpile_function_call_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case PROCEDURE_STATEMENT_NODE:
+        {
+
+            transpile_procedure_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case FUNCTION_STATEMENT_NODE:
+        {
+
+            transpile_function_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case PARAMETER_STATEMENT_NODE:
+        {
+
+            transpile_parameter_node(root_node, section, file, arena);
+            return;
+
         } break;
 
         case IF_STATEMENT_NODE:

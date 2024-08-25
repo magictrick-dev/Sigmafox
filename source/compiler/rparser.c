@@ -2250,7 +2250,7 @@ source_parser_match_procedure_statement(source_parser *parser)
         param_node->parameter.next_parameter = NULL;
 
         symbol *param_symbol = source_parser_insert_into_symbol_table(parser, object.identifier);
-        param_symbol->type = SYMBOL_TYPE_UNDEFINED;
+        param_symbol->type = SYMBOL_TYPE_VARIABLE;
 
         if (head_parameter_node == NULL)
         {
@@ -3983,8 +3983,8 @@ parser_print_tree(syntax_node *root_node)
         case FUNCTION_STATEMENT_NODE:
         {
 
-            printf("function %s ( ", root_node->procedure.name);
-            syntax_node *params = root_node->procedure.parameters;
+            printf("function %s ( ", root_node->function.name);
+            syntax_node *params = root_node->function.parameters;
             while (params != NULL)
             {
                 parser_print_tree(params);

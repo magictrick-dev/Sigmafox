@@ -25,4 +25,15 @@ begin;
         variable world 4 := 40;
     endif;
 
+    procedure add_numbers a b;
+        variable result 4 := a + b;
+    endprocedure;
+
+    function square_number a;
+        variable result 4 := a * a;
+        square_number := result;
+    endfunction;
+
+    add_numbers 10 square_number(4);
+
 end;
