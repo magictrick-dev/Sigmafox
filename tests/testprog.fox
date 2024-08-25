@@ -7,4 +7,16 @@ begin;
         variable b 4 := 3;
         variable result 4 := a + b;
     endscope;
+
+    variable c 4 := 0;
+    while a < 4;
+        c := c + a;
+        a := a + 1;
+    endwhile;
+
+    variable d 4 := 0;
+    loop idx 0 a 2;
+        d := d + (idx * b);
+    endloop;
+
 end;

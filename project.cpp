@@ -1,3 +1,5 @@
+// Generated C++ using Sigmafox Ver. 0.3.0A
+// Northern Illinois University
 #include <iostream>
 #include <string>
 
@@ -18,5 +20,27 @@ main(int argc, char **argv)
 
     };
 
+    int c = 0;
+    while (a < 4)
+    {
+
+        c = c + a;
+        a = a + 1;
+
+    };
+
+    int d = 0;
+    for (int idx = 0; idx < a; idx += 2)
+    {
+
+        // Cache iterator to restore initial value at end-of-loop.
+        int __idx_iter = idx;
+
+        d = d + ( idx * b );
+
+
+        idx = __idx_iter;
+
+    }
 
 }
