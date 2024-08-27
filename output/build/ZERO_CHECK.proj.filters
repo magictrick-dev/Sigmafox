@@ -1,8 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ItemGroup>
-    <Filter Include="CMake Rules">
-      <UniqueIdentifier>{B56C7C3B-C75F-358C-B37F-9AC93FF7AF2B}</UniqueIdentifier>
-    </Filter>
-  </ItemGroup>
-</Project>

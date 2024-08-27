@@ -7,6 +7,7 @@ transpile_parameter_node(syntax_node *root_node, source_section *section, source
 {
 
     assert(root_node->type == PARAMETER_STATEMENT_NODE);
+    insert_text_at(section, arena, "int ");
     insert_text_at(section, arena, root_node->parameter.name);
 
 }
@@ -40,6 +41,7 @@ transpile_function_call_node(syntax_node *root_node, source_section *section, so
 
     assert(root_node->type == FUNCTION_CALL_EXPRESSION_NODE);
 
+    insert_text_at(section, arena, "fn_");
     insert_text_at(section, arena, root_node->func_call.identifier);
     insert_text_at(section, arena, "(");
 
@@ -597,14 +599,37 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
 
 }
 
-void 
+b32
 transpile_syntax_tree(syntax_node *root_node, memory_arena *arena, cc64 output_name)
 {
 
     assert(root_node != NULL);
 
+    source_file cmake_file = {0};
+    cmake_file.file_name = "./output/CMakeLists.txt";
+    cmake_file.header = memory_arena_push_type(arena, source_section);
+    cmake_file.body = memory_arena_push_type(arena, source_section);
+    cmake_file.footer = memory_arena_push_type(arena, source_section);
+
+    cmake_file.header->start     = NULL;
+    cmake_file.header->end       = NULL;
+    cmake_file.header->tab_depth = 0;
+
+    cmake_file.body->start       = NULL;
+    cmake_file.body->end         = NULL;
+    cmake_file.body->tab_depth   = 0;
+
+    cmake_file.footer->start     = NULL;
+    cmake_file.footer->end       = NULL;
+    cmake_file.footer->tab_depth = 0;
+
+    insert_text_at(cmake_file.header, arena, "CMAKE_MINIMUM_REQUIRED(VERSION 3.21)\n\n");
+    insert_text_at(cmake_file.header, arena, "PROJECT(sigmafox_build)\n\n");
+    insert_text_at(cmake_file.header, arena, "ADD_EXECUTABLE(sigmafox_build\n");
+    insert_text_at(cmake_file.footer, arena, ")\n\n");
+
     source_file main_file = {0};
-    main_file.file_name = output_name;
+    main_file.file_name = "./output/main.cpp";
     main_file.header = memory_arena_push_type(arena, source_section);
     main_file.body = memory_arena_push_type(arena, source_section);
     main_file.footer = memory_arena_push_type(arena, source_section);
@@ -631,29 +656,46 @@ transpile_syntax_tree(syntax_node *root_node, memory_arena *arena, cc64 output_n
     // Traverse our program nodes.
     transpile_program_node(root_node, main_file.body, &main_file, arena);
 
+    // Add the main file.
+    insert_text_at(cmake_file.body, arena, "    \"main.cpp\"\n");
+
     // Write the transpiled output to disk.
-    void* write_handle = fileio_write_stream_open(output_name);
+    b32 cmake_file_write_status = write_generated_output_to_disk(&cmake_file);
+    b32 main_file_write_status = write_generated_output_to_disk(&main_file);
+
+    return (cmake_file_write_status && main_file_write_status);
+
+}
+
+// --- Helpers -----------------------------------------------------------------
+
+b32
+write_generated_output_to_disk(source_file *file)
+{
+
+    void* write_handle = fileio_write_stream_open(file->file_name);
     if (write_handle == NULL)
     {
-        printf("Invalid write handle.");
-        return;
+        printf("-- Unable to write transpiled output to %s: unable to open file.\n",
+                file->file_name);
+        return false;
     }
 
-    source_string *head_section = main_file.header->start;
+    source_string *head_section = file->header->start;
     while (head_section != NULL)
     {
         fileio_write_stream_write(write_handle, head_section->buffer, head_section->size);
         head_section = head_section->next;
     }
 
-    source_string *body_section = main_file.body->start;
+    source_string *body_section = file->body->start;
     while (body_section != NULL)
     {
         fileio_write_stream_write(write_handle, body_section->buffer, body_section->size);
         body_section = body_section->next;
     }
 
-    source_string *footer_section = main_file.footer->start;
+    source_string *footer_section = file->footer->start;
     while (footer_section != NULL)
     {
         fileio_write_stream_write(write_handle, footer_section->buffer, footer_section->size);
@@ -662,11 +704,9 @@ transpile_syntax_tree(syntax_node *root_node, memory_arena *arena, cc64 output_n
 
     fileio_write_stream_close(write_handle);
 
-    return;
+    return true;
 
 }
-
-// --- Helpers -----------------------------------------------------------------
 
 void 
 push_tabs_at(source_section *section)

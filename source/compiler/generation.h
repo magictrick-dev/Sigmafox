@@ -31,7 +31,19 @@ typedef struct source_file
     source_section *header;
     source_section *body;
     source_section *footer;
+
+    source_file *next_source;
 } source_file;
+
+typedef struct generator_state
+{
+    source_file    *cmake_file;
+    source_file    *source_file_list;
+    memory_arena   *arena;
+} generator_state;
+
+// --- CMakeLists Generator ----------------------------------------------------
+
 
 // --- Traversals --------------------------------------------------------------
 
@@ -50,7 +62,7 @@ void transpile_procedure_node(syntax_node *root_node, source_section *section, s
 void transpile_function_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_program_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
-void transpile_syntax_tree(syntax_node *root_node, memory_arena *arena, cc64 output_name);
+b32 transpile_syntax_tree(syntax_node *root_node, memory_arena *arena, cc64 output_name);
 
 // --- Helpers -----------------------------------------------------------------
 
@@ -58,5 +70,6 @@ void push_tabs_at(source_section *section);
 void pop_tabs_at(source_section *section);
 void insert_tabbing_at(source_section *section, memory_arena *arena);
 void insert_text_at(source_section *section, memory_arena *arena, cc64 text);
+b32 write_generated_output_to_disk(source_file *file);
 
 #endif
