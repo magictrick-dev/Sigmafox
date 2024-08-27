@@ -216,6 +216,7 @@ typedef enum syntax_node_type
     IF_STATEMENT_NODE,
     ELSEIF_STATEMENT_NODE,
     WRITE_STATEMENT_NODE,
+    READ_STATEMENT_NODE,
     PROCEDURE_STATEMENT_NODE,
     FUNCTION_STATEMENT_NODE,
     PARAMETER_STATEMENT_NODE,
@@ -372,6 +373,12 @@ typedef struct write_syntax_node
     syntax_node *body_expressions;
 } write_syntax_node;
 
+typedef struct read_syntax_node
+{
+    syntax_node *location;
+    cc64 identifier;
+} read_syntax_node;
+
 typedef struct parameter_syntax_node
 {
     cc64 name;
@@ -410,6 +417,7 @@ typedef struct syntax_node
         procedure_call_syntax_node  proc_call;
         function_call_syntax_node   func_call;
         write_syntax_node       write;
+        read_syntax_node        read;
     };
 
 } syntax_node;
@@ -527,9 +535,11 @@ typedef enum parse_error_type
     PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION,
     PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION,
     PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT,
+    PARSE_ERROR_UNDECLARED_VARIABLE_IN_READ,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS,
+    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_READ,
     PARSE_ERROR_EXPECTED_ENDPROCEDURE,
     PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED,
     PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION,

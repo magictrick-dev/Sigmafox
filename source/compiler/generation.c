@@ -214,6 +214,19 @@ transpile_if_node(syntax_node *root_node, source_section *section, source_file *
 }
 
 void 
+transpile_read_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == READ_STATEMENT_NODE);
+
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "std::cin >> ");
+    insert_text_at(section, arena, root_node->read.identifier);
+    insert_text_at(section, arena, ";\n");
+
+}
+
+void 
 transpile_write_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
 {
 
@@ -525,6 +538,14 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
         {
 
             transpile_write_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case READ_STATEMENT_NODE:
+        {
+
+            transpile_read_node(root_node, section, file, arena);
             return;
 
         } break;
