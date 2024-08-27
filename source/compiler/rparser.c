@@ -1472,6 +1472,78 @@ source_parser_match_variable_statement(source_parser *parser)
 
 }
 
+syntax_node*
+source_parser_match_write_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    // Consume the write token.
+    source_parser_consume_token(parser);
+
+    // The following token is an expression which matches the write location.
+    syntax_node *location = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(location, parser, mem_state))
+    {
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+    }
+
+    // We have the location, now we need the list of statements that follow.
+    syntax_node *head_parameter_node = NULL;
+    syntax_node *last_parameter_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_SEMICOLON))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+
+        syntax_node *parameter = source_parser_match_expression(parser);
+        if (source_parser_should_propagate_error(parameter, parser, mem_state))
+        {
+            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+            return NULL;
+        }
+
+        if (head_parameter_node == NULL)
+        {
+            head_parameter_node = parameter;
+            last_parameter_node = parameter;
+        }
+
+        else
+        {
+            last_parameter_node->next_node = parameter;
+            last_parameter_node = parameter;
+        }
+
+    }
+
+    // If no semicolon, synchronize.
+    if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+    {
+
+        parser_error_handler_display_error(parser,
+                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        source_parser_should_propagate_error(NULL, parser, mem_state);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        return NULL;
+
+    }
+
+    // Consume semiclon.
+    source_parser_consume_token(parser);
+
+
+    // Create the node.
+    syntax_node *write_node = source_parser_push_node(parser);
+    write_node->type = WRITE_STATEMENT_NODE;
+    write_node->write.location = location;
+    write_node->write.body_expressions = head_parameter_node;
+
+    return write_node;
+
+}
+
 syntax_node* 
 source_parser_match_scope_statement(source_parser *parser)
 {
@@ -2641,6 +2713,11 @@ source_parser_match_statement(source_parser *parser)
     else if (source_parser_expect_token(parser, TOKEN_KEYWORD_FUNCTION))
     {
         result = source_parser_match_function_statement(parser);
+    }
+
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_WRITE))
+    {
+        result = source_parser_match_write_statement(parser);
     }
 
     // All other expression statements.
@@ -3927,6 +4004,25 @@ parser_print_tree(syntax_node *root_node)
                 current_node = current_node->next_node;
             }
             printf("end main;\n");
+
+        } break;
+
+        case WRITE_STATEMENT_NODE:
+        {
+
+            printf("print ");
+            parser_print_tree(root_node->write.location);
+            printf(" ");
+
+            syntax_node *current_node = root_node->write.body_expressions;
+            while (current_node != NULL)
+            {
+                parser_print_tree(current_node);
+                current_node = current_node->next_node;
+                if (current_node != NULL)
+                    printf(" ");
+            }
+
 
         } break;
 

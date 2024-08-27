@@ -53,6 +53,7 @@ void transpile_grouping_node(syntax_node *root_node, source_section *section, so
 void transpile_scope_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_loop_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_while_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
+void transpile_write_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_if_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_elseif_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);
 void transpile_variable_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena);

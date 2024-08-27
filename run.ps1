@@ -1,1 +1,1 @@
-./bin/Debug/Sigmafox ./tests/testprog.fox
+./bin/Debug/Sigmafox ./tests/fib.fox

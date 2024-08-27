@@ -147,6 +147,13 @@ cli_parser_get_next_token(runtime_parameters *parameters, cli_token *token)
                 return;
             }
 
+            if (cli_parser_match_string_caseless(string_token, "no-gen"))
+            {
+                token->type = CLI_TOKEN_ARGUMENT_NO_GEN;
+                token->index = current_index;
+                return;
+            }
+
             if (cli_parser_match_string_caseless(string_token, "memory-limit-size"))
             {
                 token->type = CLI_TOKEN_ARGUMENT_MEM_LIMIT;
@@ -263,6 +270,13 @@ cli_parser_match_argument(runtime_parameters *parameters)
 
             parameters->output_directory = parameters->arguments[source_token.index];
             return CLI_PARSER_CONTINUE;
+
+        } break;
+
+        case CLI_TOKEN_ARGUMENT_NO_GEN:
+        {
+            
+            parameters->options.no_gen = true;
 
         } break;
 
@@ -481,6 +495,13 @@ cli_parser_display_help_long()
     printf("    continue and the program automatically exits after parsing.\n");
     printf("\n");
 
+    printf("-n, --no-gen\n");
+    printf("    Example: sigmafox --no-gen\n");
+    printf("    Default:\n");
+    printf("\n");
+    printf("    Forces the transpiler to not generate output after parsing for debugging.\n");
+    printf("\n");
+
     printf("--output-name [string]\n");
     printf("    Example: sigmafox fibonacci.fox --output-name fibonacci\n");
     printf("    Default: --output-name main\n");
@@ -569,6 +590,7 @@ command_line_parse(runtime_parameters *parameters)
     parameters->options.help = 0;
     parameters->options.trim_comments = 0;
     parameters->options.unit_test = 0;
+    parameters->options.no_gen = 0;
     parameters->helped = false;
 
     // Parse until all arguments are handled or we encounter an error.

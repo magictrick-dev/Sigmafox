@@ -1,0 +1,21 @@
+begin;
+
+    function fib_sequence n;
+        variable top 4 := 1;
+        variable bottom 4 := 1;
+
+        variable index 4 := 2;
+        while index < n;
+            variable result 4 := top + bottom;
+            bottom := top;
+            top := result;
+            index := index + 1;
+        endwhile;
+
+        fib_sequence := top;
+
+    endfunction;
+
+    write 6 'Fibonacci sequence of ' 20 ' is ' fib_sequence(20);
+
+end;

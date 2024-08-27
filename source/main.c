@@ -47,8 +47,16 @@ main(int argc, char ** argv)
 
     if (root != NULL)
     {
-        //parser_print_tree(root);
-        transpile_syntax_tree(root, &primary_arena, "project.cpp");
+
+        if (parameters.options.no_gen)
+        {
+            parser_print_tree(root);
+        }
+
+        else
+        {
+            transpile_syntax_tree(root, &primary_arena, "project.cpp");
+        }
         
         printf("-- Transpilation was successful.\n");
         return 0;

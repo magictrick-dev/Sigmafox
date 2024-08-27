@@ -213,6 +213,33 @@ transpile_if_node(syntax_node *root_node, source_section *section, source_file *
     }
 }
 
+void 
+transpile_write_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == WRITE_STATEMENT_NODE);
+
+    insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, "std::cout << ");
+    
+    syntax_node *chain = root_node->write.body_expressions;
+    while (chain != NULL)
+    {
+
+        transpile_node(chain, section, file, arena);   
+
+        chain = chain->next_node;
+        if (chain != NULL)
+        {
+            insert_text_at(section, arena, " << ");
+        }
+
+    }
+
+    insert_text_at(section, arena, " << std::endl;\n");
+
+}
+
 void
 transpile_loop_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
 {
@@ -464,7 +491,18 @@ transpile_primary_node(syntax_node *root_node, source_section *section, source_f
 {
 
     assert(root_node->type == PRIMARY_EXPRESSION_NODE);
+
+    if (root_node->primary.type == OBJECT_STRING)
+    {
+        insert_text_at(section, arena, "\"");
+    }
+
     insert_text_at(section, arena, root_node->primary.literal.identifier);
+
+    if (root_node->primary.type == OBJECT_STRING)
+    {
+        insert_text_at(section, arena, "\"");
+    }
 
 }
 
@@ -479,6 +517,14 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
         {
 
             transpile_program_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case WRITE_STATEMENT_NODE:
+        {
+
+            transpile_write_node(root_node, section, file, arena);
             return;
 
         } break;

@@ -215,6 +215,7 @@ typedef enum syntax_node_type
     WHILE_STATEMENT_NODE,
     IF_STATEMENT_NODE,
     ELSEIF_STATEMENT_NODE,
+    WRITE_STATEMENT_NODE,
     PROCEDURE_STATEMENT_NODE,
     FUNCTION_STATEMENT_NODE,
     PARAMETER_STATEMENT_NODE,
@@ -365,6 +366,12 @@ typedef struct function_syntax_node
     syntax_node *parameters;
 } function_syntax_node;
 
+typedef struct write_syntax_node
+{
+    syntax_node *location;
+    syntax_node *body_expressions;
+} write_syntax_node;
+
 typedef struct parameter_syntax_node
 {
     cc64 name;
@@ -402,6 +409,7 @@ typedef struct syntax_node
         program_syntax_node     program;
         procedure_call_syntax_node  proc_call;
         function_call_syntax_node   func_call;
+        write_syntax_node       write;
     };
 
 } syntax_node;
@@ -450,6 +458,7 @@ syntax_node* source_parser_match_while_statement(source_parser *parser);
 syntax_node* source_parser_match_loop_statement(source_parser *parser);
 syntax_node* source_parser_match_procedure_statement(source_parser *parser);
 syntax_node* source_parser_match_function_statement(source_parser *parser);
+syntax_node* source_parser_match_write_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 

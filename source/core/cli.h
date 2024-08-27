@@ -124,7 +124,7 @@ typedef struct runtime_flags
     b8 unused_k;
     b8 unused_l;
     b8 unused_m;
-    b8 unused_n;
+    b8 no_gen;
     b8 unused_o;
     b8 unused_p;
     b8 unused_q;
@@ -180,6 +180,7 @@ typedef enum cli_token_type
     CLI_TOKEN_ARGUMENT_UNIT_TEST,
     CLI_TOKEN_ARGUMENT_MEM_LIMIT,
     CLI_TOKEN_ARGUMENT_POOL_LIMIT,
+    CLI_TOKEN_ARGUMENT_NO_GEN,
 
     CLI_TOKEN_SWITCH,
 
