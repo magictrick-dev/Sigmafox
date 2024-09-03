@@ -1,9 +1,8 @@
 #include <platform/fileio.h>
 #include <windows.h>
-#include <cassert>
 
-bool
-fileio_file_exists(const char *path)
+b32
+fileio_file_exists(cc64 path)
 {
 
     DWORD file_attr = GetFileAttributesA(path);
@@ -12,8 +11,8 @@ fileio_file_exists(const char *path)
 
 }
 
-size_t
-fileio_file_size(const char *path)
+u64 
+fileio_file_size(cc64 path)
 {
 
     // Attempt to open the file.
@@ -24,17 +23,17 @@ fileio_file_size(const char *path)
         return 0;
 
     // Get the file size.
-    LARGE_INTEGER lifsize = {};
+    LARGE_INTEGER lifsize = {0};
     GetFileSizeEx(file_handle, &lifsize);
-    size_t file_size = (size_t)lifsize.QuadPart;
+    u64 file_size = (u64)lifsize.QuadPart;
 
     CloseHandle(file_handle);
     return file_size;
 
 }
 
-bool
-fileio_file_read(const char *path, void *buffer, size_t rsize, size_t bsize)
+b32
+fileio_file_read(cc64 path, void *buffer, u64 rsize, u64 bsize)
 {
 
     assert(rsize <= bsize);
@@ -61,8 +60,8 @@ fileio_file_read(const char *path, void *buffer, size_t rsize, size_t bsize)
 
 }
 
-bool
-fileio_file_write(const char *path, void *buffer, size_t wsize)
+b32
+fileio_file_write(cc64 path, void *buffer, u64 wsize)
 {
 
     HANDLE file_handle = CreateFileA(path, GENERIC_READ | GENERIC_WRITE, FILE_SHARE_READ,
@@ -84,13 +83,77 @@ fileio_file_write(const char *path, void *buffer, size_t wsize)
 }
 
 void
-fileio_file_get_full_path(const char *path, char *path_buffer, size_t buffer_size)
+fileio_file_get_full_path(cc64 path, c64 path_buffer, u64 buffer_size)
 {
 
     DWORD path_length = GetFullPathNameA(path, buffer_size, path_buffer, NULL);
     assert(path_length != 0);
     path_buffer[path_length] = '\0';
     return;
+
+}
+
+b32         
+fileio_file_is_directory(const char* file_path)
+{
+
+    DWORD dwAttrib = GetFileAttributes(file_path);
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
+        (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+
+}
+
+b32         
+fileio_file_is_file(const char* file_path)
+{
+
+    DWORD dwAttrib = GetFileAttributes(file_path);
+    return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
+        !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
+
+}
+
+// --- File Streaming ----------------------------------------------------------
+
+void* 
+fileio_write_stream_open(cc64 path)
+{
+    HANDLE file_handle = CreateFileA(path, GENERIC_WRITE, FILE_SHARE_WRITE,
+            NULL, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+    if (file_handle == INVALID_HANDLE_VALUE)
+        return NULL;
+    return file_handle;
+}
+
+void 
+fileio_write_stream_close(void *handle)
+{
+    assert(handle != NULL);
+    CloseHandle((HANDLE)handle);
+}
+
+void 
+fileio_write_stream_write(void *handle, void* buffer, u64 size)
+{
+
+    DWORD bytes_written = 0;
+    BOOL write_status = WriteFile((HANDLE)handle, buffer, (DWORD)size, &bytes_written, NULL);
+
+    // Check for write error.
+    DWORD errorMessageID = GetLastError();
+    if(errorMessageID != 0 && errorMessageID != ERROR_ALREADY_EXISTS)
+    {
+        LPSTR messageBuffer = NULL;
+        u64 size = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM |
+            FORMAT_MESSAGE_IGNORE_INSERTS, NULL, errorMessageID, 
+            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPSTR)&messageBuffer, 0, NULL);
+        
+        printf("-- Write Error: %s\n", messageBuffer);
+        
+        LocalFree(messageBuffer);
+    }
+    
+    assert(size == bytes_written);
 
 }
 

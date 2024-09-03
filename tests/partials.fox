@@ -1,0 +1,82 @@
+begin;
+    variable foo 4;
+    variable bar 4;
+    foo := 10;
+    bar := 20;
+    variable baz 4 := foo + bar;
+
+    scope;
+        variable hello 4 := 10;
+        variable world 4 := foo;
+        variable foo 4 := 10;
+    endscope;
+
+    while foo < 10;
+        variable hello 4 := 10;
+        variable world 4 := foo;
+        variable foo 4 := 10;
+    endwhile;
+
+    loop idx (5 + 3 - 7) 10;
+        variable hello 4 := 10;
+        variable world 4 := foo;
+        variable foo 4 := 10;
+
+        { This should cause an error since idx is in scope. }
+        { variable idx 4 := 1000; }
+    endloop;
+
+    variable hello 4 := 10;
+    { variable world 4 := foo * idx; }
+    
+    scope;
+        if foo < 5;
+            variable bar 4 := 10;
+            foo := bar * 2;
+        elseif foo > 10;
+            variable bar 4 := 10;
+            variable hello 4 := 10;
+            variable world 4 := 20;
+            foo := hello + world * 20 / (foo - bar);
+        elseif 1;
+            { This is how we do a fallthrough else. }
+            variable hello 4 := 20;
+
+            loop idx 0 50;
+                variable foo 12 := 100;
+            endloop;
+
+            while hello < 100;
+                loop idx 0 50;
+                    variable foo 12 := 100;
+                endloop;
+
+                hello := hello + foo;
+            endwhile;
+
+        endif;
+    endscope;
+
+    procedure add_numbers a b;
+        { variable a 4 := 10;  }
+        { variable b 4 := 10; } 
+        a := 10;
+        b := 20;
+        variable sum 4 := a + b;
+    endprocedure;
+
+    function square a;
+        variable result 4 := a * a;
+        square := result;
+        variable other_stuff 4 := a / a;
+        if a # 1;
+            a := 1;
+        endif;
+    endfunction;
+
+    add_numbers foo (bar + 91);
+    variable fcall_test 4 := square(foo) * (10/5);
+
+    variable before_end_statement 4;
+
+end;

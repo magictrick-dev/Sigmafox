@@ -10,6 +10,7 @@
 #include <cstring>
 #include <core/definitions.h>
 #include <core/utilities/allocator.h>
+#include <core/memops.h>
 
 template <typename type>
 class array
@@ -112,7 +113,7 @@ resize(size_t size)
     // Allocate a new buffer and copy old buffer to this buffer up to the
     // amount that is actually committed.
     type *fresh_buffer = memory_allocate_array(type, size);
-    memcpy(fresh_buffer, this->buffer_pointer, sizeof(type) * buffer_commit);
+    memory_copy_simple(fresh_buffer, this->buffer_pointer, sizeof(type) * buffer_commit);
 
     // Free the old buffer.
     memory_release(this->buffer_pointer);
