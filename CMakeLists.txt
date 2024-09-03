@@ -41,6 +41,8 @@ add_executable(Sigmafox
     "source/compiler/symboltable.c"
     "source/compiler/generation.h"
     "source/compiler/generation.c"
+    "source/compiler/tokenizer.h"
+    "source/compiler/tokenizer.c"
     
     "source/platform/fileio.h"
     "source/platform/system.h"
@@ -56,6 +58,8 @@ add_executable(Sigmafox
     "source/core/memops.c"
     "source/core/resource.h"
     "source/core/resource.c"
+    "source/core/generalalloc.h"
+    "source/core/generalalloc.c"
 
     ${PLATFORM_FILES}
 )

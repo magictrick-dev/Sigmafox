@@ -1,5 +1,7 @@
+
 begin;
 
+    { Fibonacci sequence. }
     function fib_sequence n;
         variable top 4 := 1;
         variable bottom 4 := 1;
