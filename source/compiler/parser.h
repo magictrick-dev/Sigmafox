@@ -273,6 +273,11 @@ typedef struct parameter_syntax_node
     syntax_node *next_parameter;
 } parameter_syntax_node;
 
+typedef struct global_statement_syntax_node
+{
+    syntax_node *statement;
+} global_statement_syntax_node;
+
 typedef struct program_syntax_node
 {
     syntax_node *global_statements;
@@ -287,25 +292,27 @@ typedef struct syntax_node
 
     union
     {
-        binary_syntax_node      binary;
-        unary_syntax_node       unary;
-        primary_syntax_node     primary;
-        grouping_syntax_node    grouping;
-        assignment_syntax_node  assignment;
-        variable_syntax_node    variable;
-        scope_syntax_node       scope;
-        while_syntax_node       while_loop;
-        loop_syntax_node        for_loop;
-        if_syntax_node          if_conditional;
-        elseif_syntax_node      elseif_conditional;
-        procedure_syntax_node   procedure;
-        function_syntax_node    function;
-        parameter_syntax_node   parameter;
-        program_syntax_node     program;
-        procedure_call_syntax_node  proc_call;
-        function_call_syntax_node   func_call;
-        write_syntax_node       write;
-        read_syntax_node        read;
+        binary_syntax_node          binary;
+        unary_syntax_node           unary;
+        primary_syntax_node         primary;
+        grouping_syntax_node        grouping;
+        assignment_syntax_node      assignment;
+        variable_syntax_node        variable;
+        scope_syntax_node           scope;
+        while_syntax_node           while_loop;
+        loop_syntax_node            for_loop;
+        if_syntax_node              if_conditional;
+        elseif_syntax_node          elseif_conditional;
+        procedure_syntax_node       procedure;
+        function_syntax_node        function;
+        parameter_syntax_node       parameter;
+        program_syntax_node         program;
+        write_syntax_node           write;
+        read_syntax_node            read;
+
+        procedure_call_syntax_node          proc_call;
+        function_call_syntax_node           func_call;
+
     };
 
 } syntax_node;
@@ -356,6 +363,7 @@ syntax_node* source_parser_match_procedure_statement(source_parser *parser);
 syntax_node* source_parser_match_function_statement(source_parser *parser);
 syntax_node* source_parser_match_write_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
+syntax_node* source_parser_match_global_statement(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 
 syntax_node* source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena);
@@ -391,65 +399,6 @@ b32 source_parser_identifier_is_declared(source_parser *parser, cc64 identifier)
 b32 source_parser_identifier_is_declared_in_scope(source_parser *parser, cc64 identifier);
 b32 source_parser_identifier_is_declared_above_scope(source_parser *parser, cc64 identifier);
 b32 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier);
-
-// --- Error Handling ----------------------------------------------------------
-//
-// In the event that there is an error, the error handler is designed to properly
-// synronize the parser and display helpful error messages as they are processed.
-// Most errors are recoverable such that the parser can continue to process additional
-// error messages for the user.
-//
-//
-
-typedef enum parse_error_type
-{
-    PARSE_ERROR_HANDLED,
-    PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN,
-    PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS,
-    PARSE_ERROR_UNEXPECTED_EOL,
-    PARSE_ERROR_UNEXPECTED_EOF,
-    PARSE_ERROR_UNEXPECTED_EXPRESSION_EOF_EOL,
-    PARSE_ERROR_MEM_CONSTRAINT_STRING_POOL,
-    PARSE_ERROR_MEM_CONSTRAINT_SYMBOL_TABLE,
-    PARSE_ERROR_EXPECTED_PROGRAM_BEGIN,
-    PARSE_ERROR_EXPECTED_PROGRAM_END,
-    PARSE_ERROR_EXPECTED_ENDSCOPE,
-    PARSE_ERROR_EXPECTED_ENDWHILE,
-    PARSE_ERROR_EXPECTED_ENDLOOP,
-    PARSE_ERROR_EXPECTED_ENDIF,
-    PARSE_ERROR_EXPECTED_SEMICOLON,
-    PARSE_ERROR_EXPECTED_ASSIGNMENT,
-    PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER,
-    PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION,
-    PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION,
-    PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT,
-    PARSE_ERROR_UNDECLARED_VARIABLE_IN_READ,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_READ,
-    PARSE_ERROR_EXPECTED_ENDPROCEDURE,
-    PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS,
-    PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED,
-    PARSE_ERROR_PROCEDURE_ARITY_MISMATCH,
-    PARSE_ERROR_FUNCTION_ARITY_MISMATCH,
-    PARSE_ERROR_FUNCTION_MISSING_LEFT_PARENTHESIS,
-    PARSE_ERROR_FUNCTION_MISSING_RIGHT_PARENTHESIS,
-    PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED,
-    PARSE_ERROR_EXPECTED_ENDFUNCTION,
-    PARSE_ERROR_SYMBOL_UNLOCATABLE,
-    PARSE_ERROR_VARIABLE_REDECLARATION,
-} parse_error_type;
-
-typedef enum parse_warning_type
-{
-    PARSE_WARNING_SHADOWED_VARIABLE,
-} parse_warning_type;
-
-void    parser_error_handler_display_error(source_parser *parser, parse_error_type error, u64 sline);
-void    parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning, u64 sline);
 
 // --- Print Traversal ---------------------------------------------------------
 //

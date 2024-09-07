@@ -5,7 +5,6 @@ begin;
     function fib_sequence n;
         variable top 4 := 1;
         variable bottom 4 := 1;
-
         variable index 4 := 2;
         while index < n;
             variable result 4 := top + bottom;

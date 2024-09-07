@@ -3,7 +3,7 @@
 #include <core/arena.h>
 #include <core/definitions.h>
 #include <platform/fileio.h>
-#include <compiler/rparser.h>
+#include <compiler/parser.h>
 
 #define TAB_SPACE_SIZE 4
 
