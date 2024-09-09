@@ -1,74 +1,78 @@
 #include <core/resource.h>
 
-b32 
-resource_define(resource *res, cc64 file_name)
+#define ADDITIONAL_BUFFER_SIZE 32
+
+b32     
+resource_is_loaded(resource *res)
 {
 
-    assert(res != NULL);
-    assert(res->buffer != NULL);
+    SF_ENSURE_PTR(res);
+    b32 result = (res->buffer != NULL);
+    return result;
 
-    if (!fileio_file_exists(file_name)) return false;
-    if (!fileio_file_is_file(file_name)) return false;
+}
 
-    res->name       = file_name;
-    res->size       = fileio_file_size(file_name);
-    res->buffer     = NULL;
-    res->active     = false;
-    res->defined    = true;
+b32     
+resource_is_path_valid(resource *res)
+{
 
-    return true;
+    SF_ENSURE_PTR(res);
+    SF_ENSURE_PTR(res->user_path);
+    b32 valid = (fileio_file_exists(res->user_path) && fileio_file_is_file(res->user_path));
+    return valid;
 
 }
 
 void
-resource_undefined(resource *res)
+resource_initialize(resource *res, ccptr file_path)
 {
 
-    assert(res != NULL);
-    res->name = NULL;
-    res->size = 0;
-    res->active = false;
-    res->defined = false;
+    SF_ENSURE_PTR(res);
 
-    if (res->buffer != NULL) resource_release(res);
+    res->user_path          = file_path;
+    res->buffer_size        = 0;
+    res->buffer_commit      = 0;
+    res->buffer             = NULL;
 
+    return;
 
 }
 
-void
-resource_reserve(resource *res, u64 reserve_size)
+void    
+resource_load(resource *res)
 {
 
-    if (res->buffer == NULL)
-    {
-        res->buffer = system_virtual_alloc(NULL, reserve_size);
-        res->active = true;
-    }
+    SF_ENSURE_PTR(res);
+    SF_ENSURE_PTR(res->user_path);
+    u64 file_size = fileio_file_size(res->user_path);
+    u64 allocate_size = file_size + ADDITIONAL_BUFFER_SIZE;
 
-    else
-    {
-        printf("-- Warning, attempting to reserve a resource that is already reserved.\n");
-    }
+    vptr resource_buffer = system_virtual_alloc(NULL, allocate_size);
+
+    // Set the remainder to NULL characters. This makes it easier to cast the
+    // resource as a text file. Not the fastest procedure but it doesn't need to be.
+    for (u64 idx = file_size; file_size < allocate_size; ++idx)
+        *((cptr)resource_buffer + idx) = '\0';
+    
+    res->buffer = res;
+    res->buffer_size = system_virtual_buffer_size(resource_buffer); 
+    res->buffer_commit = file_size;
 
 }
 
-void
-resource_release(resource *res)
+void    
+resource_unload(resource *res)
 {
 
-    assert(res != NULL);
-    if (res->buffer == NULL)
-    {
-        printf("-- Warning, attempting to release resource buffer that is already released.\n");
-    }
+    SF_ENSURE_PTR(res);
+    SF_ENSURE_PTR(res->buffer);
+    system_virtual_free(res->buffer);
 
-    else
-    {
-        system_virtual_free(res->buffer);
-        res->buffer = NULL;
-        res->buffer = NULL;
-        res->active = false;
-    }
+    res->buffer         = NULL;
+    res->buffer_size    = 0;
+    res->buffer_commit  = 0;
+
+    return;
 
 }
 

@@ -34,6 +34,28 @@
 //              symptom of poor architecture *or* the generated program is fairly
 //              substantial. Generally speaking, the latter of which is unlikely.
 //
+// NOTE(Chris): Imports are lazy-evaluated at runtime. Only the "main" script file
+//              is required to compile.
+//
+//              1.  Parser loads "resources", which are virtually-allocated files
+//                  pulled into memory. This how source files are pulled in.
+//
+//              2.  Resource files are inserted into linked list. As imports are
+//                  added, they are pushed into a dependency list. Circular dependencies
+//                  are an error and are checked when a new import statement is added.
+//                  Duplicate dependencies are warnings, ignored. Shadowed dependencies
+//                  are silently ignored.
+//
+//              3.  Imports *must* occur first before any and all global statements,
+//                  so that they can be gathered and constructed for this evaluation
+//                  process. Therefore, it is an error to import a file after declaring
+//                  a global statement.
+//
+//              OPTIONAL:
+//              4.  Imports may define their begin (name); end (name); blocks. These
+//                  blocks are module blocks that have "dot" syntax to name space
+//                  modules. These modules may only contain procedures and functions.
+//
 
 #include <compiler/parser.h>
 
@@ -2378,6 +2400,11 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     return program;
 
 }
+
+// --- Helpers -----------------------------------------------------------------
+//
+// The following functions are helper functions for the parser.
+//
 
 syntax_node*
 source_parser_push_node(source_parser *parser)

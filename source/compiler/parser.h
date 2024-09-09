@@ -273,6 +273,11 @@ typedef struct parameter_syntax_node
     syntax_node *next_parameter;
 } parameter_syntax_node;
 
+typedef struct import_syntax_node 
+{
+    cc64 file_path;
+} import_syntax_node;
+
 typedef struct global_statement_syntax_node
 {
     syntax_node *statement;
@@ -309,6 +314,7 @@ typedef struct syntax_node
         program_syntax_node         program;
         write_syntax_node           write;
         read_syntax_node            read;
+        import_syntax_node          import;
 
         procedure_call_syntax_node          proc_call;
         function_call_syntax_node           func_call;
