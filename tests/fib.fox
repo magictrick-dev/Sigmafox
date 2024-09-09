@@ -1,21 +1,23 @@
 
+{ Fibonacci sequence. }
+function fib_sequence n;
+
+    variable top 4 := 1;
+    variable bottom 4 := 1;
+    variable index 4 := 2;
+
+    while index < n;
+        variable result 4 := top + bottom;
+        bottom := top;
+        top := result;
+        index := index + 1;
+    endwhile;
+
+    fib_sequence := top;
+
+endfunction;
+
 begin;
-
-    { Fibonacci sequence. }
-    function fib_sequence n;
-        variable top 4 := 1;
-        variable bottom 4 := 1;
-        variable index 4 := 2;
-        while index < n;
-            variable result 4 := top + bottom;
-            bottom := top;
-            top := result;
-            index := index + 1;
-        endwhile;
-
-        fib_sequence := top;
-
-    endfunction;
 
     variable test_number 4;
     write 6 'Enter the number to calculate the fibonacci sequence:';

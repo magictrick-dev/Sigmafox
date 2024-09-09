@@ -375,6 +375,15 @@ transpile_program_node(syntax_node *root_node, source_section *section, source_f
 
     assert(root_node->type == PROGRAM_ROOT_NODE);
 
+    syntax_node *global_node = root_node->program.global_statements;
+    while (global_node != NULL)
+    {
+
+        transpile_node(global_node, section, file, arena);
+        global_node = global_node->next_node;
+        
+    }
+
     insert_text_at(section, arena, "int\n");
     insert_text_at(section, arena, "main(int argc, char **argv)\n");
     insert_text_at(section, arena, "{\n\n");
