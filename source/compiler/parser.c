@@ -96,7 +96,7 @@ source_parser_match_primary(source_parser *parser)
         {
             parser->error_count++; 
             
-            display_error_message(parser->tokenizer.file_path, parser->previous_token, 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token, 
                     PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'", object.identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
@@ -106,7 +106,7 @@ source_parser_match_primary(source_parser *parser)
         {
             parser->error_count++; 
             
-            display_error_message(parser->tokenizer.file_path, parser->previous_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token,
                     PARSER_ERROR_UNDEFINED_IDENTIFIER, ": '%s'.", object.identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
@@ -133,7 +133,7 @@ source_parser_match_primary(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_SYMBOL, ": expected ')'.", "");
             return NULL;
         }
@@ -156,7 +156,7 @@ source_parser_match_primary(source_parser *parser)
     else if (source_parser_match_token(parser, 1, TOKEN_UNDEFINED_EOF))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_UNEXPECTED_EOF, ".", "");
         return NULL;
     }
@@ -164,17 +164,17 @@ source_parser_match_primary(source_parser *parser)
     else if (source_parser_match_token(parser, 1, TOKEN_UNDEFINED_EOL))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_UNEXPECTED_EOL, ".", "");
         return NULL;
     }
 
     char hold_character;
-    cc64 string = source_token_string_nullify(parser->current_token, &hold_character);
+    cc64 string = source_token_string_nullify(parser->tokenizer->current_token, &hold_character);
     parser->error_count++; 
-    display_error_message(parser->tokenizer.file_path, parser->current_token,
+    display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
             PARSER_ERROR_UNEXPECTED_SYMBOL, ": '%s'.", string);
-    source_token_string_unnullify(parser->current_token, hold_character);
+    source_token_string_unnullify(parser->tokenizer->current_token, hold_character);
 
     return NULL;
 
@@ -191,7 +191,7 @@ source_parser_match_function_call(source_parser *parser)
 
         object_literal object = {0};
         object_type type = source_parser_token_to_literal(parser,
-                parser->current_token, &object);
+                parser->tokenizer->current_token, &object);
         cc64 identifier = object.identifier;
 
         // If it isn't defined, then its probably not a procedure.
@@ -216,7 +216,7 @@ source_parser_match_function_call(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_LEFT_PARENTHESIS))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_SYMBOL, ": expected '('.", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
@@ -262,7 +262,7 @@ source_parser_match_function_call(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_SYMBOL, ": expected ')'.", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
@@ -279,7 +279,7 @@ source_parser_match_function_call(source_parser *parser)
         if (arity_count != procedure_call->arity)
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_ARITY_MISMATCH, ": see definition of '%s'.", identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
@@ -471,7 +471,7 @@ source_parser_match_procedure_call(source_parser *parser)
 
         object_literal object = {0};
         object_type type = source_parser_token_to_literal(parser,
-                parser->current_token, &object);
+                parser->tokenizer->current_token, &object);
         cc64 identifier = object.identifier;
 
         // If it isn't defined, then its probably not a procedure.
@@ -534,7 +534,7 @@ source_parser_match_procedure_call(source_parser *parser)
         if (arity_count != procedure_call->arity)
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_ARITY_MISMATCH, ": see definition of '%s'.", identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
@@ -569,7 +569,7 @@ source_parser_match_assignment(source_parser *parser)
         // Get the object literal.
         object_literal object = {0};
         object_type type = source_parser_token_to_literal(parser,
-                parser->current_token, &object);
+                parser->tokenizer->current_token, &object);
         cc64 identifier = object.identifier;
 
         // We need to check if the identifier is declared.
@@ -577,7 +577,7 @@ source_parser_match_assignment(source_parser *parser)
         {
 
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'.", identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
@@ -599,7 +599,7 @@ source_parser_match_assignment(source_parser *parser)
         if (source_parser_should_propagate_error(variable_symbol, parser, mem_state))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     SYSTEM_ERROR_SYMBOL_SHOULD_BE_LOCATABLE, ": this is a runtime error.", "");
             return NULL;
         }
@@ -638,7 +638,7 @@ source_parser_match_expression_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -669,7 +669,7 @@ source_parser_match_variable_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -688,7 +688,7 @@ source_parser_match_variable_statement(source_parser *parser)
         if (source_parser_identifier_is_declared_in_scope(parser, object.identifier))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->previous_token, 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token, 
                     PARSER_ERROR_VARIABLE_REDECLARATION, ": '%s'.", object.identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -697,7 +697,7 @@ source_parser_match_variable_statement(source_parser *parser)
 
         else if (source_parser_identifier_is_declared_above_scope(parser, object.identifier))
         {
-            display_warning_message(parser->tokenizer.file_path, parser->previous_token,
+            display_warning_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token,
                     PARSER_WARNING_VARIABLE_SCOPE_SHADOW, ", see previous declaration of '%s'", object.identifier);
         }
 
@@ -771,7 +771,7 @@ source_parser_match_variable_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         return NULL;
@@ -819,7 +819,7 @@ source_parser_match_read_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->previous_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token,
                 PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -836,7 +836,7 @@ source_parser_match_read_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->previous_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token,
                 PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'.", object.identifier);
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -849,7 +849,7 @@ source_parser_match_read_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -923,7 +923,7 @@ source_parser_match_write_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -959,7 +959,7 @@ source_parser_match_scope_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1026,7 +1026,7 @@ source_parser_match_scope_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDSCOPE))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endscope' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDSCOPE);
@@ -1041,7 +1041,7 @@ source_parser_match_scope_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -1069,7 +1069,7 @@ source_parser_match_loop_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ": expected identifier in loop expression.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1143,7 +1143,7 @@ source_parser_match_loop_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1223,7 +1223,7 @@ source_parser_match_loop_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDLOOP))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endloop' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP);
@@ -1238,7 +1238,7 @@ source_parser_match_loop_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -1284,7 +1284,7 @@ source_parser_match_if_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1378,7 +1378,7 @@ source_parser_match_if_statement(source_parser *parser)
         {
 
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1468,7 +1468,7 @@ source_parser_match_if_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDIF))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endif' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF);
@@ -1483,7 +1483,7 @@ source_parser_match_if_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1536,7 +1536,7 @@ source_parser_match_while_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1601,7 +1601,7 @@ source_parser_match_while_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDWHILE))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endwhile' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDWHILE);
@@ -1616,7 +1616,7 @@ source_parser_match_while_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -1645,7 +1645,7 @@ source_parser_match_procedure_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1669,7 +1669,7 @@ source_parser_match_procedure_statement(source_parser *parser)
     {
         
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_VARIABLE_REDECLARATION, ", procedure is already defined.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1714,7 +1714,7 @@ source_parser_match_procedure_statement(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1763,7 +1763,7 @@ source_parser_match_procedure_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1821,7 +1821,7 @@ source_parser_match_procedure_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDPROCEDURE))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'endprocedure' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE);
@@ -1840,7 +1840,7 @@ source_parser_match_procedure_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -1867,7 +1867,7 @@ source_parser_match_function_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1891,7 +1891,7 @@ source_parser_match_function_statement(source_parser *parser)
     {
         
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_VARIABLE_REDECLARATION, ", function is already defined.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1941,7 +1941,7 @@ source_parser_match_function_statement(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -1990,7 +1990,7 @@ source_parser_match_function_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
@@ -2047,7 +2047,7 @@ source_parser_match_function_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDFUNCTION))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'endfunction' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION);
@@ -2063,7 +2063,7 @@ source_parser_match_function_statement(source_parser *parser)
     if (return_symbol->type != SYMBOL_TYPE_VARIABLE)
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_NO_RETURN, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -2079,7 +2079,7 @@ source_parser_match_function_statement(source_parser *parser)
     {
 
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -2185,16 +2185,70 @@ source_parser_match_global_statement(source_parser *parser)
     {
         
         char hold_character;
-        cc64 string = source_token_string_nullify(parser->current_token, &hold_character);
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        cc64 string = source_token_string_nullify(parser->tokenizer->current_token, &hold_character);
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_UNEXPECTED_GLOBAL_STATEMENT, ", '%s' encountered.", string);
-        source_token_string_unnullify(parser->current_token, hold_character);
+        source_token_string_unnullify(parser->tokenizer->current_token, hold_character);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         parser->error_count++;
         return NULL;
 
     }
 
     return result;
+
+}
+
+syntax_node*
+source_parser_match_include_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    while (source_parser_match_token(parser, 1, TOKEN_KEYWORD_INCLUDE))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        
+        // Consume the include keyword.
+        source_parser_consume_token(parser);
+
+        // The following token should be a string.
+        if (!source_parser_expect_token(parser, TOKEN_STRING))
+        {
+            parser->error_count++;
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL, ", expected string in include statement.", "");
+            continue;
+        }
+
+        // Get the path.
+        source_token path = source_parser_consume_token(parser);
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser, &path, &object);
+        assert(type == OBJECT_STRING); // This should always be true.
+
+        // We need to now process this.
+        printf("-- Including: %s.\n", object.string);
+
+        // After processing, we can now expect a semicolon.
+        if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+        {
+
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+            return NULL;
+
+        }
+
+        source_parser_consume_token(parser);
+
+    }
+
+    return NULL;
 
 }
 
@@ -2208,6 +2262,10 @@ source_parser_match_program(source_parser *parser)
     syntax_node *program_node = source_parser_push_node(parser);
     program_node->type = PROGRAM_ROOT_NODE;
 
+    // Get all the first-layer depencies.
+    syntax_node *dependencies = source_parser_match_include_statement(parser);
+
+    // Match all global statements.
     syntax_node *head_global_node = NULL;
     syntax_node *last_global_node = NULL;
     while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_BEGIN))
@@ -2245,7 +2303,7 @@ source_parser_match_program(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_BEGIN))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'begin' keyword.", "");
         return NULL;
     }
@@ -2257,7 +2315,7 @@ source_parser_match_program(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
             return NULL;
         }
@@ -2311,7 +2369,7 @@ source_parser_match_program(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_END))
     {
         parser->error_count++; 
-        display_error_message(parser->tokenizer.file_path, parser->current_token,
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                 PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'end' keyword.", "");
         return NULL;
     }
@@ -2323,7 +2381,7 @@ source_parser_match_program(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer.file_path, parser->current_token,
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
                     PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
             return NULL;
         }
@@ -2348,9 +2406,6 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     // Initialize.
     parser->entry           = NULL;
     parser->nodes           = NULL;
-    parser->previous_token  = &parser->tokens[0];
-    parser->current_token   = &parser->tokens[1];
-    parser->next_token      = &parser->tokens[2];
     parser->arena           = arena;
     parser->error_count     = 0;
 
@@ -2367,6 +2422,16 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     char *source_buffer = (char*)memory_arena_push_top(&parser->transient_arena, source_size + 1);
     fileio_file_read(path, source_buffer, source_size, source_size + 1);
     source_buffer[source_size] = '\0'; // Null-terminate.
+                                    
+    // Initialize the tokenizer then cycle in two tokens.
+    // This is just sad code.
+    parser->tokenizer = memory_arena_push_type_top(&parser->transient_arena, parser_tokenizer);
+    parser->tokenizer->previous_token  = &parser->tokenizer->tokens[0];
+    parser->tokenizer->current_token   = &parser->tokenizer->tokens[1];
+    parser->tokenizer->next_token      = &parser->tokenizer->tokens[2];
+    source_tokenizer_initialize(&parser->tokenizer->tokenizer, source_buffer, path);
+    source_parser_consume_token(parser);
+    source_parser_consume_token(parser);
 
     // Reserve the string pool and the bottom of the transient arena.
     string_pool_initialize(&parser->spool, &parser->transient_arena, STRING_POOL_DEFAULT_SIZE);
@@ -2374,11 +2439,6 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     // Allocate the global symbol table at the bottom of symbol table.
     parser->symbol_table = memory_arena_push_type(&parser->transient_arena, symbol_table);
     symbol_table_initialize(parser->symbol_table, &parser->transient_arena, 1024);
-
-    // Initialize the tokenizer then cycle in two tokens.
-    source_tokenizer_initialize(&parser->tokenizer, source_buffer, path);
-    source_parser_consume_token(parser);
-    source_parser_consume_token(parser);
 
     // Generate AST from program node.
     syntax_node *program = source_parser_match_program(parser);
@@ -2421,44 +2481,44 @@ source_parser_push_node(source_parser *parser)
 source_token
 source_parser_get_previous_token(source_parser *parser)
 {
-    source_token *result = parser->previous_token;
+    source_token *result = parser->tokenizer->previous_token;
     return *result;
 }
 
 source_token
 source_parser_get_current_token(source_parser *parser)
 {
-    source_token *result = parser->current_token;
+    source_token *result = parser->tokenizer->current_token;
     return *result;
 }
 
 source_token
 source_parser_get_next_token(source_parser *parser)
 {
-    source_token *result = parser->next_token;
+    source_token *result = parser->tokenizer->next_token;
     return *result;
 }
 
 source_token
 source_parser_consume_token(source_parser *parser)
 {
-    source_token *temporary = parser->previous_token;
-    parser->previous_token = parser->current_token;
-    parser->current_token = parser->next_token;
-    parser->next_token = temporary;
-    source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+    source_token *temporary = parser->tokenizer->previous_token;
+    parser->tokenizer->previous_token = parser->tokenizer->current_token;
+    parser->tokenizer->current_token = parser->tokenizer->next_token;
+    parser->tokenizer->next_token = temporary;
+    source_tokenizer_get_next_token(&parser->tokenizer->tokenizer, parser->tokenizer->next_token);
 
     // NOTE(Chris): Due to the fact that expression and statement grammar does
     //              not take into account that new lines and comments can coexist
     //              in them, we ignore them here for now.
 
-    while (parser->next_token->type == TOKEN_NEW_LINE ||
-           parser->next_token->type == TOKEN_COMMENT_BLOCK)
+    while (parser->tokenizer->next_token->type == TOKEN_NEW_LINE ||
+           parser->tokenizer->next_token->type == TOKEN_COMMENT_BLOCK)
     {
-        source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+        source_tokenizer_get_next_token(&parser->tokenizer->tokenizer, parser->tokenizer->next_token);
     }
     
-    return *parser->previous_token;
+    return *parser->tokenizer->previous_token;
 }
 
 b32 
@@ -2480,7 +2540,7 @@ b32
 source_parser_expect_token(source_parser *parser, source_token_type type)
 {
     
-    b32 is_type = (parser->current_token->type == type);
+    b32 is_type = (parser->tokenizer->current_token->type == type);
     return is_type;
 
 }
@@ -2489,7 +2549,7 @@ b32
 source_parser_next_token_is(source_parser *parser, source_token_type type)
 {
 
-    b32 is_type = (parser->next_token->type == type);
+    b32 is_type = (parser->tokenizer->next_token->type == type);
     return is_type;
 
 }
@@ -2502,7 +2562,7 @@ source_parser_match_token(source_parser *parser, u32 count, ...)
     va_start(args, count);
     b32 matched = false;
 
-    source_token_type current = parser->current_token->type;
+    source_token_type current = parser->tokenizer->current_token->type;
     for (u32 idx = 0; idx < count; ++idx)
     {
         source_token_type type = va_arg(args, source_token_type);

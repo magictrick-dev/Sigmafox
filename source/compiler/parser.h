@@ -323,13 +323,25 @@ typedef struct syntax_node
 
 } syntax_node;
 
-typedef struct source_parser
+typedef struct parser_tokenizer parser_tokenizer;
+
+typedef struct parser_tokenizer
 {
+
     source_tokenizer tokenizer;
     source_token tokens[3];
     source_token *previous_token;
     source_token *current_token;
     source_token *next_token;
+
+    parser_tokenizer *parent_tokenizer;
+
+} parser_tokenizer;
+
+typedef struct source_parser
+{
+
+    parser_tokenizer *tokenizer;
 
     memory_arena *arena;
     memory_arena syntax_tree_arena;
@@ -370,6 +382,7 @@ syntax_node* source_parser_match_function_statement(source_parser *parser);
 syntax_node* source_parser_match_write_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
 syntax_node* source_parser_match_global_statement(source_parser *parser);
+syntax_node* source_parser_match_import_statement(source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 
 syntax_node* source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena);
