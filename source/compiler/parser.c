@@ -2409,6 +2409,27 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     parser->arena           = arena;
     parser->error_count     = 0;
 
+    // Program Memory Layout:
+    // [      ][                               ]
+    // ^        ^-- String Pool               ^
+    // |          & Symbol Tables             |
+    // |                                      |
+    // |                 Files & Tokenizer -- |
+    // | -- AST nodes
+    //
+    // Take special note of what is where:
+    //
+    // 1.   The AST Nodes are placed at the head where they can be freely gen'd.
+    //
+    // 2.   The string pool and symbol tables are offsetted, placed where they
+    //      grow "up" from their location. These frequently update and therefore
+    //      will cause page faulting interrupts. OS expects faults to occur "upward"
+    //      and therefore more efficient than putting them at the end.
+    //
+    // 3.   Files and tokenizer are placed at the end and grow down. They don't change
+    //      as frequently as the others and therefore can take a hit in growing down.
+    //      Eventually, we will do away with this and use a resource manager instead.
+
     // Set the two arenas, the syntax tree arena is a fixed size of 64 megabytes,
     // which equates to (if each syntax node is 48 bytes) to 1.4 million nodes.
     // The transient arena takes the remaining area of the arena and is used for
