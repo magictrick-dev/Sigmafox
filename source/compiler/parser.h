@@ -85,6 +85,7 @@ typedef struct call_syntax_node     call_syntax_node;
 
 typedef enum syntax_node_type
 {
+
     NULL_EXPRESSION_NODE,
     BINARY_EXPRESSION_NODE,
     UNARY_EXPRESSION_NODE,
@@ -95,6 +96,7 @@ typedef enum syntax_node_type
     PROCEDURE_CALL_EXPRESSION_NODE,
     FUNCTION_CALL_EXPRESSION_NODE,
     ARRAY_INDEX_EXPRESSION_NODE,
+
     EXPRESSION_STATEMENT_NODE,
     COMMENT_STATEMENT_NODE,
     NEWLINE_STATEMENT_NODE,
@@ -111,6 +113,7 @@ typedef enum syntax_node_type
     PARAMETER_STATEMENT_NODE,
     VARIABLE_STATEMENT_NODE,
     PROGRAM_ROOT_NODE,
+
 } syntax_node_type;
 
 typedef enum syntax_operation_type
@@ -215,6 +218,13 @@ typedef struct array_index_syntax_node
     syntax_node *accessors;
 
 } array_index_syntax_node;
+
+typedef struct expression_syntax_node
+{
+
+    syntax_node *expression;
+
+} expression_syntax_node;
 
 typedef struct scope_syntax_node
 {
@@ -325,6 +335,7 @@ typedef struct syntax_node
         read_syntax_node            read;
         import_syntax_node          import;
         array_index_syntax_node     array_index;
+        expression_syntax_node      expression;
 
         procedure_call_syntax_node          proc_call;
         function_call_syntax_node           func_call;

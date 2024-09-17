@@ -209,6 +209,9 @@ source_parser_match_array_index(source_parser *parser)
             return forward;
         }
 
+        // Consume the identifier.
+        source_parser_consume_token(parser);
+
         // We have the array, now we need to ensure we match syntax.
         if (!source_parser_expect_token(parser, TOKEN_LEFT_PARENTHESIS))
         {
@@ -220,6 +223,9 @@ source_parser_match_array_index(source_parser *parser)
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
+
+        // Consume the left parenthesis.
+        source_parser_consume_token(parser);
 
         syntax_node *head_index_node = NULL;
         syntax_node *last_index_node = NULL;
@@ -277,7 +283,7 @@ source_parser_match_array_index(source_parser *parser)
         }
 
         // Validate the arity of the array access.
-        if (array_symbol->arity != array_count)
+        if (array_symbol->arity != arity_count)
         {
 
             parser->error_count++; 
@@ -303,10 +309,14 @@ source_parser_match_array_index(source_parser *parser)
             return NULL;
         }
 
+        // Consume the right bracket.
+        source_parser_consume_token(parser);
+
         syntax_node *array_index_node = source_parser_push_node(parser);
         array_index_node->type = ARRAY_INDEX_EXPRESSION_NODE;
         array_index_node->array_index.name = identifier;
         array_index_node->array_index.accessors = head_index_node;
+        return array_index_node;
 
     }
 
@@ -781,6 +791,10 @@ source_parser_match_expression_statement(source_parser *parser)
         return NULL;
     }
 
+    syntax_node *expression_node = source_parser_push_node(parser);
+    expression_node->type = EXPRESSION_STATEMENT_NODE;
+    expression_node->expression.expression = expression;
+
     // Expect a semi-colon at EOS.
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
@@ -791,11 +805,11 @@ source_parser_match_expression_statement(source_parser *parser)
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
     }
-    else
-    {
-        source_parser_consume_token(parser);
-        return expression;
-    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    return expression_node;
 
 }
 
@@ -940,11 +954,11 @@ source_parser_match_variable_statement(source_parser *parser)
     if (variable_node->variable.assignment != NULL)
     {
         identifier->type = SYMBOL_TYPE_VARIABLE;
-        if (variable_node->variable.dimensions != NULL)
-        {
-            identifier->type = SYMBOL_TYPE_ARRAY;
-            identifier->arity = array_arity;
-        }
+    }
+    else if (variable_node->variable.dimensions != NULL)
+    {
+        identifier->type = SYMBOL_TYPE_ARRAY;
+        identifier->arity = array_arity;
     }
     else
     {
