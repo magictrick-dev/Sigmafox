@@ -181,6 +181,141 @@ source_parser_match_primary(source_parser *parser)
 }
 
 syntax_node*
+source_parser_match_array_index(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    if (source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser,
+                parser->tokenizer->current_token, &object);
+        cc64 identifier = object.identifier;
+
+        // If it isn't defined, then its probably not an array.
+        if (!source_parser_identifier_is_defined(parser, identifier))
+        {
+            syntax_node *forward = source_parser_match_primary(parser);
+            return forward;
+        }
+
+        // Check if it is an indexable array.
+        symbol *array_symbol = source_parser_locate_symbol(parser, identifier);
+        if (array_symbol->type != SYMBOL_TYPE_ARRAY)
+        {
+            syntax_node *forward = source_parser_match_primary(parser);
+            return forward;
+        }
+
+        // We have the array, now we need to ensure we match syntax.
+        if (!source_parser_expect_token(parser, TOKEN_LEFT_PARENTHESIS))
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected '(' for array indexing.", "");
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        syntax_node *head_index_node = NULL;
+        syntax_node *last_index_node = NULL;
+        i32 arity_count = 0;
+        while (!source_parser_match_token(parser, 2, TOKEN_RIGHT_PARENTHESIS, TOKEN_SEMICOLON))
+        {
+
+            if (source_parser_should_break_on_eof(parser)) break;
+
+            // The first entry has arity zero and we don't need to check if it is
+            // a comma. Otherwise, the entry must be a comma followed by an expression.
+            if (arity_count != 0)
+            {
+
+                if (!source_parser_expect_token(parser, TOKEN_COMMA))
+                {
+
+                    parser->error_count++; 
+                    display_error_message(parser->tokenizer->tokenizer.file_path,
+                            parser->tokenizer->current_token,
+                            PARSER_ERROR_EXPECTED_SYMBOL,
+                            ": expected ',' for array indexing.", "");
+                    source_parser_should_propagate_error(NULL, parser, mem_state);
+                    return NULL;
+                    
+                }
+
+                // Consume the comma.
+                source_parser_consume_token(parser);
+
+            }
+ 
+            // Get the index expression.
+            syntax_node *index = source_parser_match_expression(parser);
+            if (source_parser_should_propagate_error(index, parser, mem_state))
+            {
+                return NULL;
+            }
+
+            // Set the parameter.
+            if (head_index_node == NULL)
+            {
+                head_index_node = index;
+                last_index_node = index;
+            }
+
+            else
+            {
+                last_index_node->next_node = index;
+                last_index_node = index;
+            }
+
+            arity_count++;
+
+        }
+
+        // Validate the arity of the array access.
+        if (array_symbol->arity != array_count)
+        {
+
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_ARITY_MISMATCH,
+                    ": array access members mismatch from definition of '%s'.",
+                    identifier);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+
+        }
+
+        // Check for right bracket.
+        if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected ')' for array indexing.", "");
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        syntax_node *array_index_node = source_parser_push_node(parser);
+        array_index_node->type = ARRAY_INDEX_EXPRESSION_NODE;
+        array_index_node->array_index.name = identifier;
+        array_index_node->array_index.accessors = head_index_node;
+
+    }
+
+    syntax_node *forward = source_parser_match_primary(parser);
+    return forward;
+
+}
+
+syntax_node*
 source_parser_match_function_call(source_parser *parser)
 {
 
@@ -197,7 +332,7 @@ source_parser_match_function_call(source_parser *parser)
         // If it isn't defined, then its probably not a procedure.
         if (!source_parser_identifier_is_defined(parser, identifier))
         {
-            syntax_node *forward = source_parser_match_primary(parser);
+            syntax_node *forward = source_parser_match_array_index(parser);
             return forward;
         }
 
@@ -205,7 +340,7 @@ source_parser_match_function_call(source_parser *parser)
         symbol *procedure_call = source_parser_locate_symbol(parser, identifier);
         if (procedure_call->type != SYMBOL_TYPE_FUNCTION)
         {
-            syntax_node *forward = source_parser_match_primary(parser);
+            syntax_node *forward = source_parser_match_array_index(parser);
             return forward;
         }
 
@@ -216,8 +351,10 @@ source_parser_match_function_call(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_LEFT_PARENTHESIS))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
-                    PARSER_ERROR_EXPECTED_SYMBOL, ": expected '('.", "");
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected '(' for procedure call.", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -262,8 +399,10 @@ source_parser_match_function_call(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
-                    PARSER_ERROR_EXPECTED_SYMBOL, ": expected ')'.", "");
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected ')' for procedure call.", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -291,7 +430,7 @@ source_parser_match_function_call(source_parser *parser)
 
     }
 
-    syntax_node *forward = source_parser_match_primary(parser);
+    syntax_node *forward = source_parser_match_array_index(parser);
     return forward;
 
 }
@@ -557,6 +696,14 @@ source_parser_match_assignment(source_parser *parser)
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
+    // EMERGENCY(Chris):    So, this won't work with array indexing since we need
+    //                      match arrays + primary-identifiers. Now we need to
+    //                      recursively descend from array & check if the thing we
+    //                      just got back is a primary-identifier OR an array OR
+    //                      an invalid assignment.
+    //
+    //                      are you feeling it now mr krabs?
+
     // An assignment expression begins with an identifier and ':=', so if these
     // two conditions are met, we short circuit the recursive descent and validate
     // that here. Assignment expressions match at equality, ensuring only single-variable
@@ -688,7 +835,8 @@ source_parser_match_variable_statement(source_parser *parser)
         if (source_parser_identifier_is_declared_in_scope(parser, object.identifier))
         {
             parser->error_count++; 
-            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token, 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->previous_token, 
                     PARSER_ERROR_VARIABLE_REDECLARATION, ": '%s'.", object.identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
@@ -697,8 +845,10 @@ source_parser_match_variable_statement(source_parser *parser)
 
         else if (source_parser_identifier_is_declared_above_scope(parser, object.identifier))
         {
-            display_warning_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token,
-                    PARSER_WARNING_VARIABLE_SCOPE_SHADOW, ", see previous declaration of '%s'", object.identifier);
+            display_warning_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->previous_token,
+                    PARSER_WARNING_VARIABLE_SCOPE_SHADOW,
+                    ", see previous declaration of '%s'", object.identifier);
         }
 
         variable_node->variable.name = object.identifier;
@@ -719,6 +869,7 @@ source_parser_match_variable_statement(source_parser *parser)
     // Stopping points are :=, ;, or EOF.
     syntax_node *head_dimension_expression = NULL;
     syntax_node *last_dimension_expression = NULL;
+    u32 array_arity = 0;
     while (!source_parser_match_token(parser, 2, TOKEN_SEMICOLON, TOKEN_COLON_EQUALS))
     {
 
@@ -732,6 +883,8 @@ source_parser_match_variable_statement(source_parser *parser)
             source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
             return NULL;
         }
+
+        array_arity++;
 
         // First expression.
         if (head_dimension_expression == NULL)
@@ -787,6 +940,11 @@ source_parser_match_variable_statement(source_parser *parser)
     if (variable_node->variable.assignment != NULL)
     {
         identifier->type = SYMBOL_TYPE_VARIABLE;
+        if (variable_node->variable.dimensions != NULL)
+        {
+            identifier->type = SYMBOL_TYPE_ARRAY;
+            identifier->arity = array_arity;
+        }
     }
     else
     {

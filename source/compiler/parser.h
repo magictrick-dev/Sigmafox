@@ -94,6 +94,7 @@ typedef enum syntax_node_type
     ASSIGNMENT_EXPRESSION_NODE,
     PROCEDURE_CALL_EXPRESSION_NODE,
     FUNCTION_CALL_EXPRESSION_NODE,
+    ARRAY_INDEX_EXPRESSION_NODE,
     EXPRESSION_STATEMENT_NODE,
     COMMENT_STATEMENT_NODE,
     NEWLINE_STATEMENT_NODE,
@@ -207,6 +208,14 @@ typedef struct variable_syntax_node
     cc64 name;
 } variable_syntax_node;
 
+typedef struct array_index_syntax_node
+{
+    
+    cc64 name;
+    syntax_node *accessors;
+
+} array_index_syntax_node;
+
 typedef struct scope_syntax_node
 {
     syntax_node *body_statements;
@@ -315,6 +324,7 @@ typedef struct syntax_node
         write_syntax_node           write;
         read_syntax_node            read;
         import_syntax_node          import;
+        array_index_syntax_node     array_index;
 
         procedure_call_syntax_node          proc_call;
         function_call_syntax_node           func_call;
@@ -358,6 +368,7 @@ typedef struct source_parser
 // --- Expressions -------------------------------------------------------------
 
 syntax_node* source_parser_match_primary(source_parser *parser);
+syntax_node* source_parser_match_array_index(source_parser *parser);
 syntax_node* source_parser_match_function_call(source_parser *parser);
 syntax_node* source_parser_match_unary(source_parser *parser);
 syntax_node* source_parser_match_factor(source_parser *parser);
