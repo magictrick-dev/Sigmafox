@@ -568,7 +568,8 @@ transpile_assignment_node(syntax_node *root_node, source_section *section, sourc
     assert(root_node->type == ASSIGNMENT_EXPRESSION_NODE);
 
     insert_tabbing_at(section, arena);
-    transpile_node(root_node->assignment.left, section, file, arena);
+    //transpile_node(root_node->assignment.left, section, file, arena);
+    insert_text_at(section, arena, root_node->assignment.identifier);
     insert_text_at(section, arena, " = ");
     transpile_node(root_node->assignment.right, section, file, arena);
 

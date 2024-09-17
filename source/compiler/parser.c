@@ -705,7 +705,7 @@ source_parser_match_assignment(source_parser *parser)
 {
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
-
+#if 0
     // 1. We match LHS.
     // 2. LHS can either be: primary identifier OR array index.
     // 3. If we have either, we check for assignment.
@@ -800,7 +800,7 @@ source_parser_match_assignment(source_parser *parser)
     assignment_node->assignment.right = right_hand_side;
     return assignment_node;
 
-    #if 0 /*
+#else 
     b32 current_is_identifier = source_parser_expect_token(parser, TOKEN_IDENTIFIER);
     b32 next_is_assignment = source_parser_next_token_is(parser, TOKEN_COLON_EQUALS);
     if (current_is_identifier && next_is_assignment)
@@ -858,7 +858,6 @@ source_parser_match_assignment(source_parser *parser)
 
     syntax_node *forward = source_parser_match_procedure_call(parser);
     return forward;
-    */
 #endif
 
 }
