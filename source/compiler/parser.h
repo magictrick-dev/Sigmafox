@@ -187,7 +187,7 @@ typedef struct primary_syntax_node
 
 typedef struct assignment_syntax_node
 {
-    cc64 identifier;
+    syntax_node *left;
     syntax_node *right;
 } assignment_syntax_node;
 

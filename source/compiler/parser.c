@@ -706,18 +706,101 @@ source_parser_match_assignment(source_parser *parser)
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
-    // EMERGENCY(Chris):    So, this won't work with array indexing since we need
-    //                      match arrays + primary-identifiers. Now we need to
-    //                      recursively descend from array & check if the thing we
-    //                      just got back is a primary-identifier OR an array OR
-    //                      an invalid assignment.
-    //
-    //                      are you feeling it now mr krabs?
+    // 1. We match LHS.
+    // 2. LHS can either be: primary identifier OR array index.
+    // 3. If we have either, we check for assignment.
+    // 4. If we have an assignment, we validate the assignment.
+    // 5. Otherwise, we pass the node on.
 
-    // An assignment expression begins with an identifier and ':=', so if these
-    // two conditions are met, we short circuit the recursive descent and validate
-    // that here. Assignment expressions match at equality, ensuring only single-variable
-    // assignments are valid.
+    // Match the left hand side.
+    syntax_node *left_hand_side = source_parser_match_procedure_call(parser);
+    if (source_parser_should_propagate_error(left_hand_side, parser, mem_state))
+    {
+        return NULL;
+    }
+
+    // If we aren't primary or an index expression node, return it since we aren't
+    // matching these for assignment expressions.
+    if (!(left_hand_side->type == PRIMARY_EXPRESSION_NODE ||
+        left_hand_side->type == ARRAY_INDEX_EXPRESSION_NODE))
+    {
+        return left_hand_side;
+    }
+
+    // If the next thing we're looking at isn't the assignment op, we return
+    // the expression as-is.
+    if (!source_parser_expect_token(parser, TOKEN_COLON_EQUALS))
+    {
+        return left_hand_side;
+    }
+
+    // Consume the colon equals.
+    source_parser_consume_token(parser);
+
+    // Now, assuming that we have the assignment operator, then we need to check if
+    // the thing we're checking is a validatable.
+    if (left_hand_side->type == PRIMARY_EXPRESSION_NODE)
+    {
+
+        if (left_hand_side->primary.type != OBJECT_IDENTIFIER)
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_UNEXPECTED_SYMBOL,
+                    ": non-identifying primary symbol encountered: '%s'.",
+                    left_hand_side->primary.literal.identifier);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // We need to check if the identifier is declared. We know it's an identifier
+        // by this point.
+        ccptr identifier = left_hand_side->primary.literal.identifier;
+        if (!source_parser_identifier_is_declared(parser, identifier))
+        {
+
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'.", identifier);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+
+        }
+
+    }
+
+    // Now, we have a valid LHS, we need a valid RHS.
+    syntax_node *right_hand_side = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(right_hand_side, parser, mem_state))
+        return NULL;
+
+    // Now, we need to update the symbol table entry.
+    if (left_hand_side->type == PRIMARY_EXPRESSION_NODE)
+    {
+
+        ccptr identifier = left_hand_side->primary.literal.identifier;
+        symbol *variable_symbol = source_parser_locate_symbol(parser, identifier);
+        if (source_parser_should_propagate_error(variable_symbol, parser, mem_state))
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    SYSTEM_ERROR_SYMBOL_SHOULD_BE_LOCATABLE, ": this is a runtime error.", "");
+            return NULL;
+        }
+
+        variable_symbol->type = SYMBOL_TYPE_VARIABLE;
+
+    }
+
+    // We have the LHS and RHS, we can construct the node.
+    syntax_node *assignment_node = source_parser_push_node(parser);
+    assignment_node->type = ASSIGNMENT_EXPRESSION_NODE;
+    assignment_node->assignment.left = left_hand_side;
+    assignment_node->assignment.right = right_hand_side;
+    return assignment_node;
+
+    #if 0 /*
     b32 current_is_identifier = source_parser_expect_token(parser, TOKEN_IDENTIFIER);
     b32 next_is_assignment = source_parser_next_token_is(parser, TOKEN_COLON_EQUALS);
     if (current_is_identifier && next_is_assignment)
@@ -775,6 +858,8 @@ source_parser_match_assignment(source_parser *parser)
 
     syntax_node *forward = source_parser_match_procedure_call(parser);
     return forward;
+    */
+#endif
 
 }
 
@@ -3326,7 +3411,8 @@ parser_print_tree(syntax_node *root_node)
         case ASSIGNMENT_EXPRESSION_NODE:
         {
             
-            printf("%s = ", root_node->assignment.identifier);
+            parser_print_tree(root_node->assignment.left);
+            printf(" = ");
             parser_print_tree(root_node->assignment.right);
 
         } break;
