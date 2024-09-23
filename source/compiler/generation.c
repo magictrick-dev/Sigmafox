@@ -453,7 +453,7 @@ transpile_array_index_node(syntax_node *root_node, source_section *section, sour
 
     SF_ASSERT(root_node->type == ARRAY_INDEX_EXPRESSION_NODE);
 
-    insert_tabbing_at(section, arena);
+    //insert_tabbing_at(section, arena);
     insert_text_at(section, arena, root_node->array_index.name);
     insert_text_at(section, arena, "[");
     
@@ -482,6 +482,7 @@ transpile_expression_statement_node(syntax_node *root_node, source_section *sect
     SF_ENSURE_PTR(arena);
     SF_ASSERT(root_node->type == EXPRESSION_STATEMENT_NODE);
 
+    insert_tabbing_at(section, arena);
     transpile_node(root_node->expression.expression, section, file, arena);
     insert_text_at(section, arena, ";\n");
 
@@ -562,14 +563,14 @@ transpile_grouping_node(syntax_node *root_node, source_section *section, source_
 }
 
 void
-transpile_assignment_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+transpile_assignment_node(syntax_node *root_node, source_section *section,
+        source_file *file, memory_arena *arena)
 {
 
     assert(root_node->type == ASSIGNMENT_EXPRESSION_NODE);
 
-    insert_tabbing_at(section, arena);
-    //transpile_node(root_node->assignment.left, section, file, arena);
-    insert_text_at(section, arena, root_node->assignment.identifier);
+    transpile_node(root_node->assignment.left, section, file, arena);
+    //insert_text_at(section, arena, root_node->assignment.identifier);
     insert_text_at(section, arena, " = ");
     transpile_node(root_node->assignment.right, section, file, arena);
 

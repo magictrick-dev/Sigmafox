@@ -2,32 +2,20 @@ begin;
 
     variable primes 4 10;
 
-    primes(1);
-    primes(2);
-    primes(3);
-    primes(4);
-    primes(5);
-    primes(6);
+    primes(1)   :=  2;
+    primes(2)   :=  3;
+    primes(3)   :=  5;
+    primes(4)   :=  7;
+    primes(5)   := 11;
+    primes(6)   := 13;
+    primes(7)   := 17;
+    primes(8)   := 19;
+    primes(9)   := 23;
+    primes(10)  := 29;
 
-    {   Essentially, we don't have assignment working for arrays.
-        primes(1)   :=  2;
-        primes(2)   :=  3;
-        primes(3)   :=  5;
-        primes(4)   :=  7;
-        primes(5)   := 11;
-        primes(6)   := 13;
-        primes(7)   := 17;
-        primes(8)   := 19;
-        primes(9)   := 23;
-        primes(10)  := 29;
-
-        variable primes_sum 4 := 0;
-        loop index 1 10;
-            write 6 "Prime: " primes(index) ".";
-            primes_sum := primes_sum + primes(index);
-        endloop;
-
-        write 6 "The sum of those primes is: " primes_sum
-    }
+    variable primes_sum 4 := 0;
+    loop index 1 10;
+        primes_sum := primes_sum + primes(index);
+    endloop;
 
 end;

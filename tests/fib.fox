@@ -17,11 +17,27 @@ function fib_sequence n;
 
 endfunction;
 
+function multiply_numbers a b;
+    
+    variable result 4 := 0;
+    result := a * b;
+    multiply_numbers := result;
+
+endfunction;
+
+function add_set a b c d e f g;
+    variable result 4 := a + b + c + d + e + f + g;
+    add_set := result;
+endfunction;
+
 begin;
 
     variable test_number 4;
     write 6 'Enter the number to calculate the fibonacci sequence:';
     read 5 test_number;
     write 6 'Fibonacci sequence of ' test_number ' is ' fib_sequence(test_number);
+
+    write 6 'Resulting of multiplying 7 and 3: ' multiply_numbers(7, 3);
+    add_set(1,2,3,4,5,6,7);
 
 end;

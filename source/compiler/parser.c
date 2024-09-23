@@ -101,7 +101,7 @@ source_parser_match_primary(source_parser *parser)
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
-
+#if 0
         else if (!source_parser_identifier_is_defined(parser, object.identifier))
         {
             parser->error_count++; 
@@ -111,7 +111,7 @@ source_parser_match_primary(source_parser *parser)
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
-
+#endif
         syntax_node *primary_node = source_parser_push_node(parser);
         primary_node->type = PRIMARY_EXPRESSION_NODE;
         primary_node->primary.literal = object;
@@ -381,6 +381,26 @@ source_parser_match_function_call(source_parser *parser)
         {
 
             if (source_parser_should_break_on_eof(parser)) break;
+            if (arity_count != 0)
+            {
+
+                if (!source_parser_expect_token(parser, TOKEN_COMMA))
+                {
+
+                    parser->error_count++; 
+                    display_error_message(parser->tokenizer->tokenizer.file_path,
+                            parser->tokenizer->current_token,
+                            PARSER_ERROR_EXPECTED_SYMBOL,
+                            ": expected ',' for function parameters.", "");
+                    source_parser_should_propagate_error(NULL, parser, mem_state);
+                    return NULL;
+                    
+                }
+
+                // Consume the comma.
+                source_parser_consume_token(parser);
+
+            }
  
             syntax_node *parameter = source_parser_match_expression(parser);
             if (source_parser_should_propagate_error(parameter, parser, mem_state))
@@ -705,7 +725,8 @@ source_parser_match_assignment(source_parser *parser)
 {
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
-#if 0
+
+#if 1
     // 1. We match LHS.
     // 2. LHS can either be: primary identifier OR array index.
     // 3. If we have either, we check for assignment.
