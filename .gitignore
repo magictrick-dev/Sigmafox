@@ -2,3 +2,6 @@ comp/
 bin/
 cosy.*
 output/
+*.exe
+*.obj
+*.pdb

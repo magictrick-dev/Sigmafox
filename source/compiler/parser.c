@@ -1,60 +1,6 @@
 // --- Parser ------------------------------------------------------------------
 //
-// The following code pertains to the parser implementation which generates the
-// AST for the language.
-//
-// NOTE(Chris): For anyone who intends to maintain this code, please refer to
-//              the grammar specification for a better understanding of how these
-//              functions traverse during runtime. The recursive nature makes it
-//              difficult to follow by looking at the code alone.
-//
-//            - Errors are propagated upwards as NULL and should end at an appropriate
-//              "synchronization point" where the parser can recover and replace
-//              itself to a point where it can continue to process more errors.
-//              This is pretty typical behavior of most compilers. At no point
-//              should the tree actually contain NULLs. Either the parser fully
-//              processes and validates completely or the AST is NULL due to an
-//              error. Any generated tree should be fully valid (no NULLs).
-//
-//            - The memory arena should also restore itself as errors propagate
-//              upwards. This unwinding ensures that the final output list of nodes
-//              of the generated tree is completely valid regardless if the final
-//              AST is invalid and NULL. The current implementation fully restores
-//              the arena on error, but we may want to create a debugger in order
-//              to track tricky errors that would be otherwise be hard to follow.
-//
-//            - The parser uses a fixed memory pool and treats out-of-memory
-//              conditions as "hard errors" and should force exit the parse routine
-//              and display an extremely helpful error message to inform the user
-//              what occured and how to adjust the memory parameters to avoid this
-//              problem during compilation. It's important that this clear without
-//              ambiguity. We should target the compiler to work with low memory
-//              overhead, so we should target a maximum of 4GB under extreme conditions
-//              and 2GB for normal conditions. If we need more than that, it's a
-//              symptom of poor architecture *or* the generated program is fairly
-//              substantial. Generally speaking, the latter of which is unlikely.
-//
-// NOTE(Chris): Imports are lazy-evaluated at runtime. Only the "main" script file
-//              is required to compile.
-//
-//              1.  Parser loads "resources", which are virtually-allocated files
-//                  pulled into memory. This how source files are pulled in.
-//
-//              2.  Resource files are inserted into linked list. As imports are
-//                  added, they are pushed into a dependency list. Circular dependencies
-//                  are an error and are checked when a new import statement is added.
-//                  Duplicate dependencies are warnings, ignored. Shadowed dependencies
-//                  are silently ignored.
-//
-//              3.  Imports *must* occur first before any and all global statements,
-//                  so that they can be gathered and constructed for this evaluation
-//                  process. Therefore, it is an error to import a file after declaring
-//                  a global statement.
-//
-//              OPTIONAL:
-//              4.  Imports may define their begin (name); end (name); blocks. These
-//                  blocks are module blocks that have "dot" syntax to name space
-//                  modules. These modules may only contain procedures and functions.
+// Apologies to the next poor soul that has to read this.
 //
 
 #include <compiler/parser.h>
@@ -102,6 +48,7 @@ source_parser_match_primary(source_parser *parser)
             return NULL;
         }
 #if 0
+        /*
         else if (!source_parser_identifier_is_defined(parser, object.identifier))
         {
             parser->error_count++; 
@@ -111,6 +58,7 @@ source_parser_match_primary(source_parser *parser)
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
+        */
 #endif
         syntax_node *primary_node = source_parser_push_node(parser);
         primary_node->type = PRIMARY_EXPRESSION_NODE;
