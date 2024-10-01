@@ -1,1 +1,1 @@
-./bin/Debug/Sigmafox ./tests/arrays.fox
+./bin/Debug/Sigmafox ./tests/fib.fox

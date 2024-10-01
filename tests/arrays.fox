@@ -18,7 +18,9 @@ begin;
         primes_sum := primes_sum + primes(index);
     endloop;
 
-    variable pixel_buffer 4 4 4;
+    variable test 4 := 2 * 2;
+
+    variable pixel_buffer 4 (2 * 2) 4;
     pixel_buffer(1, 1) := 0;
     pixel_buffer(1, 2) := 0;
     pixel_buffer(1, 3) := 0;

@@ -98,6 +98,7 @@ typedef enum syntax_node_type
     ARRAY_INDEX_EXPRESSION_NODE,
 
     EXPRESSION_STATEMENT_NODE,
+    INCLUDE_STATEMENT_NODE,
 
     COMMENT_STATEMENT_NODE,
     NEWLINE_STATEMENT_NODE,
@@ -113,6 +114,7 @@ typedef enum syntax_node_type
     FUNCTION_STATEMENT_NODE,
     PARAMETER_STATEMENT_NODE,
     VARIABLE_STATEMENT_NODE,
+    MODULE_ROOT_NODE,
     PROGRAM_ROOT_NODE,
 
 } syntax_node_type;
@@ -294,10 +296,10 @@ typedef struct parameter_syntax_node
     syntax_node *next_parameter;
 } parameter_syntax_node;
 
-typedef struct import_syntax_node 
+typedef struct include_syntax_node
 {
     cc64 file_path;
-} import_syntax_node;
+} include_syntax_node;
 
 typedef struct global_statement_syntax_node
 {
@@ -309,6 +311,11 @@ typedef struct program_syntax_node
     syntax_node *global_statements;
     syntax_node *body_statements;
 } program_syntax_node;
+
+typedef struct module_syntax_node
+{
+    syntax_node *global_statements;
+} module_syntax_node;
 
 typedef struct syntax_node
 {
@@ -335,9 +342,10 @@ typedef struct syntax_node
         program_syntax_node         program;
         write_syntax_node           write;
         read_syntax_node            read;
-        import_syntax_node          import;
+        include_syntax_node         include;
         array_index_syntax_node     array_index;
         expression_syntax_node      expression;
+        module_syntax_node          module;
 
         procedure_call_syntax_node          proc_call;
         function_call_syntax_node           func_call;
@@ -407,6 +415,7 @@ syntax_node* source_parser_match_write_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
 syntax_node* source_parser_match_global_statement(source_parser *parser);
 syntax_node* source_parser_match_import_statement(source_parser *parser);
+syntax_node* source_parser_match_module(ccptr file_name, source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 
 syntax_node* source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena);
@@ -431,6 +440,9 @@ b32 source_parser_synchronize_to(source_parser *parser, source_token_type type);
 
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
 object_type source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object);
+
+void source_parser_push_tokenizer(source_parser *parser, ccptr file_path, cptr source);
+void source_parser_pop_tokenizer(source_parser *parser);
 
 // --- Symbol Table Helpers ----------------------------------------------------
 

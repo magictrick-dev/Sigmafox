@@ -597,6 +597,21 @@ transpile_primary_node(syntax_node *root_node, source_section *section, source_f
 }
 
 void
+transpile_module_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == MODULE_ROOT_NODE);
+
+    syntax_node *current_node = root_node->module.global_statements;
+    while (current_node != NULL)
+    {
+        transpile_node(current_node, section, file, arena);
+        current_node = current_node->next_node;
+    }
+
+}
+
+void
 transpile_node(syntax_node *root_node, source_section *section,  source_file *file, memory_arena *arena)
 {
 
@@ -607,6 +622,14 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
         {
 
             transpile_program_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case MODULE_ROOT_NODE:
+        {
+
+            transpile_module_node(root_node, section, file, arena);
             return;
 
         } break;

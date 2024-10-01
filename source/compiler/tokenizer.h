@@ -16,12 +16,16 @@
 // themselves, allowing for rather accurate error reporting.
 //
 
+typedef struct source_tokenizer source_tokenizer;
+
 typedef struct source_tokenizer
 {
     cc64 file_path;
     c64 source;
     u64 offset;
     u64 step;
+
+    source_tokenizer *parent_tokenizer;
 } source_tokenizer;
 
 typedef enum source_token_type

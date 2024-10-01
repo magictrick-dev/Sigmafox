@@ -2430,6 +2430,8 @@ source_parser_match_include_statement(source_parser *parser)
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
+    syntax_node *head_include_node = NULL;
+    syntax_node *last_include_node = NULL;
     while (source_parser_match_token(parser, 1, TOKEN_KEYWORD_INCLUDE))
     {
 
@@ -2453,9 +2455,6 @@ source_parser_match_include_statement(source_parser *parser)
         object_type type = source_parser_token_to_literal(parser, &path, &object);
         assert(type == OBJECT_STRING); // This should always be true.
 
-        // We need to now process this.
-        printf("-- Including: %s.\n", object.string);
-
         // After processing, we can now expect a semicolon.
         if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
         {
@@ -2471,9 +2470,118 @@ source_parser_match_include_statement(source_parser *parser)
 
         source_parser_consume_token(parser);
 
+        // We need to now process this.
+        syntax_node *include_node = source_parser_push_node(parser);
+        include_node->type = INCLUDE_STATEMENT_NODE;
+        include_node->include.file_path = object.string;
+        
+        // First statement.
+        if (head_include_node == NULL)
+        {
+            head_include_node = include_node;
+            last_include_node = include_node;
+        }
+
+        // All other statements.
+        else
+        {
+            last_include_node->next_node = include_node;   
+            last_include_node = include_node;
+        }
+
+
+
     }
 
-    return NULL;
+    return head_include_node;
+
+}
+
+void 
+source_parser_push_tokenizer(source_parser *parser, ccptr file_path, cptr source_buffer)
+{
+
+    // Push, set parent, and then set before we perform any initialization.
+    parser_tokenizer *current_tokenizer = memory_arena_push_type_top(
+            &parser->transient_arena, parser_tokenizer);
+    current_tokenizer->parent_tokenizer = parser->tokenizer;
+    parser->tokenizer = current_tokenizer;
+
+    current_tokenizer->previous_token   = &current_tokenizer->tokens[0];
+    current_tokenizer->current_token    = &current_tokenizer->tokens[1];
+    current_tokenizer->next_token       = &current_tokenizer->tokens[2];
+    source_tokenizer_initialize(&current_tokenizer->tokenizer, source_buffer, file_path);
+    source_parser_consume_token(parser); // Prime the parser tokens.
+    source_parser_consume_token(parser);
+
+}
+
+void 
+source_parser_pop_tokenizer(source_parser *parser)
+{
+
+    parser->tokenizer = parser->tokenizer->parent_tokenizer;
+    return;
+
+}
+
+syntax_node*
+source_parser_match_module(ccptr file_name, source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+    u64 top_state = memory_arena_save_top(&parser->transient_arena);
+
+    // We need to load the file into memory.
+    u64 source_size = fileio_file_size(file_name);
+    char *source_buffer = (char*)memory_arena_push_top(&parser->transient_arena, source_size + 1);
+    fileio_file_read(file_name, source_buffer, source_size, source_size + 1);
+    source_buffer[source_size] = '\0'; // Null-terminate.
+
+    // Now we need to create the tokenizer for it.
+    source_parser_push_tokenizer(parser, file_name, source_buffer);
+
+    // Generate program syntax node.
+    syntax_node *module_node = source_parser_push_node(parser);
+    module_node->type = MODULE_ROOT_NODE;
+
+    // Match all global statements.
+    syntax_node *head_global_node = NULL;
+    syntax_node *last_global_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_EOF))
+    {
+
+        syntax_node *global_statement = source_parser_match_global_statement(parser);
+        if (source_parser_should_break_on_eof(parser)) break;
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (global_statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_global_node == NULL)
+        {
+            head_global_node = global_statement;
+            last_global_node = global_statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_global_node->next_node = global_statement;   
+            last_global_node = global_statement;
+        }
+
+    }
+
+    module_node->module.global_statements = head_global_node;
+
+    source_parser_pop_tokenizer(parser);
+    memory_arena_restore_top(&parser->transient_arena, top_state);
+    return module_node;
 
 }
 
@@ -2487,12 +2595,42 @@ source_parser_match_program(source_parser *parser)
     syntax_node *program_node = source_parser_push_node(parser);
     program_node->type = PROGRAM_ROOT_NODE;
 
-    // Get all the first-layer depencies.
-    syntax_node *dependencies = source_parser_match_include_statement(parser);
-
     // Match all global statements.
     syntax_node *head_global_node = NULL;
     syntax_node *last_global_node = NULL;
+
+    // Get all the first-layer depencies.
+    syntax_node *dependencies = source_parser_match_include_statement(parser);
+    if (dependencies != NULL)
+    {
+        syntax_node *current_dependency = dependencies;
+        while (current_dependency != NULL)
+        {
+            printf("-- Dependency found: %s\n", current_dependency->include.file_path);
+            
+            syntax_node *module_node = source_parser_match_module(
+                    current_dependency->include.file_path, parser);
+            if (module_node == NULL) continue;
+
+            // First statement.
+            if (head_global_node == NULL)
+            {
+                head_global_node = module_node;
+                last_global_node = module_node;
+            }
+
+            // All other statements.
+            else
+            {
+                last_global_node->next_node = module_node;   
+                last_global_node = module_node;
+            }
+
+            current_dependency = current_dependency->next_node;
+        }
+    }
+
+    // Now, we should expect the begin keyword here.
     while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_BEGIN))
     {
 
@@ -2633,6 +2771,7 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     parser->nodes           = NULL;
     parser->arena           = arena;
     parser->error_count     = 0;
+    parser->tokenizer       = NULL;
 
     // Program Memory Layout:
     // [      ][                               ]
@@ -2671,6 +2810,7 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
                                     
     // Initialize the tokenizer then cycle in two tokens.
     // This is just sad code.
+    /*
     parser->tokenizer = memory_arena_push_type_top(&parser->transient_arena, parser_tokenizer);
     parser->tokenizer->previous_token  = &parser->tokenizer->tokens[0];
     parser->tokenizer->current_token   = &parser->tokenizer->tokens[1];
@@ -2678,6 +2818,11 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     source_tokenizer_initialize(&parser->tokenizer->tokenizer, source_buffer, path);
     source_parser_consume_token(parser);
     source_parser_consume_token(parser);
+    */
+    
+    // We look back at my absurdity and praise that it panned out as well 
+    // as it has up to this point.
+    source_parser_push_tokenizer(parser, path, source_buffer);
 
     // Reserve the string pool and the bottom of the transient arena.
     string_pool_initialize(&parser->spool, &parser->transient_arena, STRING_POOL_DEFAULT_SIZE);
