@@ -2533,6 +2533,13 @@ source_parser_match_module(ccptr file_name, source_parser *parser)
     u64 top_state = memory_arena_save_top(&parser->transient_arena);
 
     // We need to load the file into memory.
+    if (!fileio_file_exists(file_name)) 
+    {
+        parser->error_count++;
+        printf("Resource error: Unable to open file: %s\n", file_name);
+        return NULL;
+    }
+
     u64 source_size = fileio_file_size(file_name);
     char *source_buffer = (char*)memory_arena_push_top(&parser->transient_arena, source_size + 1);
     fileio_file_read(file_name, source_buffer, source_size, source_size + 1);
@@ -2552,7 +2559,6 @@ source_parser_match_module(ccptr file_name, source_parser *parser)
     {
 
         syntax_node *global_statement = source_parser_match_global_statement(parser);
-        if (source_parser_should_break_on_eof(parser)) break;
 
         // The statement could be NULL, which we ignore and move on. Synchronization
         // happens inside statements.
@@ -2574,6 +2580,8 @@ source_parser_match_module(ccptr file_name, source_parser *parser)
             last_global_node->next_node = global_statement;   
             last_global_node = global_statement;
         }
+        
+        if (source_parser_should_break_on_eof(parser)) break;
 
     }
 
@@ -2606,24 +2614,26 @@ source_parser_match_program(source_parser *parser)
         syntax_node *current_dependency = dependencies;
         while (current_dependency != NULL)
         {
-            printf("-- Dependency found: %s\n", current_dependency->include.file_path);
+            printf("-- Dependency requested: %s\n", current_dependency->include.file_path);
             
             syntax_node *module_node = source_parser_match_module(
                     current_dependency->include.file_path, parser);
-            if (module_node == NULL) continue;
-
-            // First statement.
-            if (head_global_node == NULL)
+            if (module_node != NULL) 
             {
-                head_global_node = module_node;
-                last_global_node = module_node;
-            }
 
-            // All other statements.
-            else
-            {
-                last_global_node->next_node = module_node;   
-                last_global_node = module_node;
+                // First statement.
+                if (head_global_node == NULL)
+                {
+                    head_global_node = module_node;
+                    last_global_node = module_node;
+                }
+
+                // All other statements.
+                else
+                {
+                    last_global_node->next_node = module_node;   
+                    last_global_node = module_node;
+                }
             }
 
             current_dependency = current_dependency->next_node;

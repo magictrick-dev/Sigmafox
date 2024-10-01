@@ -6,6 +6,12 @@ friendly_error_string(parser_interrupt interrupt)
 
     switch (interrupt)
     {
+
+        case PARSER_ERROR_FILE_NOEXIST:
+        {
+            return "file doesn't exist";
+        } break;
+
         case SYSTEM_ERROR_MEMORY_CONSTRAINT_REACHED_STRING_POOL:
         {
             return "reached reserve capacity for string pool";

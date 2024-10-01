@@ -1,22 +1,5 @@
-include 'math.fox';
-
-{ Fibonacci sequence. }
-function fib_sequence n;
-
-    variable top 4 := 1;
-    variable bottom 4 := 1;
-    variable index 4 := 2;
-
-    while index < n;
-        variable result 4 := top + bottom;
-        bottom := top;
-        top := result;
-        index := index + 1;
-    endwhile;
-
-    fib_sequence := top;
-
-endfunction;
+include './tests/math.fox';
+include './tests/fibfn.fox';
 
 begin;
 
@@ -25,6 +8,6 @@ begin;
     read 5 test_number;
     write 6 'Fibonacci sequence of ' test_number ' is ' fib_sequence(test_number);
 
-    { test(1,2,3); }
+    test(1,2,3);
 
 end;
