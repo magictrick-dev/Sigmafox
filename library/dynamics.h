@@ -28,6 +28,8 @@ class Dynamic
         inline          Dynamic(const char *init);
         inline virtual ~Dynamic();
 
+        template <typename T> T& value();
+
         inline size_t           size() const;
         inline DynamicTypetag   get_tag() const;
 
@@ -37,6 +39,28 @@ class Dynamic
         size_t          storage_size;
 
 };
+
+template <typename T>
+T& Dynamic::
+value()
+{
+    
+    return *((T*)this->storage_buffer);
+
+}
+
+Dynamic::
+~Dynamic()
+{
+
+    if (storage_buffer != nullptr)
+    {
+        free(storage_buffer);
+        storage_buffer = nullptr;
+        storage_size = 0;
+    }
+
+}
 
 Dynamic::
 Dynamic()
@@ -52,9 +76,11 @@ Dynamic::
 Dynamic(int init)
 {
 
-    this->tag               = DynamicTypetag::Uninitialized;
-    this->storage_buffer    = nullptr;
-    this->storage_size      = 0;
+    this->tag               = DynamicTypetag::Numeric;
+    this->storage_buffer    = malloc(sizeof(double));
+    this->storage_size      = sizeof(double);
+
+    this->value<double>() = init;
 
 }
 
@@ -62,9 +88,11 @@ Dynamic::
 Dynamic(double init)
 {
 
-    this->tag               = DynamicTypetag::Uninitialized;
-    this->storage_buffer    = nullptr;
-    this->storage_size      = 0;
+    this->tag               = DynamicTypetag::Numeric;
+    this->storage_buffer    = malloc(sizeof(double));
+    this->storage_size      = sizeof(double);
+
+    this->value<double>() = init;
 
 }
 
@@ -72,9 +100,11 @@ Dynamic::
 Dynamic(bool init)
 {
 
-    this->tag               = DynamicTypetag::Uninitialized;
-    this->storage_buffer    = nullptr;
-    this->storage_size      = 0;
+    this->tag               = DynamicTypetag::Logical;
+    this->storage_buffer    = malloc(sizeof(int64_t));
+    this->storage_size      = sizeof(int64_t);
+
+    this->value<int64_t>() = init;
 
 }
 
@@ -82,9 +112,13 @@ Dynamic::
 Dynamic(const char *string)
 {
 
-    this->tag               = DynamicTypetag::Uninitialized;
-    this->storage_buffer    = nullptr;
-    this->storage_size      = 0;
+    size_t string_length = strlen(string) + 1;
+
+    this->tag               = DynamicTypetag::String;
+    this->storage_buffer    = malloc(string_length);
+    this->storage_size      = string_length;
+
+    memcpy(this->storage_buffer, string, string_length);
 
 }
 
