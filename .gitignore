@@ -1,3 +1,4 @@
+.vs/
 comp/
 bin/
 cosy.*
@@ -5,3 +6,4 @@ output/
 *.exe
 *.obj
 *.pdb
+*.ilk
