@@ -1,7 +1,7 @@
 include './tests/math.fox';
 include './tests/fibfn.fox';
 
-begin submodule_fib;
+begin;
 
     variable test_number 4;
     write 6 'Enter the number to calculate the fibonacci sequence:';

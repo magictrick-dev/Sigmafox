@@ -18,6 +18,16 @@
 //      | RE   | RE    | RE          | 
 //      | RE   | CM    | CM          |
 //      | CM   | RE    | CM          |
+//      | CM   | CM    | CM          |
+//      |----------------------------|
+//      | Multiplication / Division  |
+//      |----------------------------|
+//      | Left | Right | Result      |
+//      |----------------------------|
+//      | RE   | RE    | RE          | 
+//      | RE   | CM    | CM          |
+//      | CM   | RE    | CM          |
+//      | CM   | CM    | CM          |
 //      |----------------------------|
 //
 // -----------------------------------------------------------------------------
@@ -28,13 +38,19 @@
 #include <cassert>
 #include <cstdint>
 #include <iostream>
+#include <complex>
+using std::complex;
 
 namespace Sigmafox
 {
 
     // --- Utilities -----------------------------------------------------------
     //
-    // Some utility classes for the Sigmafox library.
+    // Some utility classes for the Sigmafox library. The main purpose behind
+    // the allocator utility is to track whether or not the dynamic class is
+    // properly matching mallocs to frees. This consistency is key since there's
+    // a lot of dynamic memory allocation occuring as the dynamic type switches
+    // and promotes to higher order types like complex numbers.
     //
 
     struct memory_stats
@@ -127,7 +143,7 @@ namespace Sigmafox
             this->dimensions.push_back(d);
         }
 
-        void *region = malloc(size_required * sizeof(T));
+        void *region = memory_alloc(size_required * sizeof(T));
         this->packed_array = (T*)(region);
         for (size_t idx = 0; idx < size_required; ++idx)
         {
@@ -163,7 +179,7 @@ namespace Sigmafox
                 current->~T();
             }
 
-            free(packed_array);
+            memory_free(packed_array);
         }
 
     }
@@ -209,38 +225,6 @@ namespace Sigmafox
 
     }
 
-    // --- Complex Type --------------------------------------------------------
-    //
-    // A numerical type with a real and imaginary components with all basic
-    // elementary operations therein.
-    //
-    // https://en.cppreference.com/w/cpp/language/user_literal
-    // We can apparently overload suffixes such that this statement becomes valid:
-    //      25.041 + 3.14i
-    //
-    // This would be a nice visual aid.
-    //
-
-    class Complex
-    {
-
-        public:
-                            Complex();
-                            Complex(double real);
-                            Complex(double real, double imaginary);
-            virtual        ~Complex();
-
-            inline Complex& operator+=(const Complex& rhs);
-            inline Complex& operator-=(const Complex& rhs);
-            inline Complex& operator*=(const Complex& rhs);
-            inline Complex& operator/=(const Complex& rhs);
-
-        protected:
-            double real_part;
-            double imaginary_part;
-
-    };
-
     // --- Dynamic Type --------------------------------------------------------
     //
     // Type container class used during Sigmafox code generation for the transpiler.
@@ -254,6 +238,7 @@ namespace Sigmafox
     {
         Uninitialized,
         Numeric,
+        Complex,
         Logical,
         String,
     };
@@ -267,16 +252,24 @@ namespace Sigmafox
             inline          Dynamic(int init);
             inline          Dynamic(double init);
             inline          Dynamic(bool init);
+            inline          Dynamic(complex<double> init);
             inline          Dynamic(const char *init);
             inline virtual ~Dynamic();
 
             inline Dynamic& operator=(const Dynamic& rhs);
+            inline Dynamic& operator+=(const Dynamic& rhs);
+            inline Dynamic& operator-=(const Dynamic& rhs);
+            inline Dynamic& operator*=(const Dynamic& rhs);
+            inline Dynamic& operator/=(const Dynamic& rhs);
 
             template <typename T> T& value();
             template <typename T> T value() const;
 
             inline size_t           size() const;
             inline DynamicTypetag   get_tag() const;
+
+        protected:
+            inline void     set_type(DynamicTypetag tag);
 
         protected:
             DynamicTypetag  tag;
@@ -288,6 +281,8 @@ namespace Sigmafox
     inline std::ostream& operator<<(std::ostream& os, const Dynamic& rhs);
     inline Dynamic operator+(const Dynamic& lhs, const Dynamic& rhs);
     inline Dynamic operator-(const Dynamic& lhs, const Dynamic& rhs);
+    inline Dynamic operator*(const Dynamic& lhs, const Dynamic& rhs);
+    inline Dynamic operator/(const Dynamic& lhs, const Dynamic& rhs);
 
     inline std::ostream&
     operator<<(std::ostream& os, const Dynamic& rhs)
@@ -309,6 +304,13 @@ namespace Sigmafox
                 os << rhs.value<double>();
 
             } break;
+
+            case DynamicTypetag::Complex:
+            {
+                
+                os << rhs.value<complex<double>>();
+
+            }
 
             case DynamicTypetag::Logical:
             {
@@ -341,9 +343,9 @@ namespace Sigmafox
     Dynamic(const Dynamic& copy)
     {
 
-        this->storage_size = copy.storage_size;
-        this->storage_buffer = malloc(this->storage_size);
-        this->tag = copy.get_tag();
+        this->storage_size      = copy.storage_size;
+        this->storage_buffer    = memory_alloc(this->storage_size);
+        this->tag               = copy.get_tag();
         memcpy(this->storage_buffer, copy.storage_buffer, this->storage_size);
 
     }
@@ -355,6 +357,195 @@ namespace Sigmafox
         std::cout << "Equality: " << rhs << std::endl;
 
     }
+
+    inline Dynamic& Dynamic::
+    operator+=(const Dynamic& rhs)
+    {
+
+        DynamicTypetag left_tag, right_tag;       
+        left_tag = this->get_tag();
+        right_tag = rhs.get_tag();
+
+        if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<double>() += rhs.value<double>();
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            this->value<complex<double>>() += rhs.value<complex<double>>();
+            return *this;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            complex<double> result = this->value<double>() + rhs.value<complex<double>>();
+            this->set_type(DynamicTypetag::Complex);
+            this->value<complex<double>>() = result;
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<complex<double>>() += rhs.value<double>();
+            return *this;
+
+        }
+
+        assert(!"Operation is undefined.");
+        return *this; // So the compiler doesn't freak the hell out.
+
+    }
+
+    inline Dynamic& Dynamic::
+    operator-=(const Dynamic& rhs)
+    {
+
+        DynamicTypetag left_tag, right_tag;       
+        left_tag = this->get_tag();
+        right_tag = rhs.get_tag();
+
+        if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<double>() -= rhs.value<double>();
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            this->value<complex<double>>() -= rhs.value<complex<double>>();
+            return *this;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            complex<double> result = this->value<double>() - rhs.value<complex<double>>();
+            this->set_type(DynamicTypetag::Complex);
+            this->value<complex<double>>() = result;
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<complex<double>>() -= rhs.value<double>();
+            return *this;
+
+        }
+
+        assert(!"Operation is undefined.");
+        return *this; // So the compiler doesn't freak the hell out.
+
+    }
+
+    inline Dynamic& Dynamic::
+    operator*=(const Dynamic& rhs)
+    {
+
+        DynamicTypetag left_tag, right_tag;       
+        left_tag = this->get_tag();
+        right_tag = rhs.get_tag();
+
+        if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<double>() *= rhs.value<double>();
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            this->value<complex<double>>() *= rhs.value<complex<double>>();
+            return *this;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            complex<double> result = this->value<double>() * rhs.value<complex<double>>();
+            this->set_type(DynamicTypetag::Complex);
+            this->value<complex<double>>() = result;
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<complex<double>>() *= rhs.value<double>();
+            return *this;
+
+        }
+
+        assert(!"Operation is undefined.");
+        return *this; // So the compiler doesn't freak the hell out.
+
+    }
+
+    inline Dynamic& Dynamic::
+    operator/=(const Dynamic& rhs)
+    {
+
+        DynamicTypetag left_tag, right_tag;       
+        left_tag = this->get_tag();
+        right_tag = rhs.get_tag();
+
+        if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<double>() /= rhs.value<double>();
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            this->value<complex<double>>() /= rhs.value<complex<double>>();
+            return *this;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            complex<double> result = this->value<double>() / rhs.value<complex<double>>();
+            this->set_type(DynamicTypetag::Complex);
+            this->value<complex<double>>() = result;
+            return *this;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            this->value<complex<double>>() /= rhs.value<double>();
+            return *this;
+
+        }
+
+        assert(!"Operation is undefined.");
+        return *this; // So the compiler doesn't freak the hell out.
+
+    }
+
 
     inline Dynamic 
     operator+(const Dynamic& lhs, const Dynamic& rhs)
@@ -368,6 +559,30 @@ namespace Sigmafox
         {
 
             Dynamic result(lhs.value<double>() + rhs.value<double>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() + rhs.value<complex<double>>());
+            return result;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<double>() + rhs.value<complex<double>>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() + rhs.value<double>());
             return result;
 
         }
@@ -390,6 +605,122 @@ namespace Sigmafox
         {
 
             Dynamic result(lhs.value<double>() - rhs.value<double>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() - rhs.value<complex<double>>());
+            return result;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<double>() - rhs.value<complex<double>>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() - rhs.value<double>());
+            return result;
+
+        }
+
+        assert(!"Operation is undefined.");
+        return Dynamic(); // Because C++ will complain if I don't, though the assert
+                          // will catch it before we event return.
+
+    }
+
+    inline Dynamic 
+    operator*(const Dynamic& lhs, const Dynamic& rhs)
+    {
+
+        DynamicTypetag left_tag, right_tag;       
+        left_tag = lhs.get_tag();
+        right_tag = rhs.get_tag();
+
+        if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Numeric)
+        {
+
+            Dynamic result(lhs.value<double>() * rhs.value<double>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() * rhs.value<complex<double>>());
+            return result;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<double>() * rhs.value<complex<double>>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() * rhs.value<double>());
+            return result;
+
+        }
+
+        assert(!"Operation is undefined.");
+        return Dynamic(); // Because C++ will complain if I don't, though the assert
+                          // will catch it before we event return.
+
+    }
+
+    inline Dynamic 
+    operator/(const Dynamic& lhs, const Dynamic& rhs)
+    {
+
+        DynamicTypetag left_tag, right_tag;       
+        left_tag = lhs.get_tag();
+        right_tag = rhs.get_tag();
+
+        if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Numeric)
+        {
+
+            Dynamic result(lhs.value<double>() / rhs.value<double>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() / rhs.value<complex<double>>());
+            return result;
+            
+        }
+
+        else if (left_tag == DynamicTypetag::Numeric && right_tag == DynamicTypetag::Complex)
+        {
+
+            Dynamic result(lhs.value<double>() / rhs.value<complex<double>>());
+            return result;
+
+        }
+
+        else if (left_tag == DynamicTypetag::Complex && right_tag == DynamicTypetag::Numeric)
+        {
+
+            Dynamic result(lhs.value<complex<double>>() / rhs.value<double>());
             return result;
 
         }
@@ -424,7 +755,7 @@ namespace Sigmafox
 
         if (storage_buffer != nullptr)
         {
-            free(storage_buffer);
+            memory_free(storage_buffer);
             storage_buffer = nullptr;
             storage_size = 0;
         }
@@ -441,15 +772,38 @@ namespace Sigmafox
 
     }
 
+    inline void Dynamic::
+    set_type(DynamicTypetag tag)
+    {
+
+        this->tag = tag;
+        if (this->storage_buffer != nullptr) memory_free(this->storage_buffer);
+        switch (tag)
+        {
+
+            case DynamicTypetag::Numeric:
+            {
+                this->storage_buffer = new (memory_alloc(sizeof(double))) double(0);
+                this->storage_size = sizeof(double);
+            } break;
+
+            case DynamicTypetag::Complex:
+            {
+                this->storage_buffer = new (memory_alloc(sizeof(complex<double>))) complex<double>(0);
+                this->storage_size = sizeof(complex<double>);
+            } break;
+
+        }
+
+    }
+
     Dynamic::
     Dynamic(int init)
     {
 
         this->tag               = DynamicTypetag::Numeric;
-        this->storage_buffer    = malloc(sizeof(double));
+        this->storage_buffer    = new (memory_alloc(sizeof(double))) double(init);
         this->storage_size      = sizeof(double);
-
-        this->value<double>()   = init;
 
     }
 
@@ -458,10 +812,8 @@ namespace Sigmafox
     {
 
         this->tag               = DynamicTypetag::Numeric;
-        this->storage_buffer    = malloc(sizeof(double));
+        this->storage_buffer    = new (memory_alloc(sizeof(double))) double(init);
         this->storage_size      = sizeof(double);
-
-        this->value<double>() = init;
 
     }
 
@@ -470,10 +822,18 @@ namespace Sigmafox
     {
 
         this->tag               = DynamicTypetag::Logical;
-        this->storage_buffer    = malloc(sizeof(int64_t));
+        this->storage_buffer    = new (memory_alloc(sizeof(int64_t))) int64_t(init);
         this->storage_size      = sizeof(int64_t);
 
-        this->value<int64_t>() = init;
+    }
+
+    Dynamic::
+    Dynamic(complex<double> init)
+    {
+
+        this->tag               = DynamicTypetag::Complex;
+        this->storage_buffer    = new (memory_alloc(sizeof(complex<double>))) complex<double>(init);
+        this->storage_size      = sizeof(complex<double>);
 
     }
 
@@ -484,7 +844,7 @@ namespace Sigmafox
         size_t string_length = strlen(string) + 1;
 
         this->tag               = DynamicTypetag::String;
-        this->storage_buffer    = malloc(string_length);
+        this->storage_buffer    = memory_alloc(string_length);
         this->storage_size      = string_length;
 
         memcpy(this->storage_buffer, string, string_length);
