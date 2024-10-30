@@ -48,6 +48,8 @@
 namespace Sigmafox
 {
 
+    class CLI;
+
     // --- CLIArgument ---------------------------------------------------------
     //
     // Serves as the virtual interface for all CLI argument types.
@@ -66,43 +68,20 @@ namespace Sigmafox
     class CLIArgument
     {
         public:
-            inline          CLIArgument(i32 index, ccptr argument);
-            inline virtual ~CLIArgument() = 0;
+                                CLIArgument(i32 index, ccptr argument);
+                       virtual ~CLIArgument();
 
-            inline i32      get_index() const;
-            inline ccptr    get_argument() const;
-            inline CLIArgumentType get_type() const;
+            i32                 get_index() const;
+            ccptr               get_argument() const;
+            CLIArgumentType     get_type() const;
+            void                set_type(CLIArgumentType type) { this->type = type; };
 
         protected:
             CLIArgumentType type    = CLIArgumentType::Error;
             i32     raw_index       = 0;
             ccptr   raw_argument    = nullptr;
+
     };
-
-    inline CLIArgument::
-    CLIArgument(i32 index, ccptr argument)
-    {
-        this->raw_index = index;
-        this->raw_argument = argument;
-    }
-
-    inline i32 CLIArgument::
-    get_index() const
-    {
-        return this->raw_index;
-    }
-
-    inline ccptr CLIArgument::
-    get_argument() const
-    {
-        return this->raw_argument;
-    }
-
-    inline CLIArgumentType CLIArgument::
-    get_type() const
-    {
-        return this->type;
-    }
 
     // --- CLIValue : CLIArgument ----------------------------------------------
     //
@@ -114,38 +93,35 @@ namespace Sigmafox
     {
 
         public:
-            static inline CLIArgument* parse(i32 index, ccptr argument);
-            static inline CLIArgument* error(i32 index, ccptr argument);
+            static CLIArgument* parse(i32 index, ccptr argument);
+            static CLIArgument* error(i32 index, ccptr argument);
 
         protected:
-            inline              CLIValue(i32 argc, ccptr argument);
-            inline virtual     ~CLIValue();
+                        CLIValue(i32 argc, ccptr argument);
+            virtual    ~CLIValue();
 
     };
 
-    inline CLIValue::
-    CLIValue(i32 index, ccptr argument) : CLIArgument(index, argument)
-    {
-        
-    }
+    // --- CLIParameter : CLIArgument ------------------------------------------
+    //
+    // Parameters corresponds to the "--[name]" specification.
+    //
 
-    inline CLIValue::
-    ~CLIValue()
+    class CLIParameter : public CLIArgument
     {
 
-    }
+        public:
+            static CLIArgument* parse(i32 index, ccptr argument);
+            std::string get_name() const;
 
-    inline CLIArgument* CLIValue::
-    parse(i32 index, ccptr argument)
-    {
+        protected:
+                            CLIParameter(i32 argc, ccptr argument);
+            virtual        ~CLIParameter();
 
-    }
+        protected:
+            std::string name;
 
-    inline CLIArgument* CLIValue::
-    error(i32 index, ccptr argument)
-    {
-
-    }
+    };
 
     // --- CLISwitch : CLIArgument ---------------------------------------------
     //
@@ -156,61 +132,21 @@ namespace Sigmafox
     {
 
         public:
-            static inline CLIArgument* parse(i32 index, ccptr argument);
+            static CLIArgument* parse(i32 index, ccptr argument);
+
+        public:
+            bool& operator[](char c);
+            bool& operator[](i32 idx);
 
         protected:
-            inline              CLISwitch(i32 argc, ccptr argument);
-            inline virtual     ~CLISwitch();
+                            CLISwitch(i32 argc, ccptr argument);
+            virtual        ~CLISwitch();
+            i32             offset_at(char c);
+
+        protected:
+            bool flags[52];
 
     };
-
-    inline CLISwitch::
-    CLISwitch(i32 index, ccptr argument) : CLIArgument(index, argument)
-    {
-        
-    }
-
-    inline CLISwitch::
-    ~CLISwitch()
-    {
-
-    }
-
-    inline CLIArgument* CLISwitch::
-    parse(i32 index, ccptr argument)
-    {
-
-        // These conditions should be checked by CLI::parse() and therefore must
-        // always be true.
-        u64 string_length = strlen(argument);
-        SF_ASSERT(string_length >= 2);
-        SF_ASSERT(argument[0] == '-');
-
-        b32 valid_format = true;
-        for (u64 i = 1; i < string_length; ++i)
-        {
-
-            if (!isalpha(argument[i]))
-            {
-                valid_format = false;
-                break;
-            }
-
-        }
-
-        if (valid_format)
-        {
-            CLISwitch *result = new CLISwitch(index, argument);
-            return result;
-        }
-
-        else
-        {
-            CLIArgument *result = CLIValue::error(index, argument);
-            return result;
-        }
-
-    }
 
     // --- CLI -----------------------------------------------------------------
     //
@@ -223,17 +159,19 @@ namespace Sigmafox
     {
 
         public:
-            static inline bool  parse(i32 argc, cptr* argv);
+            static bool     parse(i32 argc, cptr* argv);
+            static bool     has_flag(char c);
+            static bool     has_parameter(ccptr parameter);
 
         protected:
-            inline              CLI();
-            inline virtual     ~CLI();
-            static inline CLI&  self();
+                            CLI();
+            virtual        ~CLI();
+            static CLI&     self();
 
-            static inline CLIArgument* classify();
-            static inline CLIArgument* classify_switch();
-            static inline CLIArgument* classify_parameter();
-            static inline CLIArgument* classify_value();
+            static CLIArgument* classify();
+            static CLIArgument* classify_switch();
+            static CLIArgument* classify_parameter();
+            static CLIArgument* classify_value();
 
         protected:
             std::vector<CLIArgument*> arguments;
@@ -242,86 +180,6 @@ namespace Sigmafox
             cptr   *argv;
             
     };
-
-    inline CLIArgument* CLI::
-    classify_switch()
-    {
-
-    }
-
-    inline CLIArgument* CLI::
-    classify_parameter()
-    {
-
-    }
-
-    inline CLIArgument* CLI::
-    classify_value()
-    {
-
-    }
-
-    inline CLIArgument* CLI::
-    classify()
-    {
-
-        CLI& self = CLI::self();
-        ccptr argument = self.argv[self.argi];
-        u64 length = strlen(argument);
-
-        // We need only the first and second characters to find which type it is.
-        char first = argument[0];
-        char second = argument[1];
-        if (first == '-' && second == '-') return self.classify_parameter();
-        else if (first == '-' && second != '-') return self.classify_switch();
-        else return self.classify_value();
-
-    }
-
-    inline bool CLI::
-    parse(i32 argc, cptr* argv)
-    {
-
-        // Get self and set initial values.
-        CLI& self = CLI::self();
-        self.argc = argc;
-        self.argv = argv;
-        self.argi = 0;
-
-        // Classify all the arguments.
-        for (i32 i = 1; i < argc; ++i)
-        {
-            self.argi = i;
-            self.arguments.push_back(self.classify());
-        }
-
-    }
-
-    inline CLI& CLI::
-    self()
-    {
-
-        static CLI *instance = nullptr;
-        if (instance == nullptr)
-        {
-            instance = new CLI();
-        }
-
-        return *instance;
-
-    }
-
-    inline CLI::
-    CLI()
-    {
-
-    }
-
-    inline CLI::
-    ~CLI()
-    {
-
-    }
 
 };
 

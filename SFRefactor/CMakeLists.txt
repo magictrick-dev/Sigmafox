@@ -34,10 +34,14 @@ add_executable(Sigmafox
     "source/main.cpp"
     "source/definitions.h"
     "source/environment.h"
+
     "source/platform/filesystem.h"
     "source/platform/system.h"
+
     "source/utilities/path.h"
     "source/utilities/cli.h"
+    "source/utilities/cli.cpp"
+
     ${PLATFORM_FILES}
 )
 
