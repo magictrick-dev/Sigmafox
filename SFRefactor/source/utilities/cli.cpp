@@ -52,7 +52,34 @@ CLIValue::
 CLIArgument* CLIValue::
 parse(i32 index, ccptr argument)
 {
-    return nullptr;
+
+    i32 length = strlen(argument);
+    SF_ASSERT(length >= 1);
+
+    // Number or number-adjacent.
+    i32 character_index = 0;
+    if (isdigit(argument[character_index]))
+    {
+
+        
+
+    }
+
+    // A string literal.
+    else if (argument[character_index] == '"' ||
+             argument[character_index] == '\"')
+    {
+
+        
+
+    }
+
+    // Perhaps a unquoted string or path.
+    else
+    {
+
+    }
+
 }
 
 CLIArgument* CLIValue::
