@@ -39,6 +39,7 @@ add_executable(Sigmafox
     "source/platform/system.h"
 
     "source/utilities/path.h"
+    "source/utilities/path.cpp"
     "source/utilities/cli.h"
     "source/utilities/cli.cpp"
 

@@ -7,14 +7,6 @@
 //      The end-point function, parse, returns true/false depending if the CLI
 //      specification matches the arguments that were passed in.
 //      
-// CLI Context-Free Grammar
-//
-//      cli          : (argument)* source_file (argument)*
-//      source_file  : PATH
-//      argument     : parameter | switch
-//      switch       : "-"(FLAG*)
-//      parameter    : "--output-name" PATH | "--output-directory" PATH
-//
 // The command-line parser converts all CLI arguments (excluding the first, by
 // convention) to higher order class objects. These are then parsed and validated,
 // modifying ApplicationParameters as needed.
@@ -28,14 +20,6 @@
 // are of three distinct types: integer, real, hex, or storage-format. Storage
 // format is basically just [integer][b/B,kb/KB,mb/MB,gb/GB,tb/TB]. At parse time,
 // these are converted back to numbers, in bytes.
-//
-// The parser first classifies (tokenizes) the CLI arguments and stores them.
-// The grammar is then verified using a trivial recursive descent algorithm that
-// handles the specification requirements of parameters and switches. Given that
-// the list of arguments conform to the CLI CFG described above, then the return
-// value of the parser is true. However, if it fails, then it will return false.
-//
-// CLI::parse(argc, argv) --> (classify()) --> (conform()) -> return true/false
 //
 // -----------------------------------------------------------------------------
 #ifndef SIGAMFOX_UTILITIES_CLI_H
@@ -60,9 +44,9 @@ namespace Sigmafox
         Error,
         Switch,
         Parameter,
-        Numerical,
+        Real,
+        Numeric,
         String,
-        Filepath,
     };
 
     class CLIArgument
@@ -96,9 +80,22 @@ namespace Sigmafox
             static CLIArgument* parse(i32 index, ccptr argument);
             static CLIArgument* error(i32 index, ccptr argument);
 
+            inline ccptr        get_string() const { return this->parsed_value.string; };
+            inline r64          get_real() const { return this->parsed_value.real; };
+            inline i64          get_signed() const { return this->parsed_value.sint; };
+            inline u64          get_unsigned() const { return this->parsed_value.uint; };
+
         protected:
                         CLIValue(i32 argc, ccptr argument);
             virtual    ~CLIValue();
+
+            union
+            {
+                ccptr   string;
+                r64     real;
+                i64     sint;
+                u64     uint;
+            } parsed_value;
 
     };
 
@@ -162,6 +159,12 @@ namespace Sigmafox
             static bool     parse(i32 argc, cptr* argv);
             static bool     has_flag(char c);
             static bool     has_parameter(ccptr parameter);
+            static inline CLIArgument*  get(i32 i) { return self().arguments[i]; };
+            static inline size_t        size() { return self().arguments.size(); };
+
+            static void     header();
+            static void     short_help();
+            static void     long_help();
 
         protected:
                             CLI();

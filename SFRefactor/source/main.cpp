@@ -10,24 +10,42 @@ int
 main(int argc, char ** argv)
 {
 
-    if (!Sigmafox::CLI::parse(argc, argv))
+    Sigmafox::Filepath user_source_file = Sigmafox::Filepath::cwd();
+    if (!Sigmafox::CLI::parse(argc, argv) || argc <= 1)
     {
-        std::cout << "CLI parse failed." << std::endl;
+        Sigmafox::CLI::short_help();
+        return -1;
     }
     else
     {
-        std::cout << "CLI parse succeeded." << std::endl;
-        for (u8 i = 0; i < 26; ++i)
+
+        // Check if the first argument is indeed a string argument.
+        Sigmafox::CLIArgument *file_argument = Sigmafox::CLI::get(1);
+        if (file_argument->get_type() != Sigmafox::CLIArgumentType::String)
         {
-            if (Sigmafox::CLI::has_flag('a' + i))
-                std::cout << "Flag: " << (char)('a' + i) << " is enabled." << std::endl;
+            Sigmafox::CLI::short_help();
+            std::cout << std::endl;
+            std::cout << "CLI Error: Expected a string argument at argument position 1." << std::endl;
+            return -1;
         }
-        for (u8 i = 0; i < 26; ++i)
+
+        // Construct the path and canonicalize it.
+        user_source_file += "/";
+        user_source_file += file_argument->get_argument();
+        user_source_file.canonicalize();
+
+        // Check if the file exists.
+        if (!user_source_file.is_valid_file())
         {
-            if (Sigmafox::CLI::has_flag('A' + i))
-                std::cout << "Flag: " << (char)('A' + i) << " is enabled." << std::endl;
+            Sigmafox::CLI::short_help();
+            std::cout << std::endl;
+            std::cout << "CLI Error: Expected a valid path to a file at argument position 1." << std::endl;
+            return -1;
         }
+
     }
+
+    std::cout << "User Provided Source: " << user_source_file << std::endl;
 
     return 0;
 

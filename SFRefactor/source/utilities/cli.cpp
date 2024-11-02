@@ -1,3 +1,4 @@
+#include <iostream>
 #include <utilities/cli.h>
 
 using namespace Sigmafox;
@@ -61,23 +62,125 @@ parse(i32 index, ccptr argument)
     if (isdigit(argument[character_index]))
     {
 
-        
+        character_index++;
+        u64 multiplier = 1;
+        bool is_memory_type = false;
+        bool is_real_type = false;
+
+        while (character_index < length)
+        {
+            
+            char c = argument[character_index];
+
+            // Check if its a real value.
+            if (c == '.')
+            {
+                if (is_real_type == false)
+                {
+                    is_real_type = true;
+                }
+                else
+                {
+                    return CLIValue::error(index, argument);
+                }
+            }
+
+            // Parsing memory values.
+            else if (tolower(c) == 'k')
+            {
+                if (is_memory_type == true ||
+                    character_index == length - 1 ||
+                    is_real_type == true)
+                {
+                    return CLIValue::error(index, argument);
+                }
+                c = argument[++character_index];
+                if (!(tolower(c) == 'b'))
+                {
+                    return CLIValue::error(index, argument);
+                }
+
+                is_memory_type = true;
+                multiplier = 1024;
+                
+            }
+
+            else if (tolower(c) == 'm')
+            {
+                if (is_memory_type == true ||
+                    character_index == length - 1 ||
+                    is_real_type == true)
+                {
+                    return CLIValue::error(index, argument);
+                }
+                c = argument[++character_index];
+                if (!(tolower(c) == 'b'))
+                {
+                    return CLIValue::error(index, argument);
+                }
+
+                is_memory_type = true;
+                multiplier = 1024*1024;
+
+            }
+
+            else if (tolower(c) == 'g')
+            {
+                if (is_memory_type == true ||
+                    character_index == length - 1 ||
+                    is_real_type == true)
+                {
+                    return CLIValue::error(index, argument);
+                }
+                c = argument[++character_index];
+                if (!(tolower(c) == 'b'))
+                {
+                    return CLIValue::error(index, argument);
+                }
+
+                is_memory_type = true;
+                multiplier = 1024*1024*1024;
+            }
+
+            else if (!isdigit(c))
+            {
+                return CLIValue::error(index, argument);
+            }
+
+            character_index++;
+
+        }
+
+        CLIValue *value = new CLIValue(index, argument);
+        if (is_real_type)
+        {
+            value->set_type(CLIArgumentType::Real);
+            value->parsed_value.real = atof(argument);
+        }
+        else
+        {
+            value->set_type(CLIArgumentType::Numeric);
+            if (is_memory_type)
+            {
+                value->parsed_value.uint = atoll(argument) * multiplier;
+            }
+            else
+            {
+                value->parsed_value.sint = atoi(argument);
+            }
+        }
+
+        return value;
 
     }
 
     // A string literal.
-    else if (argument[character_index] == '"' ||
-             argument[character_index] == '\"')
-    {
-
-        
-
-    }
-
-    // Perhaps a unquoted string or path.
     else
     {
-
+        CLIValue *value = new CLIValue(index, argument);
+        value->set_type(CLIArgumentType::String);
+        value->parsed_value.string = argument;
+        return value;
     }
 
 }
@@ -248,18 +351,6 @@ parse(i32 index, ccptr argument)
 //
 
 CLIArgument* CLI::
-classify_parameter()
-{
-    return nullptr;
-}
-
-CLIArgument* CLI::
-classify_value()
-{
-    return nullptr;
-}
-
-CLIArgument* CLI::
 classify()
 {
 
@@ -270,9 +361,9 @@ classify()
     // We need only the first and second characters to find which type it is.
     char first = argument[0];
     char second = argument[1];
-    if (first == '-' && second == '-') return self.classify_parameter();
+    if (first == '-' && second == '-') return CLIParameter::parse(self.argi, argument);
     else if (first == '-' && second != '-') return CLISwitch::parse(self.argi, argument); 
-    else return self.classify_value();
+    else return CLIValue::parse(self.argi, argument);
 
 }
 
@@ -287,7 +378,7 @@ parse(i32 argc, cptr* argv)
     self.argi = 0;
 
     // Classify all the arguments.
-    for (i32 i = 1; i < argc; ++i)
+    for (i32 i = 0; i < argc; ++i)
     {
         self.argi = i;
         CLIArgument *result = self.classify();
@@ -345,6 +436,31 @@ has_parameter(ccptr parameter)
     }
 
     return false;
+}
+
+void CLI::
+header()
+{
+    std::cout << "|---------------------------------------|--------------------|" << std::endl;
+    std::cout << "|     Sigamfox Language Transpiler      | Version 1.0.0      |" << std::endl;
+    std::cout << "|     Northern Illinois University      | November 2024      |" << std::endl;
+    std::cout << "|---------------------------------------|--------------------|" << std::endl;
+}
+
+void CLI::
+short_help()
+{
+    CLI::header();
+    std::cout << "Useage: sigmafox [file-name]" << std::endl;
+    std::cout << "      The provided file name is the entry-point script for a" << std::endl;
+    std::cout << "      given project. This will automatically convert any dependencies" << std::endl;
+    std::cout << "      or include files for you." << std::endl;
+}
+
+void CLI::
+long_help()
+{
+    CLI::short_help();
 }
 
 CLI& CLI::
