@@ -93,6 +93,15 @@ operator+=(ccptr rhs)
 
 }
 
+bool Filepath::
+operator==(const Filepath& rhs) const
+{
+
+    bool result = strcmp(this->buffer_ptr, rhs.buffer_ptr) == 0;
+    return result;
+
+}
+
 Filepath::
 ~Filepath()
 {

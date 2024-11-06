@@ -11,12 +11,13 @@
 #define SIGMAFOX_UTILITIES_RESOURCEMANAGER_H
 #include <definitions.h>
 #include <utilities/path.h>
+#include <iostream>
 #include <vector>
 
 namespace Sigmafox
 {
 
-    typedef ResourceHandle uint64_t;
+    typedef int64_t ResourceHandle;
 
     class Resource
     {
@@ -24,12 +25,25 @@ namespace Sigmafox
                         Resource(const Filepath &path);
             virtual    ~Resource();
 
+            bool                reserve();
+            bool                release();
+            bool                load();
+
+            bool                is_released() const;
+            bool                is_loaded() const;
+
+            const Filepath&     get_path() const;
+            u64                 get_size() const;
+
+            void*               get();
+
         protected:
             Filepath    source_path;
 
             void       *buffer_ptr;
-            u64         buffer_commit;
+            u64         buffer_size;
             u64         size;
+            b32         loaded;
 
     };
 
@@ -51,20 +65,34 @@ namespace Sigmafox
             bool        is_reserved(ResourceHandle handle) const;
 
             void        load_synchronously(ResourceHandle handle);
-            /*
-            void        load_asynchronously(ResourceHandle handle, u64 preload);
-            void        load_wait_until(ResourceHandle handle, u64 amount);
-            void        load_wait(ResourceHandle handle);
-            */
             bool        is_loaded(ResourceHandle handle) const;
 
             void*       get_resource(ResourceHandle handle);
             ccptr       get_resource_as_text(ResourceHandle handle);
 
         protected:
+            Filepath null_path;
             std::vector<Resource> resources;
 
+            friend inline std::ostream& operator<<(std::ostream& os, const ResourceManager& rhs);
     };
+
+    inline std::ostream&
+    operator<<(std::ostream& os, const ResourceManager& rman)
+    {
+
+        os << "Resource Manager State:" << std::endl;
+        for (const auto& res : rman.resources)
+        {
+            std::cout << res.get_path() << std::endl;
+            std::cout << "    - Reserved:   " << !res.is_released() << std::endl;
+            std::cout << "    - Loaded:     " << res.is_loaded() << std::endl;
+            std::cout << "    - Size:       " << ((double)res.get_size() / 1024.0) << "Kb" << std::endl;
+        }
+
+        return os;
+
+    }
 
 }
 

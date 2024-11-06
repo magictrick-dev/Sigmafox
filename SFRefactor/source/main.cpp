@@ -5,25 +5,28 @@
 #include <platform/system.h>
 #include <utilities/path.h>
 #include <utilities/cli.h>
+#include <utilities/resourcemanager.h>
+
+using namespace Sigmafox;
 
 int
 main(int argc, char ** argv)
 {
 
-    Sigmafox::Filepath user_source_file = Sigmafox::Filepath::cwd();
-    if (!Sigmafox::CLI::parse(argc, argv) || argc <= 1)
+    Filepath user_source_file = Filepath::cwd();
+    if (!CLI::parse(argc, argv) || argc <= 1)
     {
-        Sigmafox::CLI::short_help();
+        CLI::short_help();
         return -1;
     }
     else
     {
 
         // Check if the first argument is indeed a string argument.
-        Sigmafox::CLIArgument *file_argument = Sigmafox::CLI::get(1);
-        if (file_argument->get_type() != Sigmafox::CLIArgumentType::String)
+        CLIArgument *file_argument = CLI::get(1);
+        if (file_argument->get_type() != CLIArgumentType::String)
         {
-            Sigmafox::CLI::short_help();
+            CLI::short_help();
             std::cout << std::endl;
             std::cout << "CLI Error: Expected a string argument at argument position 1." << std::endl;
             return -1;
@@ -37,7 +40,7 @@ main(int argc, char ** argv)
         // Check if the file exists.
         if (!user_source_file.is_valid_file())
         {
-            Sigmafox::CLI::short_help();
+            CLI::short_help();
             std::cout << std::endl;
             std::cout << "CLI Error: Expected a valid path to a file at argument position 1." << std::endl;
             return -1;
@@ -46,6 +49,33 @@ main(int argc, char ** argv)
     }
 
     std::cout << "User Provided Source: " << user_source_file << std::endl;
+
+    ResourceManager rman;
+    ResourceHandle user_handle = rman.create_resource_handle(user_source_file);
+    if (!rman.resource_handle_is_valid(user_handle))
+    {
+        std::cout << "File handle is invalid." << std::endl;
+    }
+
+    ResourceHandle duplicate_handle = rman.create_resource_handle(user_source_file);
+    if (duplicate_handle == user_handle)
+    {
+        std::cout << "User handle is the same as the duplicate handle (this is good)." << std::endl;
+    }
+    else
+    {
+        std::cout << "Improperly detected duplicate handle." << std::endl;
+    }
+
+    std::cout << rman << std::endl;
+    rman.reserve(user_handle);
+    std::cout << rman << std::endl;
+    rman.release(user_handle);
+    std::cout << rman << std::endl;
+    rman.load_synchronously(user_handle);
+    std::cout << rman << std::endl;
+    
+    std::cout << rman.get_resource_as_text(user_handle) << std::endl;
 
     return 0;
 

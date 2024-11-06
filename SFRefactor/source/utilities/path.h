@@ -21,25 +21,26 @@ namespace Sigmafox
     {
 
         public:
-                         Filepath();
-                         Filepath(u64 initial_size);
-                         Filepath(ccptr path);
-                         Filepath(const Filepath& other);
-            virtual     ~Filepath();
+                        Filepath();
+                        Filepath(u64 initial_size);
+                        Filepath(ccptr path);
+                        Filepath(const Filepath& other);
+            virtual    ~Filepath();
 
-            Filepath&    operator=(const Filepath& rhs);
+            Filepath&   operator=(const Filepath& rhs);
 
-            Filepath&    operator+=(const Filepath& rhs);
-            Filepath&    operator+=(ccptr rhs);
+            Filepath&   operator+=(const Filepath& rhs);
+            Filepath&   operator+=(ccptr rhs);
+            bool        operator==(const Filepath& rhs) const;
 
-            u64          size() const;
-            u64          capacity() const;
-            ccptr        c_str() const;
+            u64         size() const;
+            u64         capacity() const;
+            ccptr       c_str() const;
 
-            Filepath&    canonicalize();
-            bool         is_valid() const;
-            bool         is_valid_directory() const;
-            bool         is_valid_file() const;
+            Filepath&   canonicalize();
+            bool        is_valid() const;
+            bool        is_valid_directory() const;
+            bool        is_valid_file() const;
 
         public:
             static Filepath cwd();

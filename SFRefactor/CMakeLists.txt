@@ -42,6 +42,8 @@ add_executable(Sigmafox
     "source/utilities/path.cpp"
     "source/utilities/cli.h"
     "source/utilities/cli.cpp"
+    "source/utilities/resourcemanager.h"
+    "source/utilities/resourcemanager.cpp"
 
     ${PLATFORM_FILES}
 )
