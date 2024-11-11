@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_ENVIRONMENT_H
 #define SIGMAFOX_ENVIRONMENT_H
 #include <string>
+#include <utilities/resourcemanager.h>
 
 // --- ApplicationParameters Singleton -----------------------------------------
 //
@@ -15,11 +16,14 @@ class ApplicationParameters
     public:
         static inline ApplicationParameters& get();
 
+        inline Sigmafox::ResourceManager& get_resource_manager() { return this->global_resource_manager; };
+
     protected:
         inline              ApplicationParameters();
         inline virtual     ~ApplicationParameters();
 
     protected:
+        Sigmafox::ResourceManager global_resource_manager;
         std::string output_name;
         std::string output_path;
 

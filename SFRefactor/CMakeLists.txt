@@ -45,6 +45,10 @@ add_executable(Sigmafox
     "source/utilities/resourcemanager.h"
     "source/utilities/resourcemanager.cpp"
 
+    "source/compiler/tokenizer.h"
+    "source/compiler/tokenizer.cpp"
+    "source/compiler/tokenizer_impl.cpp"
+
     ${PLATFORM_FILES}
 )
 

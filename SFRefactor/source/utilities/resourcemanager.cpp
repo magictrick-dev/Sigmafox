@@ -37,6 +37,7 @@ load()
 {
 
     // Loading when its released is bad. Gobble some memory first.
+    if (this->loaded) return true;
     if (this->is_released()) this->reserve();
     SF_ASSERT(this->buffer_ptr != nullptr);
     
@@ -46,7 +47,7 @@ load()
     u64 read = file_read_all(this->source_path.c_str(), this->buffer_ptr, this->buffer_size);
     SF_ASSERT(read == this->size);
     this->loaded = true;
-    return true;
+    return this->loaded;
 
 }
 
@@ -57,6 +58,7 @@ reserve()
     // Always reserve one extra byte and enforce it to be null-terminated block.
     // We make this assumption here since we are primarily focused on text files.
     // We don't supply a memory offset; let the OS figure that out.
+    if (this->buffer_ptr != nullptr) return true;
     this->buffer_ptr = system_virtual_alloc(0, this->size + 1);
     if (this->buffer_ptr == nullptr) return false;
     ((u8*)this->buffer_ptr)[this->size] = '\0';
