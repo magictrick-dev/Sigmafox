@@ -6,6 +6,7 @@
 #include <utilities/path.h>
 #include <utilities/cli.h>
 #include <utilities/resourcemanager.h>
+#include <compiler/tokenizer.h>
 
 using namespace Sigmafox;
 
@@ -50,32 +51,7 @@ main(int argc, char ** argv)
 
     std::cout << "User Provided Source: " << user_source_file << std::endl;
 
-    ResourceManager rman;
-    ResourceHandle user_handle = rman.create_resource_handle(user_source_file);
-    if (!rman.resource_handle_is_valid(user_handle))
-    {
-        std::cout << "File handle is invalid." << std::endl;
-    }
-
-    ResourceHandle duplicate_handle = rman.create_resource_handle(user_source_file);
-    if (duplicate_handle == user_handle)
-    {
-        std::cout << "User handle is the same as the duplicate handle (this is good)." << std::endl;
-    }
-    else
-    {
-        std::cout << "Improperly detected duplicate handle." << std::endl;
-    }
-
-    std::cout << rman << std::endl;
-    rman.reserve(user_handle);
-    std::cout << rman << std::endl;
-    rman.release(user_handle);
-    std::cout << rman << std::endl;
-    rman.load_synchronously(user_handle);
-    std::cout << rman << std::endl;
-    
-    std::cout << rman.get_resource_as_text(user_handle) << std::endl;
+    Tokenizer entry_tokenizer(user_source_file);
 
     return 0;
 

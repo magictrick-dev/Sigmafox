@@ -1,12 +1,23 @@
 #ifndef SOURCE_COMPILER_TOKENIZER_H
 #define SOURCE_COMPILER_TOKENIZER_H
 #include <string>
+#include <utility>
 #include <definitions.h>
 #include <utilities/path.h>
 #include <utilities/resourcemanager.h>
 
 namespace Sigmafox
 {
+
+    // --- TokenType -----------------------------------------------------------
+    //
+    // I'm not exactly a fan of this, but it is realistically the easiest way to
+    // differentiate types without deeply nested subclassing that no one in their
+    // right mind will want to implement. Everything after TOKEN_EOF is an error
+    // type, which is just TOKEN_UNDEFINED. During error checking, we can just check
+    // if its greater than or equal to TOKEN_UNDEFINED to determine if what we
+    // retrieved is a no-no token.
+    //
 
     enum class TokenType
     {
@@ -68,13 +79,31 @@ namespace Sigmafox
         TOKEN_UNDEFINED_EOL,
     };
 
-    struct Token
+    // --- Token ---------------------------------------------------------------
+    //
+    // Essentially just acts like a container that holds information about what
+    // type of token was encountered, the offset into the source file, the resource
+    // handle it was found in, and its length. Some helper utilities provided to
+    // pull information out is provided, such as std::string to_string() and position().
+    // Tokens should exist independently and easily copied without data-coupling.
+    //
+
+    class Token
     {
 
-        TokenType       type;
-        ResourceHandle  resource;
-        u64             offset;
-        u64             length;
+        public:
+                            Token();
+            virtual        ~Token();
+
+            std::string             to_string() const;
+            std::string             type_to_string() const;
+            std::pair<i32, i32>     position() const;
+
+        public:
+            TokenType       type;
+            ResourceHandle  resource;
+            u64             offset;
+            u64             length;
             
     };
 
@@ -99,7 +128,23 @@ namespace Sigmafox
             Token           get_next_token() const;
 
         protected:
+            b32             match_characters(u32 count, ...);
+            char            peek(u32 look_ahead);
+            char            consume(u32 count);
+            b32             consume_whitespace();
+            void            synchronize();
 
+            TokenType       check_identifier() const;
+
+            b32             is_eof() const;
+            b32             is_eol() const;
+
+            b32             match_newline();
+            b32             match_comments();
+            b32             match_symbols();
+            b32             match_numbers();
+            b32             match_strings();
+            b32             match_identifiers();
 
         protected:
             Filepath        path;
