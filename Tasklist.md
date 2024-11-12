@@ -7,13 +7,13 @@ is the language transpiler that transforms `.fox` scripts to C++, and the second
 the core support libraries in C++ required for automatic differentiation, cluster computation,
 dynamic typing, and I/O functionality.
 
-- [ ] **CLI Parser**
+- [X] **CLI Parser**
 
     The CLI parser is responsible for taking the transpiler's CLI arguments and modifying
     the runtime parameters of the transpiler for the user. The runtime parameters have set
     defaults. These defaults should be defined for the typical user-experience.
 
-- [ ] **Platform Environment**
+- [X] **Platform Environment**
 
     The platform environment is the platform-specific abstraction APIs that the rest of the
     program uses. Rather than relying on the STL for platform abstractions, this API is designed
@@ -21,11 +21,16 @@ dynamic typing, and I/O functionality.
     Given the limited set of environments (Windows, MacOSX, and Linux) this should not require
     significant overhead to maintain.
 
-- [ ] **Source File Tokenizer**
+- [X] **Source File Tokenizer**
 
     The source file tokenizer primarily consumes text from `.fox` files and returns abstractions
     called tokens. The parser takes these tokens and operates on them rather than the raw-text of
     the source file.
+
+- [X] **Resource Manager**
+
+    Properly contain source files in a location of managed virtual memory so that they're easily
+    referenceable without significant internal overhead.
 
 - [ ] **AST Language Parser**
 
