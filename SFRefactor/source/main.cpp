@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <environment.h>
 #include <platform/filesystem.h>
@@ -51,7 +52,18 @@ main(int argc, char ** argv)
 
     std::cout << "User Provided Source: " << user_source_file << std::endl;
 
+#if 1
     Tokenizer entry_tokenizer(user_source_file);
+    Token current_token = entry_tokenizer.get_current_token();
+    while (current_token.type != TokenType::TOKEN_EOF)
+    {
+        std::cout   << std::setw(32) << current_token.type_to_string() << " : "
+                    << current_token.to_string() << std::endl;
+        
+        entry_tokenizer.shift();
+        current_token = entry_tokenizer.get_current_token();
+    }
+#endif
 
     return 0;
 

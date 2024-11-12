@@ -165,7 +165,21 @@ to_string() const
 
     char hold = modifiable_source[this->offset + this->length];
     modifiable_source[this->offset + this->length] = '\0'; // What da dog doen?
-    result = modifiable_source + this->offset;
+    //result = modifiable_source + this->offset;
+
+    // We will probably just escape our new line sequences.
+    ccptr source_string = modifiable_source + this->offset;
+    i32 index = 0;
+    while (source_string[index] != '\0')
+    {
+        char c = source_string[index++];
+        if (c == '\n')
+        {
+            result += "\\n";
+            continue;
+        }
+        result += c;
+    }
     modifiable_source[this->offset + this->length] = hold;
 
     return result;
@@ -398,9 +412,6 @@ match_comments()
     if (current == '{')
     {
 
-        this->consume(1);       // Consume leading '{'.
-        this->synchronize();    // Synchronize so we ignore that '{'.
-
         // Consumes everything after the '{'.
         while (this->peek(0) != '}' && !this->is_eof()) this->consume(1);
 
@@ -418,11 +429,11 @@ match_comments()
         else
         {
 
+            this->consume(1); // Consume trailing '}', this isn't in the next token.
             this->next_token->type      = TokenType::TOKEN_COMMENT_BLOCK;
             this->next_token->resource  = this->resource;
             this->next_token->offset    = this->offset;
             this->next_token->length    = this->step - this->offset;
-            this->consume(1); // Consume trailing '}', this isn't in the next token.
 
         }
 
@@ -863,7 +874,31 @@ shift()
     this->next_token->offset    = this->offset;
     this->next_token->length    = this->step - this->offset;
     this->synchronize(); // Synchronize.
-    
+
     return;
+
+}
+
+Token Tokenizer::
+get_previous_token() const
+{
+    
+    return *this->previous_token;
+
+}
+
+Token Tokenizer::
+get_current_token() const
+{
+    
+    return *this->current_token;
+
+}
+
+Token Tokenizer::
+get_next_token() const
+{
+    
+    return *this->next_token;
 
 }
