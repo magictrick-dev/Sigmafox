@@ -1,5 +1,15 @@
-#ifndef SOURCE_COMPILER_TOKENIZER_H
-#define SOURCE_COMPILER_TOKENIZER_H
+// --- Sigmafox Compiler Tokenizer ---------------------------------------------
+//
+// Written by Chris DeJong Nov. 2024 / Northern Illinois University
+//
+//      The tokenizer converts source files text literals to abstracted tokens
+//      while providing an easy to use system for on-demand fetching and
+//      string parsing. Uses a standard DFA-style scanner implementation to
+//      properly parse strings.
+//
+// -----------------------------------------------------------------------------
+#ifndef SIGMAFOX_COMPILER_TOKENIZER_H
+#define SIGMAFOX_COMPILER_TOKENIZER_H
 #include <string>
 #include <utility>
 #include <definitions.h>

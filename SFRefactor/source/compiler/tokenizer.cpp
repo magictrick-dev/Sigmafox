@@ -1,126 +1,373 @@
+#include <cstdarg>
+#include <unordered_map>
+#include <environment.h>
 #include <compiler/tokenizer.h>
 
-/*
-// --- Tokenizer ---------------------------------------------------------------
+using namespace Sigmafox;
+
+// NOTE(Chris): The keyword map is case-insensitive, we enforce upper-case here.
+//              We are statically lazy-initializing this since we only need to
+//              reference this map later on. Marked as const because that's what
+//              John Carmack would have wanted.
+static inline const std::unordered_map<std::string, TokenType>& 
+get_keyword_map()
+{
+
+    // The keyword map only needs to be initialized once.
+    static std::unordered_map<std::string, TokenType> map;
+    static bool initialized_map = false;
+
+    if (initialized_map == false)
+    {
+        
+        map["BEGIN"]        = TokenType::TOKEN_KEYWORD_BEGIN;
+        map["ELSEIF"]       = TokenType::TOKEN_KEYWORD_ELSEIF;
+        map["END"]          = TokenType::TOKEN_KEYWORD_END;
+        map["ENDFIT"]       = TokenType::TOKEN_KEYWORD_ENDFIT;
+        map["ENDIF"]        = TokenType::TOKEN_KEYWORD_ENDIF;
+        map["ENDFUNCTION"]  = TokenType::TOKEN_KEYWORD_ENDFUNCTION;
+        map["ENDLOOP"]      = TokenType::TOKEN_KEYWORD_ENDLOOP;
+        map["ENDPLOOP"]     = TokenType::TOKEN_KEYWORD_ENDPLOOP;
+        map["ENDPROCEDURE"] = TokenType::TOKEN_KEYWORD_ENDPROCEDURE;
+        map["ENDSCOPE"]     = TokenType::TOKEN_KEYWORD_ENDSCOPE;
+        map["ENDWHILE"]     = TokenType::TOKEN_KEYWORD_ENDWHILE;
+        map["FIT"]          = TokenType::TOKEN_KEYWORD_FIT;
+        map["FUNCTION"]     = TokenType::TOKEN_KEYWORD_FUNCTION;
+        map["IF"]           = TokenType::TOKEN_KEYWORD_IF;
+        map["INCLUDE"]      = TokenType::TOKEN_KEYWORD_INCLUDE;
+        map["LOOP"]         = TokenType::TOKEN_KEYWORD_LOOP;
+        map["PLOOP"]        = TokenType::TOKEN_KEYWORD_PLOOP;
+        map["PROCEDURE"]    = TokenType::TOKEN_KEYWORD_PROCEDURE;
+        map["READ"]         = TokenType::TOKEN_KEYWORD_READ;
+        map["SAVE"]         = TokenType::TOKEN_KEYWORD_SAVE;
+        map["SCOPE"]        = TokenType::TOKEN_KEYWORD_SCOPE;
+        map["VARIABLE"]     = TokenType::TOKEN_KEYWORD_VARIABLE;
+        map["WHILE"]        = TokenType::TOKEN_KEYWORD_WHILE;
+        map["WRITE"]        = TokenType::TOKEN_KEYWORD_WRITE;
+
+        initialized_map = true;
+
+    }
+
+    return map;
+
+}
+
+static inline const std::unordered_map<TokenType, std::string>&
+get_token_map()
+{
+
+    // The keyword map only needs to be initialized once.
+    static std::unordered_map<TokenType, std::string> map;
+    static bool initialized_map = false;
+
+    if (initialized_map == false)
+    {
+
+        map[TokenType::TOKEN_COMMENT_BLOCK]         = "token_comment_block";
+        map[TokenType::TOKEN_LEFT_PARENTHESIS]      = "token_left_parenthesis";
+        map[TokenType::TOKEN_RIGHT_PARENTHESIS]     = "token_right_parenthesis";
+        map[TokenType::TOKEN_COMMA]                 = "token_comma";
+        map[TokenType::TOKEN_SEMICOLON]             = "token_semicolon";
+        map[TokenType::TOKEN_COLON_EQUALS]          = "token_colon_equals";
+        map[TokenType::TOKEN_PLUS]                  = "token_plus";
+        map[TokenType::TOKEN_MINUS]                 = "token_minus";
+        map[TokenType::TOKEN_STAR]                  = "token_star";
+        map[TokenType::TOKEN_FORWARD_SLASH]         = "token_forward_slash";
+        map[TokenType::TOKEN_CARROT]                = "token_carrot";
+        map[TokenType::TOKEN_EQUALS]                = "token_equals";
+        map[TokenType::TOKEN_LESS_THAN]             = "token_less_than";
+        map[TokenType::TOKEN_LESS_THAN_EQUALS]      = "token_less_than_equals";
+        map[TokenType::TOKEN_GREATER_THAN]          = "token_greater_than";
+        map[TokenType::TOKEN_GREATER_THAN_EQUALS]   = "token_greater_than_equals";
+        map[TokenType::TOKEN_HASH]                  = "token_hash";
+        map[TokenType::TOKEN_AMPERSAND]             = "token_ampersand";
+        map[TokenType::TOKEN_PIPE]                  = "token_pipe";
+        map[TokenType::TOKEN_PERCENT]               = "token_percent";
+
+        map[TokenType::TOKEN_INTEGER]               = "token_integer";
+        map[TokenType::TOKEN_REAL]                  = "token_real";
+        map[TokenType::TOKEN_STRING]                = "token_string";
+        map[TokenType::TOKEN_IDENTIFIER]            = "token_identifier";
+
+        map[TokenType::TOKEN_KEYWORD_BEGIN]         = "token_keyword_begin";
+        map[TokenType::TOKEN_KEYWORD_ELSEIF]        = "token_keyword_elseif";
+        map[TokenType::TOKEN_KEYWORD_END]           = "token_keyword_end";
+        map[TokenType::TOKEN_KEYWORD_ENDFIT]        = "token_keyword_endfit";
+        map[TokenType::TOKEN_KEYWORD_ENDIF]         = "token_keyword_endif";
+        map[TokenType::TOKEN_KEYWORD_ENDFUNCTION]   = "token_keyword_endfunction";
+        map[TokenType::TOKEN_KEYWORD_ENDLOOP]       = "token_keyword_endloop";
+        map[TokenType::TOKEN_KEYWORD_ENDPLOOP]      = "token_keyword_endploop";
+        map[TokenType::TOKEN_KEYWORD_ENDPROCEDURE]  = "token_keyword_endprocedure";
+        map[TokenType::TOKEN_KEYWORD_ENDSCOPE]      = "token_keyword_endscope";
+        map[TokenType::TOKEN_KEYWORD_ENDWHILE]      = "token_keyword_endwhile";
+        map[TokenType::TOKEN_KEYWORD_FIT]           = "token_keyword_fit";
+        map[TokenType::TOKEN_KEYWORD_FUNCTION]      = "token_keyword_function";
+        map[TokenType::TOKEN_KEYWORD_IF]            = "token_keyword_if";
+        map[TokenType::TOKEN_KEYWORD_INCLUDE]       = "token_keyword_include";
+        map[TokenType::TOKEN_KEYWORD_LOOP]          = "token_keyword_loop";
+        map[TokenType::TOKEN_KEYWORD_PLOOP]         = "token_keyword_ploop";
+        map[TokenType::TOKEN_KEYWORD_PROCEDURE]     = "token_keyword_procedure";
+        map[TokenType::TOKEN_KEYWORD_READ]          = "token_keyword_read";
+        map[TokenType::TOKEN_KEYWORD_SAVE]          = "token_keyword_save";
+        map[TokenType::TOKEN_KEYWORD_SCOPE]         = "token_keyword_scope";
+        map[TokenType::TOKEN_KEYWORD_VARIABLE]      = "token_keyword_variable";
+        map[TokenType::TOKEN_KEYWORD_WHILE]         = "token_keyword_while";
+        map[TokenType::TOKEN_KEYWORD_WRITE]         = "token_keyword_write";
+        map[TokenType::TOKEN_NEW_LINE]              = "token_new_line";
+
+        map[TokenType::TOKEN_EOF]                   = "token_eof";
+        map[TokenType::TOKEN_UNDEFINED]             = "token_undefined";
+        map[TokenType::TOKEN_UNDEFINED_EOF]         = "token_undefined_eof";
+        map[TokenType::TOKEN_UNDEFINED_EOL]         = "token_undefined_eol";
+
+    }
+
+    return map;
+
+}
+
+// --- Token Implementation ----------------------------------------------------
+// 
+// The token class is pretty basic, but we want to have a few helpers to inspect
+// them during tokenization and error-handling.
 //
-// The tokenizer is responsible for converting a raw-text source file into tokens.
-// The majority of this API is designed to be a more fuel-efficient regex routine
-// which consumes source files into "chunks" that can be properly digested by the
-// parser as needed.
-//
 
-static inline b32
-char_isalpha(char c)
+Token::
+Token()
 {
 
-    b32 upper = (c >= 0x41 && c <= 0x5A);
-    b32 lower = (c >= 0x61 && c <= 0x7A);
-    return (upper || lower);
+    this->type      = TokenType::TOKEN_UNDEFINED;
+    this->resource  = -1;
+    this->offset    = 0;
+    this->length    = 0;
 
 }
 
-static inline b32
-char_isnum(char c)
+Token::
+~Token()
 {
-    b32 is_number = (c >= 0x30 && c <= 0x39);
-    return is_number;
-}
-
-static inline b32
-char_isalnum(char c)
-{
-    b32 alpha = char_isalpha(c);
-    b32 number = char_isnum(c);
-    return (alpha || number);
-}
-
-b32     
-source_tokenizer_isalpha(source_tokenizer *tokenizer)
-{
-    
-    char current = tokenizer->source[tokenizer->step];
-    b32 is_alpha = char_isalpha(current);
-    return is_alpha;
 
 }
 
-b32     
-source_tokenizer_isnum(source_tokenizer *tokenizer)
+std::string Token::
+to_string() const
 {
 
-    char current = tokenizer->source[tokenizer->step];
-    b32 is_number = char_isnum(current);
-    return is_number;
+    // NOTE(Chris): This is a naughty function that does naughty things. We may
+    //              want to do something differently to handle this procedure to
+    //              make it less explosive.
+    ResourceManager& resmanager = ApplicationParameters::get().get_resource_manager();
+    SF_ASSERT(resmanager.is_loaded(this->resource));
 
-}
+    std::string result;
+    cptr modifiable_source = (cptr)resmanager.get_resource(this->resource);
 
-b32     
-source_tokenizer_isalnum(source_tokenizer *tokenizer)
-{
+    char hold = modifiable_source[this->offset + this->length];
+    modifiable_source[this->offset + this->length] = '\0'; // What da dog doen?
+    //result = modifiable_source + this->offset;
 
-    char current = tokenizer->source[tokenizer->step];
-    b32 is_alnum = char_isalnum(current);
-    return current;
+    // We will probably just escape our new line sequences.
+    ccptr source_string = modifiable_source + this->offset;
+    i32 index = 0;
+    while (source_string[index] != '\0')
+    {
+        char c = source_string[index++];
+        if (c == '\n')
+        {
+            result += "\\n";
+            continue;
+        }
+        result += c;
+    }
+    modifiable_source[this->offset + this->length] = hold;
 
-}
-
-b32     
-source_tokenizer_eof(source_tokenizer *tokenizer)
-{
-
-    if (tokenizer->source[tokenizer->step] == '\0')
-        return true;
-    return false;
-
-}
-
-b32     
-source_tokenizer_eol(source_tokenizer *tokenizer)
-{
-    
-    if (source_tokenizer_match(tokenizer, 1, '\n'))
-        return true;
-    return false;
-
-}
-
-char    
-source_tokenizer_peek(source_tokenizer *tokenizer, u64 offset)
-{
-
-    char peek = tokenizer->source[tokenizer->step + offset];
-    return peek;
-
-}
-
-char    
-source_tokenizer_consume(source_tokenizer *tokenizer, u64 count)
-{
-
-    char result = tokenizer->source[tokenizer->step + count - 1];
-    tokenizer->step += count;
     return result;
 
 }
 
-void    
-source_tokenizer_synchronize(source_tokenizer *tokenizer)
+std::string Token::
+type_to_string() const
 {
+
+    const std::unordered_map<TokenType, std::string> &map = get_token_map();
+    auto iter = map.find(this->type);
+    SF_ASSERT(iter != map.end()); // This should never occur since all types must be defined.
+    return iter->second;
+
+}
+
+std::pair<i32, i32> Token::
+position() const
+{
+
+    std::pair<i32, i32> result;
+
+    ResourceManager& resmanager = ApplicationParameters::get().get_resource_manager();
+    SF_ASSERT(resmanager.is_loaded(this->resource));
     
-    tokenizer->offset = tokenizer->step;
+    // Count lines & column position.
+    ccptr source = resmanager.get_resource_as_text(this->resource);
+    int line_count = 1;
+    int offset = 0;
+    for (i32 i = 0; i < this->offset; ++i)
+    {
+        offset++;
+        if (source[i] == '\n')
+        {
+            line_count++;
+            offset = 0;
+        }
+    }
+
+    result.first    = line_count;
+    result.second   = offset;
+    return result;
+
+}
+
+// --- Tokenizer Implementation ------------------------------------------------
+//
+// The implementation of the tokenizer is pretty straight forward, but it does
+// rely on some helper routines to make this work.
+//
+
+Tokenizer::
+Tokenizer(const Filepath& path)
+{
+
+    // Set the path.
+    this->path = path;
+
+    // Ensures the file is loaded through the global resource manager.
+    ResourceManager& resmanager = ApplicationParameters::get().get_resource_manager();
+    ResourceHandle handle = resmanager.create_resource_handle(path);
+    SF_ASSERT(resmanager.resource_handle_is_valid(handle));
+    resmanager.load_synchronously(handle);
+    this->resource = handle;
+    this->source = resmanager.get_resource_as_text(this->resource);
+
+    // Set our token buffers.
+    this->previous_token    = &token_buffer[0];
+    this->current_token     = &token_buffer[1];
+    this->next_token        = &token_buffer[2];
+
+    // Valid initialize our tokens to EOF such that they're known values.
+    for (i32 i = 0; i < 3; ++i)
+    {
+        this->token_buffer[i].type      = TokenType::TOKEN_EOF;
+        this->token_buffer[i].resource  = this->resource;
+        this->token_buffer[i].offset    = 0;
+        this->token_buffer[i].length    = 0;
+    }
+
+    // This will prime the current and next tokens automatically for us.
+    this->shift(); // Current token.
+    this->shift(); // Next token.
+
+}
+
+Tokenizer::
+~Tokenizer()
+{
+
+
+
+}
+
+char Tokenizer::
+consume(u32 count)
+{
+
+    char result = this->source[this->step + count - 1];
+    this->step += count;
+    return result;
+
+}
+
+char Tokenizer::
+peek(u32 offset)
+{
+
+    char peek = this->source[this->step + offset];
+    return peek;
+
+}
+
+void Tokenizer::
+synchronize()
+{
+
+    this->offset = this->step;
     return;
 
 }
 
-b32
-source_tokenizer_match(source_tokenizer *tokenizer, u32 count, ...)
+b32 Tokenizer::
+is_eof() const
 {
 
+    if (this->source[this->step] == '\0')
+        return true;
+    return false;
+
+}
+
+b32 Tokenizer::
+is_eol() const
+{
+    
+    if (this->source[this->step] == '\n')
+        return true;
+    return false;
+
+}
+
+TokenType Tokenizer::
+check_identifier() const
+{
+
+    const std::unordered_map<std::string, TokenType>& keyword_map = get_keyword_map();
+    std::string identifier = this->next_token->to_string();
+    for (auto &c : identifier) c = toupper(c); // Simpler this way, keywords are case insensitive.
+
+    TokenType result = TokenType::TOKEN_IDENTIFIER;
+    auto find_iter = keyword_map.find(identifier); // The only true useful thing about auto.
+    if (find_iter != keyword_map.end()) result = find_iter->second;
+    return result;
+
+}
+
+b32 Tokenizer::
+consume_whitespace()
+{
+
+    // NOTE(Chris): There might be additional whitespace characters to consider
+    //              here that we might not have caught. On these edge cases, we
+    //              should probably check for them.
+    if (this->match_characters(3, '\t', '\r', ' '))
+    {
+        this->consume(1);
+        this->synchronize();
+        return true;
+    }
+
+    return false;
+
+}
+
+b32 Tokenizer::
+match_characters(u32 count, ...)
+{
+
+    // TODO(Chris): We don't need to use va_list for this, we can use an initializer list
+    //              or some other C++ construct to solve this problem. For now, leave it
+    //              as is since it is working as intended.
     va_list args;
     va_start(args, count);
     b32 matched = false;
 
-    char current = source_tokenizer_peek(tokenizer, 0);
+    char current = this->peek(0);
     for (u32 idx = 0; idx < count; ++idx)
     {
         char argument_character = va_arg(args, char);
@@ -137,144 +384,19 @@ source_tokenizer_match(source_tokenizer *tokenizer, u32 count, ...)
 
 }
 
-void
-source_tokenizer_check_identifier(source_tokenizer *tokenizer, source_token *token)
+b32 Tokenizer::
+match_newline()
 {
 
-    // Ensure our list is set.
-    static initialized_keywords = false;
-    static cc64 keywords[32];
-    static source_token_type types[32];
-    if (initialized_keywords == false)
-    {
-        keywords[0]     = "BEGIN";
-        types[0]        = TOKEN_KEYWORD_BEGIN;
-        keywords[1]     = "ELSEIF";
-        types[1]        = TOKEN_KEYWORD_ELSEIF;
-        keywords[2]     = "END";
-        types[2]        = TOKEN_KEYWORD_END;
-        keywords[3]     = "ENDFIT";
-        types[3]        = TOKEN_KEYWORD_ENDFIT;
-        keywords[4]     = "ENDIF";
-        types[4]        = TOKEN_KEYWORD_ENDIF;
-        keywords[5]     = "ENDFUNCTION";
-        types[5]        = TOKEN_KEYWORD_ENDFUNCTION;
-        keywords[6]     = "ENDLOOP";
-        types[6]        = TOKEN_KEYWORD_ENDLOOP;
-        keywords[7]     = "ENDPLOOP";
-        types[7]        = TOKEN_KEYWORD_ENDPLOOP;
-        keywords[8]     = "ENDPROCEDURE";
-        types[8]        = TOKEN_KEYWORD_ENDPROCEDURE;
-        keywords[9]     = "ENDSCOPE";
-        types[9]        = TOKEN_KEYWORD_ENDSCOPE;
-        keywords[10]    = "ENDWHILE";
-        types[10]       = TOKEN_KEYWORD_ENDWHILE;
-        keywords[11]    = "FIT";
-        types[11]       = TOKEN_KEYWORD_FIT;
-        keywords[12]    = "FUNCTION";
-        types[12]       = TOKEN_KEYWORD_FUNCTION;
-        keywords[13]    = "IF";
-        types[13]       = TOKEN_KEYWORD_IF;
-        keywords[14]    = "INCLUDE";
-        types[14]       = TOKEN_KEYWORD_INCLUDE;
-        keywords[15]    = "LOOP";
-        types[15]       = TOKEN_KEYWORD_LOOP;
-        keywords[16]    = "PLOOP";
-        types[16]       = TOKEN_KEYWORD_PLOOP;
-        keywords[17]    = "PROCEDURE";
-        types[17]       = TOKEN_KEYWORD_PROCEDURE;
-        keywords[18]    = "READ";
-        types[18]       = TOKEN_KEYWORD_READ;
-        keywords[19]    = "SAVE";
-        types[19]       = TOKEN_KEYWORD_SAVE;
-        keywords[20]    = "SCOPE";
-        types[20]       = TOKEN_KEYWORD_SCOPE;
-        keywords[21]    = "VARIABLE";
-        types[21]       = TOKEN_KEYWORD_VARIABLE;
-        keywords[22]    = "WHILE";
-        types[22]       = TOKEN_KEYWORD_WHILE;
-        keywords[23]    = "WRITE";
-        types[23]       = TOKEN_KEYWORD_WRITE;
-
-        initialized_keywords = true;
-    }
-
-    // Validate identifier to keywords.
-    char hold_character = tokenizer->source[tokenizer->step];
-    tokenizer->source[tokenizer->step] = '\0';
-    cc64 string = token->source + token->offset;
-    u64 length = token->length;
-
-    // NOTE(Chris): We are using a pretty scuffed string matching routine for this.
-    //              There are better ways to do this matching, but for now we just
-    //              want it to work.
-    for (u32 idx = 0; idx < 24; ++idx)
-    {
-        
-        u32 s = 0;
-        b32 f = false;
-        while(toupper(string[s]) == keywords[idx][s])
-        {
-            if (string[s] == '\0' && keywords[idx][s] != '\0')
-                break;
-            if (string[s] != '\0' && keywords[idx][s] == '\0')
-                break;
-            if (string[s] == '\0' && keywords[idx][s] == '\0')
-            {
-                f = true;
-                break;
-            }
-            s++;
-        }
-        if (f == true)
-        {
-            token->type = types[idx];
-            break;
-        } 
-    }
-
-    // Return hold character.
-    tokenizer->source[tokenizer->step] = hold_character;
-
-}
-
-void    
-source_tokenizer_set_token(source_tokenizer *tokenizer, source_token *token, source_token_type type)
-{
-
-    token->type = type;
-    token->source = tokenizer->source;
-    token->offset = tokenizer->offset;
-    token->length = tokenizer->step - tokenizer->offset;
-    return;
-
-}
-
-b32     
-source_tokenizer_consume_whitespace(source_tokenizer *tokenizer, source_token *token)
-{
-    
-    if (source_tokenizer_match(tokenizer, 3, '\t', ' ', '\r'))
-    {
-        source_tokenizer_consume(tokenizer, 1);
-        source_tokenizer_synchronize(tokenizer);
-        return true;
-    }
-
-    return false;
-
-}
-
-b32     
-source_tokenizer_match_newline(source_tokenizer *tokenizer, source_token *token)
-{
-
-    char current = source_tokenizer_peek(tokenizer, 0);
+    char current = this->peek(0);
     if (current == '\n')
     {
-        source_tokenizer_consume(tokenizer, 1);
-        source_tokenizer_set_token(tokenizer, token, TOKEN_NEW_LINE);
-        source_tokenizer_synchronize(tokenizer);
+        this->consume(1);
+        this->next_token->type      = TokenType::TOKEN_NEW_LINE;
+        this->next_token->resource  = this->resource;
+        this->next_token->offset    = this->offset;
+        this->next_token->length    = this->step - this->offset;
+        this->synchronize();
         return true;
     }
 
@@ -282,201 +404,254 @@ source_tokenizer_match_newline(source_tokenizer *tokenizer, source_token *token)
 
 }
 
-b32     
-source_tokenizer_match_comments(source_tokenizer *tokenizer, source_token *token)
+b32 Tokenizer::
+match_comments()
 {
 
-    char current = source_tokenizer_peek(tokenizer, 0);
+    char current = this->peek(0);
     if (current == '{')
     {
 
-        source_tokenizer_consume(tokenizer, 1);
-        source_tokenizer_synchronize(tokenizer);
-
-        while (source_tokenizer_peek(tokenizer, 0) != '}' &&
-              !source_tokenizer_eof(tokenizer))
-        {
-            source_tokenizer_consume(tokenizer, 1);
-        }
+        // Consumes everything after the '{'.
+        while (this->peek(0) != '}' && !this->is_eof()) this->consume(1);
 
         // The comment could reach EOF, so account for that case and
         // generate the appropriate error token.
-        if (source_tokenizer_eof(tokenizer))
+        if (this->is_eof())
         {
-            source_tokenizer_set_token(tokenizer, token, TOKEN_UNDEFINED_EOF);
+
+            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOF;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+
         }
         else
         {
 
-            source_tokenizer_set_token(tokenizer, token, TOKEN_COMMENT_BLOCK);
-
-            // Consume the last '}'.
-            source_tokenizer_consume(tokenizer, 1);
+            this->consume(1); // Consume trailing '}', this isn't in the next token.
+            this->next_token->type      = TokenType::TOKEN_COMMENT_BLOCK;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
 
         }
 
-        source_tokenizer_synchronize(tokenizer);
-
+        this->synchronize();
         return true;
+
     }
 
     return false;
-
 }
 
-b32     
-source_tokenizer_match_symbols(source_tokenizer *tokenizer, source_token *token)
+b32 Tokenizer::
+match_symbols()
 {
 
-    char peek = source_tokenizer_peek(tokenizer, 0);
+    char peek = this->peek(0);
     switch (peek)
     {
         case '(':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_LEFT_PARENTHESIS);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_LEFT_PARENTHESIS;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case ')':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_RIGHT_PARENTHESIS);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_RIGHT_PARENTHESIS;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case ',':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_COMMA);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_COMMA;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
         
         case ';':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_SEMICOLON);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_SEMICOLON;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '+':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_PLUS);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_PLUS;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '-':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_MINUS);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_MINUS;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
         
         case '*':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_STAR);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_STAR;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '/':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_FORWARD_SLASH);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_FORWARD_SLASH;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '^':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_CARROT);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_CARROT;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '=':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_EQUALS);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_EQUALS;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '#':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_HASH);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_HASH;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
         
         case '&':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_AMPERSAND);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_AMPERSAND;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '|':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_PIPE);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_PIPE;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '%':
         {
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_PERCENT);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_PERCENT;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
         } break;
 
         case '<':
         {
-            char follower = source_tokenizer_peek(tokenizer, 1);
+            char follower = this->peek(1);
 
             if (follower == '=')
             {
-                source_tokenizer_consume(tokenizer, 2);
-                source_tokenizer_set_token(tokenizer, token, TOKEN_LESS_THAN_EQUALS);
-                source_tokenizer_synchronize(tokenizer);
+                this->consume(2);
+                this->next_token->type      = TokenType::TOKEN_LESS_THAN_EQUALS;
+                this->next_token->resource  = this->resource;
+                this->next_token->offset    = this->offset;
+                this->next_token->length    = this->step - this->offset;
+                this->synchronize();
                 return true;
             }
             
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_LESS_THAN);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_LESS_THAN;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
 
         } break;
 
         case '>':
         {
-            char follower = source_tokenizer_peek(tokenizer, 1);
+            char follower = this->peek(1);
 
             if (follower == '=')
             {
-                source_tokenizer_consume(tokenizer, 2);
-                source_tokenizer_set_token(tokenizer, token, TOKEN_GREATER_THAN_EQUALS);
-                source_tokenizer_synchronize(tokenizer);
+                this->consume(2);
+                this->next_token->type      = TokenType::TOKEN_GREATER_THAN_EQUALS;
+                this->next_token->resource  = this->resource;
+                this->next_token->offset    = this->offset;
+                this->next_token->length    = this->step - this->offset;
+                this->synchronize();
                 return true;
             }
             
-            source_tokenizer_consume(tokenizer, 1);
-            source_tokenizer_set_token(tokenizer, token, TOKEN_GREATER_THAN);
-            source_tokenizer_synchronize(tokenizer);
+            this->consume(1);
+            this->next_token->type      = TokenType::TOKEN_GREATER_THAN;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->synchronize();
             return true;
 
         } break;
@@ -484,12 +659,15 @@ source_tokenizer_match_symbols(source_tokenizer *tokenizer, source_token *token)
         case ':':
         {
             
-            char follower = source_tokenizer_peek(tokenizer, 1);
+            char follower = this->peek(1);
             if (follower == '=')
             {
-                source_tokenizer_consume(tokenizer, 2);
-                source_tokenizer_set_token(tokenizer, token, TOKEN_COLON_EQUALS);
-                source_tokenizer_synchronize(tokenizer);
+                this->consume(2);
+                this->next_token->type      = TokenType::TOKEN_COLON_EQUALS;
+                this->next_token->resource  = this->resource;
+                this->next_token->offset    = this->offset;
+                this->next_token->length    = this->step - this->offset;
+                this->synchronize();
                 return true;
             }
 
@@ -501,31 +679,33 @@ source_tokenizer_match_symbols(source_tokenizer *tokenizer, source_token *token)
     };
 
     return false;
+
 }
 
-b32     
-source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
+b32 Tokenizer::
+match_numbers()
 {
 
-    if (source_tokenizer_isnum(tokenizer))
+    char head = this->peek(0);
+    if (isdigit(head))
     {
 
-        source_tokenizer_consume(tokenizer, 1);
-        source_token_type type = TOKEN_INTEGER;
+        this->consume(1);
+        TokenType type = TokenType::TOKEN_INTEGER;
         
         while (true)
         {
 
             // Handle decimals.
-            char peek = source_tokenizer_peek(tokenizer, 0);
+            char peek = this->peek(0);
             if (peek == '.')
             {
-                char forward = source_tokenizer_peek(tokenizer, 1);
-                if (char_isnum(forward))
+                char forward = this->peek(1);
+                if (isdigit(forward))
                 {
 
-                    source_tokenizer_consume(tokenizer, 2);
-                    type = TOKEN_REAL;
+                    this->consume(2);
+                    type = TokenType::TOKEN_REAL;
                     continue;
 
                 }
@@ -536,10 +716,10 @@ source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
             }
 
             // Consume until non-number.
-            if (char_isnum(peek))
+            if (isdigit(peek))
             {
 
-                source_tokenizer_consume(tokenizer, 1);
+                this->consume(1);
                 continue;
 
             }
@@ -550,78 +730,87 @@ source_tokenizer_match_numbers(source_tokenizer *tokenizer, source_token *token)
 
         }
 
-        source_tokenizer_set_token(tokenizer, token, type);
-        source_tokenizer_synchronize(tokenizer);
+        this->next_token->type      = type;
+        this->next_token->resource  = this->resource;
+        this->next_token->offset    = this->offset;
+        this->next_token->length    = this->step - this->offset;
+        this->synchronize();
         return true;
 
     }
 
     return false;
+
 }
 
-b32     
-source_tokenizer_match_strings(source_tokenizer *tokenizer, source_token *token)
+b32 Tokenizer::
+match_strings()
 {
 
-    char current = source_tokenizer_peek(tokenizer, 0);
-    if (current == '\'')
+    char current = this->peek(0);
+    char left_side = current;
+    if (current == '\'' || current == '\"')
     {
 
-        source_tokenizer_consume(tokenizer, 1);
-        source_tokenizer_synchronize(tokenizer);
+        this->consume(1);
+        this->synchronize();
 
-        while (source_tokenizer_peek(tokenizer, 0) != '\'' &&
-              !source_tokenizer_eof(tokenizer) &&
-              !source_tokenizer_eol(tokenizer))
-        {
-            source_tokenizer_consume(tokenizer, 1);
-        }
+        while (this->peek(0) != left_side && !this->is_eof() && !this->is_eol())
+            this->consume(1);
 
         // Strings potentially terminate at EOF or EOL, so we check both cases.
-        if (source_tokenizer_eof(tokenizer))
+        if (this->is_eof())
         {
-            source_tokenizer_set_token(tokenizer, token, TOKEN_UNDEFINED_EOF);
+            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOF;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
         }
 
-        else if (source_tokenizer_eol(tokenizer))
+        else if (this->is_eol())
         {
-            source_tokenizer_set_token(tokenizer, token, TOKEN_UNDEFINED_EOL);
+            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOL;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
         }
 
         else
         {
 
-            source_tokenizer_set_token(tokenizer, token, TOKEN_STRING);
-
-            // Consume the last '\''.
-            source_tokenizer_consume(tokenizer, 1);
+            this->next_token->type      = TokenType::TOKEN_STRING;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+            this->consume(1);
 
         }
 
-        source_tokenizer_synchronize(tokenizer);
-
+        this->synchronize();
         return true;
+
     }
 
     return false;
-    
+
 }
 
-b32     
-source_tokenizer_match_identifiers(source_tokenizer *tokenizer, source_token *token)
+b32 Tokenizer::
+match_identifiers()
 {
 
-    if (source_tokenizer_isalpha(tokenizer))
+    char head = this->peek(0);
+    if (isalpha(head))
     {
 
         // Consume until keyword match breaks.
-        source_tokenizer_consume(tokenizer, 1);
+        this->consume(1);
         while (true)
         {
-            char peek = source_tokenizer_peek(tokenizer, 0);
-            if (peek == '_' || char_isalnum(peek))
+            char peek = this->peek(0);
+            if (peek == '_' || isalnum(peek))
             {
-                source_tokenizer_consume(tokenizer, 1);
+                this->consume(1);
                 continue;
             }
             else
@@ -630,111 +819,86 @@ source_tokenizer_match_identifiers(source_tokenizer *tokenizer, source_token *to
             }
         }
 
-        source_tokenizer_set_token(tokenizer, token, TOKEN_IDENTIFIER);
-        source_tokenizer_synchronize(tokenizer);
-        source_tokenizer_check_identifier(tokenizer, token);
+        this->next_token->type      = TokenType::TOKEN_IDENTIFIER;
+        this->next_token->resource  = this->resource;
+        this->next_token->offset    = this->offset;
+        this->next_token->length    = this->step - this->offset;
 
+        // Convert identifiers to keywords if they're keywords.
+        this->next_token->type      = this->check_identifier();
+
+        this->synchronize();
         return true;
 
     }
 
     return false;
+
 }
 
-void    
-source_tokenizer_get_next_token(source_tokenizer *tokenizer, source_token *token)
+void Tokenizer::
+shift()
 {
 
-    // Strip all white space before the start of the matching routines.
-    while (source_tokenizer_consume_whitespace(tokenizer, token));
+    // Shift our tokens left.
+    Token *temporary            = this->previous_token;
+    this->previous_token        = this->current_token;
+    this->current_token         = this->next_token;
+    this->next_token            = temporary;
     
-    // Check if we reached EOF. At EOF and not due to match case EOF, a standard
-    // EOF token is generated and returned.
-    if (source_tokenizer_eof(tokenizer))
+    // Clear whitespace.
+    while (this->consume_whitespace());
+
+    // Check if we're at the end of file and if we are, set the token to EOF.
+    if (this->is_eof())
     {
-        source_tokenizer_set_token(tokenizer, token, TOKEN_EOF);
+        this->next_token->type      = TokenType::TOKEN_EOF;
+        this->next_token->resource  = this->resource;
+        this->next_token->offset    = this->offset;
+        this->next_token->length    = 0;
         return;
     }
 
-    // Match any cases and return on success.
-    if (source_tokenizer_match_newline(tokenizer, token)) return;
-    if (source_tokenizer_match_comments(tokenizer, token)) return;
-    if (source_tokenizer_match_symbols(tokenizer, token)) return;
-    if (source_tokenizer_match_numbers(tokenizer, token)) return;
-    if (source_tokenizer_match_strings(tokenizer, token)) return;
-    if (source_tokenizer_match_identifiers(tokenizer, token)) return;
+    // Match to specification.
+    if (this->match_newline())      return;
+    if (this->match_comments())     return;
+    if (this->match_symbols())      return;
+    if (this->match_numbers())      return;
+    if (this->match_strings())      return;
+    if (this->match_identifiers())  return;
     
-    // If we didn't return, then we know no cases matches, consume one token and
-    // generate an undefined token.
-    source_tokenizer_consume(tokenizer, 1);
-    source_tokenizer_set_token(tokenizer, token, TOKEN_UNDEFINED);
-    source_tokenizer_synchronize(tokenizer);
+    // If we're here, we didn't match to specification, the token is undefined.
+    this->consume(1);
+    this->next_token->type      = TokenType::TOKEN_UNDEFINED;
+    this->next_token->resource  = this->resource;
+    this->next_token->offset    = this->offset;
+    this->next_token->length    = this->step - this->offset;
+    this->synchronize(); // Synchronize.
 
-}
-
-void    
-source_tokenizer_initialize(source_tokenizer *tokenizer, c64 source, cc64 path)
-{
-
-    tokenizer->file_path = path;
-    tokenizer->source = source;
-    tokenizer->offset = 0;
-    tokenizer->step = 0;
-
-}
-
-void    
-source_token_position(source_token *token, i32 *line, i32 *col)
-{
-
-    assert(token != NULL);
-    assert(line != NULL);
-    assert(col != NULL);
-
-    i32 line_count = 1;
-    i32 column_count = 1;
-
-    u64 offset = 0;
-    while (token->source + offset < token->source + token->offset)
-    {
-
-        if (token->source[offset] == '\n')
-        {
-            line_count++;
-            column_count = 0;
-        }
-
-        offset++;
-        column_count++;
-    }
-
-    *line = line_count;
-    *col = column_count;
-
-}
-
-cc64    
-source_token_string_nullify(source_token *token, char *hold_character)
-{
-
-    assert(hold_character != NULL);
-    cc64 string_start = token->source + token->offset;
-
-    char hold = token->source[token->offset + token->length];
-    *hold_character = hold;
-
-    token->source[token->offset + token->length] = '\0';
-
-    return string_start;
-
-}
-
-void    
-source_token_string_unnullify(source_token *token, char hold_character)
-{
-
-    token->source[token->offset + token->length] = hold_character;
     return;
 
 }
-*/
+
+Token Tokenizer::
+get_previous_token() const
+{
+    
+    return *this->previous_token;
+
+}
+
+Token Tokenizer::
+get_current_token() const
+{
+    
+    return *this->current_token;
+
+}
+
+Token Tokenizer::
+get_next_token() const
+{
+    
+    return *this->next_token;
+
+}

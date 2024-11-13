@@ -47,7 +47,8 @@ add_executable(Sigmafox
 
     "source/compiler/tokenizer.h"
     "source/compiler/tokenizer.cpp"
-    "source/compiler/tokenizer_impl.cpp"
+    "source/compiler/parser.h"
+    "source/compiler/parser.cpp"
 
     ${PLATFORM_FILES}
 )
