@@ -137,6 +137,10 @@ namespace Sigmafox
             Token           get_current_token() const;
             Token           get_next_token() const;
 
+            b32             previous_token_is(TokenType type) const;
+            b32             current_token_is(TokenType type) const;
+            b32             next_token_is(TokenType type) const;
+
         protected:
             b32             match_characters(u32 count, ...);
             char            peek(u32 look_ahead);

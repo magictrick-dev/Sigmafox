@@ -902,3 +902,30 @@ get_next_token() const
     return *this->next_token;
 
 }
+
+b32 Tokenizer::
+previous_token_is(TokenType type) const
+{
+
+    b32 result = (this->previous_token->type == type);
+    return result;
+
+}
+
+b32 Tokenizer::
+current_token_is(TokenType type) const
+{
+
+    b32 result = (this->current_token->type == type);
+    return result;
+
+}
+
+b32 Tokenizer::
+next_token_is(TokenType type) const
+{
+
+    b32 result = (this->next_token->type == type);
+    return result;
+
+}

@@ -41,6 +41,21 @@ Filepath(ccptr path)
 }
 
 Filepath::
+Filepath(const std::string& path)
+{
+
+    this->zero_initialize();
+
+    u64 string_length = path.length();
+    u64 required_size = this->find_best_fit(string_length + 1);
+    this->buffer_ptr        = (char*)SF_MEMORY_ALLOC(required_size);
+    this->buffer_capacity   = required_size;
+    this->buffer_length     = string_length;
+    strcpy(this->buffer_ptr, path.c_str());
+
+}
+
+Filepath::
 Filepath(const Filepath& other)
 {
 
@@ -88,6 +103,20 @@ operator+=(ccptr rhs)
     if (required_size >= this->buffer_capacity - 1)
         this->resize(required_size + 1);
     strcpy(this->buffer_ptr + this->buffer_length, rhs);
+    this->buffer_length = strlen(this->buffer_ptr);
+    return *this;
+
+}
+
+Filepath& Filepath::
+operator+=(const std::string& rhs)
+{
+    
+    u64 right_length = rhs.length();
+    u64 required_size = right_length + this->buffer_length;
+    if (required_size >= this->buffer_capacity - 1)
+        this->resize(required_size + 1);
+    strcpy(this->buffer_ptr + this->buffer_length, rhs.c_str());
     this->buffer_length = strlen(this->buffer_ptr);
     return *this;
 
@@ -224,4 +253,13 @@ cwd()
 
 }
 
+Filepath Filepath::
+root_directory() const
+{
 
+    std::string path = this->c_str();
+    u64 index = path.length() - 1;
+    while (path[index--] != '\\') path.pop_back();
+    return Filepath(path);
+
+}

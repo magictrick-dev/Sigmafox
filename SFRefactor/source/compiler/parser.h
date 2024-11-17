@@ -51,13 +51,15 @@ namespace Sigmafox
     {
         public:
                                             AbstractSyntaxNode() { };
-            virtual                        ~AbstractSyntaxNode() = 0;
+            virtual                        ~AbstractSyntaxNode() { };
 
             SyntaxNodeType                  get_type() const { return this->type; }
             template <class T> inline T*    cast_to() { return dynamic_cast<T>(this); }
 
-        protected:
+        public:
             std::vector<AbstractSyntaxNode *> siblings;
+
+        protected:
             SyntaxNodeType type = SyntaxNodeType::SyntaxNodeVoid;
 
     };
@@ -70,7 +72,7 @@ namespace Sigmafox
                             IncludeSyntaxNode();
             virtual        ~IncludeSyntaxNode();
 
-        protected:
+        public:
             std::string     file_path;
 
     };
@@ -83,7 +85,7 @@ namespace Sigmafox
                             MainSyntaxNode();
             virtual        ~MainSyntaxNode();
 
-        protected:
+        public:
             std::vector<AbstractSyntaxNode *> children;
 
     };
@@ -93,8 +95,11 @@ namespace Sigmafox
     {
 
         public:
-                            RootSyntaxNode();
-            virtual        ~RootSyntaxNode();
+                            RootSyntaxNode() {};
+            virtual        ~RootSyntaxNode() {};
+
+        public:
+            std::vector<AbstractSyntaxNode*> internal_includes;
 
     };
 
@@ -108,15 +113,22 @@ namespace Sigmafox
     {
 
         public:
-                            SyntaxParser(const Filepath& entry_file_path);
+                            SyntaxParser(const Filepath& filepath);
+                            SyntaxParser(const Filepath& filepath, SyntaxParser *parent);
             virtual        ~SyntaxParser();
 
             AbstractSyntaxNode*             construct_ast();           
 
         protected:
+            void                            synchronize_to(TokenType type);
+
+            RootSyntaxNode*                 match_includes();
+
+        protected:
             const Filepath&                 entry_path;
-            Tokenizer                       internal_tokenizer;
-            std::vector<SyntaxParser *>     subparsers;
+            Tokenizer                       tokenizer;
+            SyntaxParser                   *parent_parser;
+            std::vector<SyntaxParser*>      children_parsers;
 
     };
 

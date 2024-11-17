@@ -1,0 +1,3 @@
+include "dependents/file_c.fox"
+
+{ This is a comment that will get ignored. }

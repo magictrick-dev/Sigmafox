@@ -12,6 +12,7 @@
 #ifndef SIGMAFOX_UTILITIES_PATH_H
 #define SIGMAFOX_UTILITIES_PATH_H
 #include <iostream>
+#include <string>
 #include <definitions.h>
 
 namespace Sigmafox 
@@ -25,12 +26,14 @@ namespace Sigmafox
                         Filepath(u64 initial_size);
                         Filepath(ccptr path);
                         Filepath(const Filepath& other);
+                        Filepath(const std::string& path);
             virtual    ~Filepath();
 
             Filepath&   operator=(const Filepath& rhs);
 
             Filepath&   operator+=(const Filepath& rhs);
             Filepath&   operator+=(ccptr rhs);
+            Filepath&   operator+=(const std::string& rhs);
             bool        operator==(const Filepath& rhs) const;
 
             u64         size() const;
@@ -41,6 +44,8 @@ namespace Sigmafox
             bool        is_valid() const;
             bool        is_valid_directory() const;
             bool        is_valid_file() const;
+
+            Filepath    root_directory() const;
 
         public:
             static Filepath cwd();

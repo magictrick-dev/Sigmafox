@@ -1,17 +1,28 @@
 // --- Parser ------------------------------------------------------------------
 //
-// Apologies to the next poor soul that has to read this.
+// Apologies to the next poor soul that has to read this. The parser is a very
+// dense, very complicated setup that I honestly don't know where to begin for
+// a cohesive organized design. The best you can hope for is stepping through
+// the debugger and testing trivial cases... because that's how I do it.
 //
+// -----------------------------------------------------------------------------
 #include <compiler/parser.h>
 
 using namespace Sigmafox;
 
+// --- Parser Constructor/Destructors ------------------------------------------
+
 SyntaxParser::
-SyntaxParser(const Filepath& entry_file_path)
-    : entry_path(entry_file_path), internal_tokenizer(entry_file_path)
+SyntaxParser(const Filepath& filepath)
+    : entry_path(filepath), tokenizer(filepath), parent_parser(nullptr)
 {
 
-    
+}
+
+SyntaxParser::
+SyntaxParser(const Filepath& filepath, SyntaxParser *parent)
+    : entry_path(filepath), tokenizer(filepath), parent_parser(parent)
+{
 
 }
 
@@ -19,20 +30,154 @@ SyntaxParser::
 ~SyntaxParser()
 {
 
-    // Release all the subparsers.
-    for (auto &subparser : this->subparsers) delete subparser;
-
 }
 
+// --- Grammar Parsing Methods -------------------------------------------------
+
+RootSyntaxNode* SyntaxParser::
+match_includes()
+{
+
+    // Grammar Specification:
+    //      include_statement : "include" TOKEN_STRING ;
+
+    // If the token isn't an include token, then we don't parse it.
+    if (!this->tokenizer.current_token_is(TokenType::TOKEN_KEYWORD_INCLUDE))
+        return nullptr;
+
+    // Shift, we expect a string token.
+    this->tokenizer.shift();
+
+    // If the token isn't a string token, it's an error. Synchronize to semicolon.
+    if (!this->tokenizer.current_token_is(TokenType::TOKEN_STRING))
+    {
+        printf("ERROR: Expected a string in include statement.\n");
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+
+    // We have the path.
+    std::string filepath = this->tokenizer.get_current_token().to_string();
+
+    // Finally, the semicolon.
+    this->tokenizer.shift();
+
+    // If the token isn't a semicolon, it's an error. Synchronize to the next semicolon.
+    if (!this->tokenizer.current_token_is(TokenType::TOKEN_SEMICOLON))
+    {
+        printf("ERROR: Expected a semicolon at the of the include statement.\n");
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+
+    // Canonicalize the new path.
+    Filepath current_path = this->entry_path.root_directory();
+    current_path += "./";
+    current_path += filepath;
+    current_path.canonicalize();
+
+    // Now we check for circular dependencies.
+    SyntaxParser *current_parser = this;
+    while (current_parser != nullptr)
+    {
+
+        // Detects for trivial circular dependencies.
+        if (current_parser->entry_path == current_path)
+        {
+            
+            printf("Error: Circular dependency detected during parsing.\n");
+            return nullptr;
+
+        }
+
+        current_parser = this->parent_parser;
+
+    }
+    
+    // Generate a new child parser for each out include dependencies.
+    this->children_parsers.push_back(new SyntaxParser(current_path, this));
+
+    // Propagate.
+    SyntaxParser *last_child = this->children_parser.back();
+    last_child->match_includes();
+
+    return nullptr;
+
+}
 
 AbstractSyntaxNode* SyntaxParser::
 construct_ast()
 {
 
+    RootSyntaxNode *root_node = new RootSyntaxNode();
 
-    return nullptr;
+    // Match includes.
+    RootSyntaxNode *include_node = nullptr;
+    while (include_node = this->match_includes())
+        root_node->internal_includes.push_back(include_node);
+
+    return root_node;
 
 }
+
+// --- Parser Helpers ----------------------------------------------------------
+
+void SyntaxParser::
+synchronize_to(TokenType type)
+{
+
+    while (this->tokenizer.get_current_token().type != type)
+    {
+
+        // If the token is EOF, then we will break.
+        if (this->tokenizer.get_current_token().type == TokenType::TOKEN_EOF) break;
+
+        // Otherwise, shift until we reach our desired synchronization point.
+        this->tokenizer.shift();
+
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
