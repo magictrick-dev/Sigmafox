@@ -6,9 +6,7 @@
 // the debugger and testing trivial cases... because that's how I do it.
 //
 // -----------------------------------------------------------------------------
-#include <compiler/parser.h>
-
-using namespace Sigmafox;
+#include <compiler/parser.hpp>
 
 // --- Parser Constructor/Destructors ------------------------------------------
 
@@ -32,12 +30,21 @@ SyntaxParser::
 
 }
 
+Filepath SyntaxParser::
+get_source_path() const
+{
+
+    return this->entry_path;
+
+}
+
 // --- Grammar Parsing Methods -------------------------------------------------
 
 RootSyntaxNode* SyntaxParser::
 match_includes()
 {
 
+/*
     // Grammar Specification:
     //      include_statement : "include" TOKEN_STRING ;
 
@@ -98,8 +105,9 @@ match_includes()
     this->children_parsers.push_back(new SyntaxParser(current_path, this));
 
     // Propagate.
-    SyntaxParser *last_child = this->children_parser.back();
+    SyntaxParser *last_child = this->children_parsers.back();
     last_child->match_includes();
+*/
 
     return nullptr;
 

@@ -1,9 +1,7 @@
 #include <cstdarg>
 #include <unordered_map>
-#include <environment.h>
-#include <compiler/tokenizer.h>
-
-using namespace Sigmafox;
+#include <environment.hpp>
+#include <compiler/tokenizer.hpp>
 
 // NOTE(Chris): The keyword map is case-insensitive, we enforce upper-case here.
 //              We are statically lazy-initializing this since we only need to

@@ -1,7 +1,5 @@
-#include <utilities/path.h>
-#include <platform/filesystem.h>
-
-using namespace Sigmafox;
+#include <utilities/path.hpp>
+#include <platform/filesystem.hpp>
 
 Filepath::
 Filepath()

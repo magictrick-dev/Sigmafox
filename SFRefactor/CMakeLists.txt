@@ -32,22 +32,22 @@ endif (WIN32)
  
 add_executable(Sigmafox
     "source/main.cpp"
-    "source/definitions.h"
-    "source/environment.h"
+    "source/definitions.hpp"
+    "source/environment.hpp"
 
-    "source/platform/filesystem.h"
-    "source/platform/system.h"
+    "source/platform/filesystem.hpp"
+    "source/platform/system.hpp"
 
-    "source/utilities/path.h"
+    "source/utilities/path.hpp"
     "source/utilities/path.cpp"
-    "source/utilities/cli.h"
+    "source/utilities/cli.hpp"
     "source/utilities/cli.cpp"
-    "source/utilities/resourcemanager.h"
+    "source/utilities/resourcemanager.hpp"
     "source/utilities/resourcemanager.cpp"
 
-    "source/compiler/tokenizer.h"
+    "source/compiler/tokenizer.hpp"
     "source/compiler/tokenizer.cpp"
-    "source/compiler/parser.h"
+    "source/compiler/parser.hpp"
     "source/compiler/parser.cpp"
 
     ${PLATFORM_FILES}

@@ -15,7 +15,7 @@
 // -----------------------------------------------------------------------------
 #ifndef SIGMAFOX_PLATFORM_FILESYSTEM_H
 #define SIGMAFOX_PLATFORM_FILESYSTEM_H
-#include <definitions.h>
+#include <definitions.hpp>
 
 b32         file_exists(ccptr file_path);
 b32         file_ready(ccptr file_path);

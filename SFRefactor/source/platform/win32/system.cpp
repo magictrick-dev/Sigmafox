@@ -1,5 +1,5 @@
 #include <windows.h>
-#include <platform/system.h>
+#include <platform/system.hpp>
 #include <intrin.h>
 
 vptr 

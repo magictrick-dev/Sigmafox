@@ -24,115 +24,114 @@
 #ifndef SIGMAFOX_COMPILER_PARSER_H 
 #define SIGMAFOX_COMPILER_PARSER_H 
 #include <vector>
-#include <definitions.h>
-#include <utilities/path.h>
-#include <compiler/tokenizer.h>
+#include <definitions.hpp>
+#include <utilities/path.hpp>
+#include <compiler/tokenizer.hpp>
+#include <compiler/dependencygraph.hpp>
 
-namespace Sigmafox
+// --- Abstract Syntax Tree Nodes ------------------------------------------
+//
+// These define the behavior and layout of the various nodes that comprise the
+// abstracy syntax tree that the parser produces.
+//
+
+// Provides a way of easily identifying which node was encountered.
+enum class SyntaxNodeType
+{
+    SyntaxNodeVoid,
+    SyntaxNodeRoot,
+    SyntaxNodeMain,
+    SyntaxNodeInclude,
+};
+
+// Abstract Syntax Node Base Class
+class AbstractSyntaxNode
+{
+    public:
+                                        AbstractSyntaxNode() { };
+        virtual                        ~AbstractSyntaxNode() { };
+
+        SyntaxNodeType                  get_type() const { return this->type; }
+        template <class T> inline T*    cast_to() { return dynamic_cast<T>(this); }
+
+    public:
+        std::vector<AbstractSyntaxNode *> siblings;
+
+    protected:
+        SyntaxNodeType type = SyntaxNodeType::SyntaxNodeVoid;
+
+};
+
+// Include Syntax Node
+class IncludeSyntaxNode : public AbstractSyntaxNode
 {
 
-    // --- Abstract Syntax Tree Nodes ------------------------------------------
-    //
-    // These define the behavior and layout of the various nodes that comprise the
-    // abstracy syntax tree that the parser produces.
-    //
+    public:
+                        IncludeSyntaxNode();
+        virtual        ~IncludeSyntaxNode();
 
-    // Provides a way of easily identifying which node was encountered.
-    enum class SyntaxNodeType
-    {
-        SyntaxNodeVoid,
-        SyntaxNodeRoot,
-        SyntaxNodeMain,
-        SyntaxNodeInclude,
-    };
+    public:
+        std::string     file_path;
 
-    // Abstract Syntax Node Base Class
-    class AbstractSyntaxNode
-    {
-        public:
-                                            AbstractSyntaxNode() { };
-            virtual                        ~AbstractSyntaxNode() { };
+};
 
-            SyntaxNodeType                  get_type() const { return this->type; }
-            template <class T> inline T*    cast_to() { return dynamic_cast<T>(this); }
+// Main Syntax Node 
+class MainSyntaxNode : public AbstractSyntaxNode
+{
 
-        public:
-            std::vector<AbstractSyntaxNode *> siblings;
+    public:
+                        MainSyntaxNode();
+        virtual        ~MainSyntaxNode();
 
-        protected:
-            SyntaxNodeType type = SyntaxNodeType::SyntaxNodeVoid;
+    public:
+        std::vector<AbstractSyntaxNode *> children;
 
-    };
+};
 
-    // Include Syntax Node
-    class IncludeSyntaxNode : public AbstractSyntaxNode
-    {
+// Root Syntax Node
+class RootSyntaxNode : public AbstractSyntaxNode
+{
 
-        public:
-                            IncludeSyntaxNode();
-            virtual        ~IncludeSyntaxNode();
+    public:
+                        RootSyntaxNode() {};
+        virtual        ~RootSyntaxNode() {};
 
-        public:
-            std::string     file_path;
+    public:
+        std::vector<AbstractSyntaxNode*> internal_includes;
 
-    };
+};
 
-    // Main Syntax Node 
-    class MainSyntaxNode : public AbstractSyntaxNode
-    {
+// --- Parser --------------------------------------------------------------
+//
+// I'm going to be honest, you're about to see some of the most cooked C++ code
+// you've probably ever seen in your life. This is your warning.
+//
 
-        public:
-                            MainSyntaxNode();
-            virtual        ~MainSyntaxNode();
+class SyntaxParser
+{
 
-        public:
-            std::vector<AbstractSyntaxNode *> children;
+    public:
+                        SyntaxParser(const Filepath& filepath);
+                        SyntaxParser(const Filepath& filepath, SyntaxParser *parent);
+        virtual        ~SyntaxParser();
 
-    };
+        AbstractSyntaxNode*             construct_ast();           
+        Filepath                        get_source_path() const;
 
-    // Root Syntax Node
-    class RootSyntaxNode : public AbstractSyntaxNode
-    {
+        std::vector<std::string>        get_includes();
 
-        public:
-                            RootSyntaxNode() {};
-            virtual        ~RootSyntaxNode() {};
+    protected:
+        void                            synchronize_to(TokenType type);
 
-        public:
-            std::vector<AbstractSyntaxNode*> internal_includes;
+        RootSyntaxNode*                 match_includes();
 
-    };
+    protected:
+        const Filepath&                 entry_path;
+        Tokenizer                       tokenizer;
+        SyntaxParser                   *parent_parser;
+        std::vector<SyntaxParser*>      children_parsers;
 
-    // --- Parser --------------------------------------------------------------
-    //
-    // I'm going to be honest, you're about to see some of the most cooked C++ code
-    // you've probably ever seen in your life. This is your warning.
-    //
-
-    class SyntaxParser
-    {
-
-        public:
-                            SyntaxParser(const Filepath& filepath);
-                            SyntaxParser(const Filepath& filepath, SyntaxParser *parent);
-            virtual        ~SyntaxParser();
-
-            AbstractSyntaxNode*             construct_ast();           
-
-        protected:
-            void                            synchronize_to(TokenType type);
-
-            RootSyntaxNode*                 match_includes();
-
-        protected:
-            const Filepath&                 entry_path;
-            Tokenizer                       tokenizer;
-            SyntaxParser                   *parent_parser;
-            std::vector<SyntaxParser*>      children_parsers;
-
-    };
-
-}
+};
 
 /*
 #ifndef SOURCE_COMPILER_RPARSER_H

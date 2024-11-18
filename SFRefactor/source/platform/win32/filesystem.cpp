@@ -1,6 +1,6 @@
 #include <windows.h>
 #include <shlwapi.h>
-#include <platform/filesystem.h>
+#include <platform/filesystem.hpp>
 
 b32         
 file_exists(ccptr file_path)

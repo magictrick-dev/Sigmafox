@@ -1,8 +1,6 @@
-#include <platform/filesystem.h>
-#include <platform/system.h>
-#include <utilities/resourcemanager.h>
-
-using namespace Sigmafox;
+#include <platform/filesystem.hpp>
+#include <platform/system.hpp>
+#include <utilities/resourcemanager.hpp>
 
 // --- Resource Implementation -------------------------------------------------
 //

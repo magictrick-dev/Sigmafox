@@ -1,15 +1,13 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <environment.h>
-#include <platform/filesystem.h>
-#include <platform/system.h>
-#include <utilities/path.h>
-#include <utilities/cli.h>
-#include <utilities/resourcemanager.h>
-#include <compiler/tokenizer.h>
-
-using namespace Sigmafox;
+#include <environment.hpp>
+#include <platform/filesystem.hpp>
+#include <platform/system.hpp>
+#include <utilities/path.hpp>
+#include <utilities/cli.hpp>
+#include <utilities/resourcemanager.hpp>
+#include <compiler/tokenizer.hpp>
 
 int
 main(int argc, char ** argv)

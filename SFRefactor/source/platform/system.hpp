@@ -1,6 +1,6 @@
 #ifndef SIGMAFOX_PLATFORM_SYSTEM_H
 #define SIGMAFOX_PLATFORM_SYSTEM_H 
-#include <definitions.h>
+#include <definitions.hpp>
 
 vptr    system_virtual_alloc(vptr offset, u64 size);
 void    system_virtual_free(vptr buffer);

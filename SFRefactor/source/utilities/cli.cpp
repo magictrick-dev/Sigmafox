@@ -1,7 +1,5 @@
 #include <iostream>
-#include <utilities/cli.h>
-
-using namespace Sigmafox;
+#include <utilities/cli.hpp>
 
 // --- CLIArgument Implementation ----------------------------------------------
 
