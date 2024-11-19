@@ -12,9 +12,20 @@
 
 struct DependencyNode
 {
-    std::vector<DependencyNode> siblings;
-    DependencyNode *parent;
+    std::vector<std::shared_ptr<DependencyNode>> siblings;
+    std::shared_ptr<DependencyNode> parent;
     Filepath path;
+};
+
+class DependencyGraph
+{
+
+    public:
+        inline          DependencyGraph();
+        inline virtual ~DependencyGraph();
+
+        std::shared_ptr<DependencyNode> base_node;
+
 };
 
 #endif

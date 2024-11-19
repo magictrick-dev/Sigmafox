@@ -34,17 +34,17 @@ class DependencyResolver
         inline virtual ~DependencyResolver();
 
         inline bool     resolve();
-        inline std::vector<SyntaxParser*>   get_dependent_parsers() const;
-        inline DependencyNode               get_dependency_graph()  const;
+        inline std::vector<SyntaxParser*>       get_dependent_parsers() const;
+        inline std::shared_ptr<DependencyNode>  get_dependency_graph()  const;
 
     protected:
-        static inline bool resolve_recurse(DependencyNode* current,
+        static inline bool resolve_recurse(std::shared_ptr<DependencyNode> current,
                 SyntaxParser *parser, std::vector<SyntaxParser*> *parsers);
 
     protected:
-        DependencyNode  graph;
-        SyntaxParser   *entry;
+        std::shared_ptr<DependencyNode> graph;
         std::vector<SyntaxParser*> parsers;
+        SyntaxParser *entry;
 };
 
 inline DependencyResolver::
@@ -55,8 +55,9 @@ DependencyResolver(SyntaxParser *entry)
     this->entry = entry;
 
     // The first node is our entry node.
-    this->graph.parent = nullptr; // Entry node has no parent.
-    this->graph.path = entry->get_source_path();
+    this->graph = std::make_shared<DependencyNode>();
+    this->graph->parent = nullptr; // Entry node has no parent.
+    this->graph->path   = entry->get_source_path();
 
     // Place our entry node in the list.
     this->parsers.push_back(entry);
@@ -74,7 +75,7 @@ inline DependencyResolver::
 }
 
 inline bool DependencyResolver::
-resolve_recurse(DependencyNode *current, SyntaxParser *parser, std::vector<SyntaxParser*> *parsers)
+resolve_recurse(std::shared_ptr<DependencyNode> current, SyntaxParser *parser, std::vector<SyntaxParser*> *parsers)
 {
 
     // NOTE(Chris): The recursive method basically fetches, validates, and resolves
@@ -86,12 +87,53 @@ resolve_recurse(DependencyNode *current, SyntaxParser *parser, std::vector<Synta
     //              best I got for this problem.
 
     std::vector<std::string> paths = parser->get_includes();   
-    for (auto p : paths)
+    for (const auto path : paths)
     {
-        std::cout << p << std::endl;
+
+        // Check the path.
+        Filepath current_path(path);
+        if (!current_path.is_valid_file())
+        {
+            
+            std::cout << "[ Parser ] Path: " << path << " is not a valid file path." << std::endl;
+            return false;
+
+        }
+
+        // Determine there is a parser for it.
+        SyntaxParser *current_parser = nullptr;
+        for (auto p : *parsers)
+        {
+            if (p->get_source_path() == current_path)
+            {
+                current_parser = p;
+                break;
+            }
+        }
+
+        // Generate a parser if one doesn't exist.
+        if (current_parser == nullptr)
+        {
+            
+            current_parser = new SyntaxParser(current_path);
+            parsers->push_back(current_parser); // Introduces a new parser.
+
+        }
+
+        // Generate the node.
+        std::shared_ptr<DependencyNode> current_node = std::make_shared<DependencyNode>();
+        current_node->parent    = current;
+        current_node->path      = current_path;
+        current->siblings.push_back(current_node);
+
+        std::cout << "[ Parser ] Include found: " << current_path << std::endl;
+        
+        bool result = resolve_recurse(current_node, current_parser, parsers);
+        if (!result) return false; // If the recursion is broken, then we break.
+
     }
 
-    return false;
+    return true;
 
 }
 
@@ -99,7 +141,7 @@ inline bool DependencyResolver::
 resolve()
 {
 
-    bool result = this->resolve_recurse(&this->graph, this->entry, &this->parsers);
+    bool result = this->resolve_recurse(this->graph, this->entry, &this->parsers);
     return result;
 
 }
@@ -112,7 +154,7 @@ get_dependent_parsers() const
 
 }
 
-inline DependencyNode DependencyResolver::
+inline std::shared_ptr<DependencyNode> DependencyResolver::
 get_dependency_graph() const
 {
 
