@@ -76,7 +76,7 @@ class IncludeSyntaxNode : public AbstractSyntaxNode
         inline std::string      file_path_as_string() const;
 
     public:
-        Filepath path;
+        std::string path;
 
 };
 
@@ -85,7 +85,7 @@ IncludeSyntaxNode(Filepath path)
 {
 
     this->type = SyntaxNodeType::SyntaxNodeInclude;
-    this->path = path;
+    this->path = path.c_str();
 
 }
 
@@ -148,13 +148,12 @@ class SyntaxParser
 {
 
     public:
-                        SyntaxParser(const Filepath& filepath);
-                        SyntaxParser(const Filepath& filepath, SyntaxParser *parent);
+                        SyntaxParser(Filepath filepath);
+                        SyntaxParser(Filepath filepath, SyntaxParser *parent);
         virtual        ~SyntaxParser();
 
         AbstractSyntaxNode*             construct_ast();           
         Filepath                        get_source_path() const;
-
         std::vector<std::string>        get_includes();
 
     protected:
@@ -163,7 +162,7 @@ class SyntaxParser
         AbstractSyntaxNode*             match_include();
 
     protected:
-        const Filepath&                 entry_path;
+        Filepath                        entry_path;
         Tokenizer                       tokenizer;
         SyntaxParser                   *parent_parser;
         std::vector<SyntaxParser*>      children_parsers;

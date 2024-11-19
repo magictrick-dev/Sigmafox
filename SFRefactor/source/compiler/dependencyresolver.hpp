@@ -39,7 +39,7 @@ class DependencyResolver
 
     protected:
         static inline bool resolve_recurse(std::shared_ptr<DependencyNode> current,
-                SyntaxParser *parser, std::vector<SyntaxParser*> *parsers);
+                SyntaxParser *parser, std::vector<SyntaxParser*> &parsers);
 
     protected:
         std::shared_ptr<DependencyNode> graph;
@@ -75,23 +75,15 @@ inline DependencyResolver::
 }
 
 inline bool DependencyResolver::
-resolve_recurse(std::shared_ptr<DependencyNode> current, SyntaxParser *parser, std::vector<SyntaxParser*> *parsers)
+resolve_recurse(std::shared_ptr<DependencyNode> current, SyntaxParser *parser, std::vector<SyntaxParser*> &parsers)
 {
-
-    // NOTE(Chris): The recursive method basically fetches, validates, and resolves
-    //              all the dependencies and ensures no cyclic dependencies. The
-    //              process constructs the graph as well as instantiates the parsers
-    //              as it goes. Parsers are checked for duplicates (files can share
-    //              dependencies, but not cyclic depencies) and duplicates are ignored
-    //              during parser creation. This is a little convoluted, but it's the
-    //              best I got for this problem.
 
     std::vector<std::string> paths = parser->get_includes();   
     for (const auto path : paths)
     {
 
-        // Check the path.
-        Filepath current_path(path);
+        // Get the path and check if it is a valid file.
+        Filepath current_path(path.c_str());
         if (!current_path.is_valid_file())
         {
             
@@ -99,35 +91,53 @@ resolve_recurse(std::shared_ptr<DependencyNode> current, SyntaxParser *parser, s
             return false;
 
         }
-
-        // Determine there is a parser for it.
-        SyntaxParser *current_parser = nullptr;
-        for (auto p : *parsers)
+        
+        // Check for circular inclusion.
+        std::shared_ptr<DependencyNode> check_node = current;
+        while (check_node != nullptr)
         {
-            if (p->get_source_path() == current_path)
+
+            // Circular inclusion detected, error.
+            if (check_node->path == current_path)
             {
-                current_parser = p;
+                
+                std::cout << "[ Parser ] Circular inclusion detected: " << current_path << std::endl;
+                return false;
+
+            }
+            
+            check_node = check_node->parent;
+
+        }
+
+        // Fetch the parser if it already exists.
+        SyntaxParser *current_parser = nullptr;
+        for (int i = 0; i < parsers.size(); ++i)
+        {
+            Filepath reference_path = parsers.at(i)->get_source_path().c_str();
+            if (reference_path == current_path)
+            {
+                current_parser = parsers.at(i);
                 break;
             }
         }
 
-        // Generate a parser if one doesn't exist.
+        // Create the parser if it doesn't exist.
         if (current_parser == nullptr)
         {
-            
-            current_parser = new SyntaxParser(current_path);
-            parsers->push_back(current_parser); // Introduces a new parser.
-
+            std::cout << "[ Parser ] Parser instantiated for: " << current_path << std::endl;
+            current_parser = new SyntaxParser(current_path, parser);
+            parsers.push_back(current_parser);
         }
+
+        std::cout << "[ Parser ] Include found: " << current_path << std::endl;
 
         // Generate the node.
         std::shared_ptr<DependencyNode> current_node = std::make_shared<DependencyNode>();
         current_node->parent    = current;
         current_node->path      = current_path;
         current->siblings.push_back(current_node);
-
-        std::cout << "[ Parser ] Include found: " << current_path << std::endl;
-        
+       
         bool result = resolve_recurse(current_node, current_parser, parsers);
         if (!result) return false; // If the recursion is broken, then we break.
 
@@ -141,7 +151,7 @@ inline bool DependencyResolver::
 resolve()
 {
 
-    bool result = this->resolve_recurse(this->graph, this->entry, &this->parsers);
+    bool result = this->resolve_recurse(this->graph, this->entry, this->parsers);
     return result;
 
 }

@@ -11,16 +11,20 @@
 // --- Parser Constructor/Destructors ------------------------------------------
 
 SyntaxParser::
-SyntaxParser(const Filepath& filepath)
-    : entry_path(filepath), tokenizer(filepath), parent_parser(nullptr)
+SyntaxParser(Filepath filepath) : tokenizer(filepath)
 {
+
+    this->entry_path = filepath;
+    this->parent_parser = nullptr;
 
 }
 
 SyntaxParser::
-SyntaxParser(const Filepath& filepath, SyntaxParser *parent)
-    : entry_path(filepath), tokenizer(filepath), parent_parser(parent)
+SyntaxParser(Filepath filepath, SyntaxParser *parent) : tokenizer(filepath)
 {
+
+    this->entry_path = filepath;
+    this->parent_parser = nullptr;
 
 }
 
@@ -79,7 +83,8 @@ match_include()
     this->tokenizer.shift();
 
     // Canonicalize the new path.
-    Filepath current_path = this->entry_path.root_directory();
+    Filepath current_path = this->entry_path;
+    current_path = current_path.root_directory();
     current_path += "./";
     current_path += filepath;
     current_path.canonicalize();
