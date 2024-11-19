@@ -40,11 +40,11 @@ get_source_path() const
 
 // --- Grammar Parsing Methods -------------------------------------------------
 
-RootSyntaxNode* SyntaxParser::
-match_includes()
+AbstractSyntaxNode* SyntaxParser::
+match_include()
 {
 
-/*
+
     // Grammar Specification:
     //      include_statement : "include" TOKEN_STRING ;
 
@@ -65,8 +65,6 @@ match_includes()
 
     // We have the path.
     std::string filepath = this->tokenizer.get_current_token().to_string();
-
-    // Finally, the semicolon.
     this->tokenizer.shift();
 
     // If the token isn't a semicolon, it's an error. Synchronize to the next semicolon.
@@ -77,39 +75,17 @@ match_includes()
         return nullptr;
     }
 
+    // Clear the semicolon token.
+    this->tokenizer.shift();
+
     // Canonicalize the new path.
     Filepath current_path = this->entry_path.root_directory();
     current_path += "./";
     current_path += filepath;
     current_path.canonicalize();
 
-    // Now we check for circular dependencies.
-    SyntaxParser *current_parser = this;
-    while (current_parser != nullptr)
-    {
-
-        // Detects for trivial circular dependencies.
-        if (current_parser->entry_path == current_path)
-        {
-            
-            printf("Error: Circular dependency detected during parsing.\n");
-            return nullptr;
-
-        }
-
-        current_parser = this->parent_parser;
-
-    }
-    
-    // Generate a new child parser for each out include dependencies.
-    this->children_parsers.push_back(new SyntaxParser(current_path, this));
-
-    // Propagate.
-    SyntaxParser *last_child = this->children_parsers.back();
-    last_child->match_includes();
-*/
-
-    return nullptr;
+    IncludeSyntaxNode *include_node = new IncludeSyntaxNode(current_path);
+    return include_node;
 
 }
 
@@ -118,13 +94,24 @@ construct_ast()
 {
 
     RootSyntaxNode *root_node = new RootSyntaxNode();
-
-    // Match includes.
-    RootSyntaxNode *include_node = nullptr;
-    while (include_node = this->match_includes())
-        root_node->internal_includes.push_back(include_node);
-
     return root_node;
+
+}
+
+std::vector<std::string> SyntaxParser::
+get_includes()
+{
+
+    std::vector<std::string> file_paths;
+    AbstractSyntaxNode *current_node = this->match_include();
+    while (current_node != nullptr)
+    {
+        IncludeSyntaxNode *include_node = current_node->cast_to<IncludeSyntaxNode*>();
+        file_paths.push_back(include_node->file_path_as_string());
+        current_node = this->match_include();
+    }
+
+    return file_paths;
 
 }
 

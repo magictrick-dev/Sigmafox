@@ -8,6 +8,8 @@
 #include <utilities/cli.hpp>
 #include <utilities/resourcemanager.hpp>
 #include <compiler/tokenizer.hpp>
+#include <compiler/parser.hpp>
+#include <compiler/dependencyresolver.hpp>
 
 int
 main(int argc, char ** argv)
@@ -50,7 +52,14 @@ main(int argc, char ** argv)
 
     std::cout << "User Provided Source: " << user_source_file << std::endl;
 
-#if 1
+    // Create the root parser.
+    SyntaxParser root_parser(user_source_file);
+
+    // Resolve the dependencies.
+    DependencyResolver resolver(&root_parser);
+    bool resolution = resolver.resolve();
+
+#if 0
     Tokenizer entry_tokenizer(user_source_file);
     Token current_token = entry_tokenizer.get_current_token();
     while (current_token.type != TokenType::TOKEN_EOF)

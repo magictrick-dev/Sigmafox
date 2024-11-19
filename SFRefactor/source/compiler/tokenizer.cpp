@@ -343,11 +343,35 @@ consume_whitespace()
     // NOTE(Chris): There might be additional whitespace characters to consider
     //              here that we might not have caught. On these edge cases, we
     //              should probably check for them.
-    if (this->match_characters(3, '\t', '\r', ' '))
+    if (this->match_characters(4, '\t', '\r', '\n', ' '))
     {
         this->consume(1);
         this->synchronize();
         return true;
+    }
+
+    else if (this->match_characters(1, '{'))
+    {
+
+        // Consumes everything after the '{'.
+        while (this->peek(0) != '}' && !this->is_eof()) this->consume(1);
+
+        // The comment could reach EOF, so account for that case and
+        // generate the appropriate error token.
+        if (this->is_eof())
+        {
+
+            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOF;
+            this->next_token->resource  = this->resource;
+            this->next_token->offset    = this->offset;
+            this->next_token->length    = this->step - this->offset;
+
+        }
+
+        this->consume(1);
+        this->synchronize();
+        return true;
+
     }
 
     return false;
@@ -858,8 +882,6 @@ shift()
     }
 
     // Match to specification.
-    if (this->match_newline())      return;
-    if (this->match_comments())     return;
     if (this->match_symbols())      return;
     if (this->match_numbers())      return;
     if (this->match_strings())      return;
@@ -872,7 +894,6 @@ shift()
     this->next_token->offset    = this->offset;
     this->next_token->length    = this->step - this->offset;
     this->synchronize(); // Synchronize.
-
     return;
 
 }

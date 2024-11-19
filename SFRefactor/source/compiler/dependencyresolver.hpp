@@ -35,10 +35,10 @@ class DependencyResolver
 
         inline bool     resolve();
         inline std::vector<SyntaxParser*>   get_dependent_parsers() const;
-        inline DependencyGraph              get_dependency_graph()  const;
+        inline DependencyNode               get_dependency_graph()  const;
 
     protected:
-        static inline bool resolve_recurse(DependencyGraph* current,
+        static inline bool resolve_recurse(DependencyNode* current,
                 SyntaxParser *parser, std::vector<SyntaxParser*> *parsers);
 
     protected:
@@ -50,6 +50,9 @@ class DependencyResolver
 inline DependencyResolver::
 DependencyResolver(SyntaxParser *entry)
 {
+
+    // Set our entry parser.
+    this->entry = entry;
 
     // The first node is our entry node.
     this->graph.parent = nullptr; // Entry node has no parent.
@@ -70,8 +73,8 @@ inline DependencyResolver::
 
 }
 
-static inline bool DependencyResolver::
-resolve_recurse(DependencyGraph *current, SyntaxParser *parser, std::vector<SyntaxParser*> *parsers)
+inline bool DependencyResolver::
+resolve_recurse(DependencyNode *current, SyntaxParser *parser, std::vector<SyntaxParser*> *parsers)
 {
 
     // NOTE(Chris): The recursive method basically fetches, validates, and resolves
@@ -82,7 +85,11 @@ resolve_recurse(DependencyGraph *current, SyntaxParser *parser, std::vector<Synt
     //              during parser creation. This is a little convoluted, but it's the
     //              best I got for this problem.
 
-    
+    std::vector<std::string> paths = parser->get_includes();   
+    for (auto p : paths)
+    {
+        std::cout << p << std::endl;
+    }
 
     return false;
 
@@ -92,13 +99,13 @@ inline bool DependencyResolver::
 resolve()
 {
 
-    bool result = this->resolve_recurse(&this->graph, this->entry_parser, &this->parsers);
+    bool result = this->resolve_recurse(&this->graph, this->entry, &this->parsers);
     return result;
 
 }
 
 inline std::vector<SyntaxParser*> DependencyResolver::
-get_dependent_parsers(SyntaxParser *entry) const
+get_dependent_parsers() const
 {
 
     return this->parsers;

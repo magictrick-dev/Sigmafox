@@ -44,7 +44,8 @@ enum class SyntaxNodeType
     SyntaxNodeInclude,
 };
 
-// Abstract Syntax Node Base Class
+// --- Abstract Syntax Node Base Class -----------------------------------------
+
 class AbstractSyntaxNode
 {
     public:
@@ -52,7 +53,7 @@ class AbstractSyntaxNode
         virtual                        ~AbstractSyntaxNode() { };
 
         SyntaxNodeType                  get_type() const { return this->type; }
-        template <class T> inline T*    cast_to() { return dynamic_cast<T>(this); }
+        template <class T> inline T     cast_to() { return dynamic_cast<T>(this); }
 
     public:
         std::vector<AbstractSyntaxNode *> siblings;
@@ -62,20 +63,56 @@ class AbstractSyntaxNode
 
 };
 
-// Include Syntax Node
+// --- Include Syntax Node -----------------------------------------------------
+
 class IncludeSyntaxNode : public AbstractSyntaxNode
 {
 
     public:
-                        IncludeSyntaxNode();
-        virtual        ~IncludeSyntaxNode();
+        inline          IncludeSyntaxNode(Filepath path);
+        inline virtual ~IncludeSyntaxNode();
+
+        inline Filepath         file_path() const;
+        inline std::string      file_path_as_string() const;
 
     public:
-        std::string     file_path;
+        Filepath path;
 
 };
 
-// Main Syntax Node 
+inline IncludeSyntaxNode::
+IncludeSyntaxNode(Filepath path)
+{
+
+    this->type = SyntaxNodeType::SyntaxNodeInclude;
+    this->path = path;
+
+}
+
+inline IncludeSyntaxNode::
+~IncludeSyntaxNode()
+{
+
+}
+
+inline Filepath IncludeSyntaxNode::
+file_path() const
+{
+    
+    return this->path;
+
+}
+
+inline std::string IncludeSyntaxNode::
+file_path_as_string() const
+{
+    
+    return this->path.c_str();
+
+}
+
+// --- Main Syntax Node --------------------------------------------------------
+
 class MainSyntaxNode : public AbstractSyntaxNode
 {
 
@@ -88,7 +125,7 @@ class MainSyntaxNode : public AbstractSyntaxNode
 
 };
 
-// Root Syntax Node
+// --- Root Syntax Node --------------------------------------------------------
 class RootSyntaxNode : public AbstractSyntaxNode
 {
 
@@ -101,7 +138,7 @@ class RootSyntaxNode : public AbstractSyntaxNode
 
 };
 
-// --- Parser --------------------------------------------------------------
+// --- Parser ------------------------------------------------------------------
 //
 // I'm going to be honest, you're about to see some of the most cooked C++ code
 // you've probably ever seen in your life. This is your warning.
@@ -123,7 +160,7 @@ class SyntaxParser
     protected:
         void                            synchronize_to(TokenType type);
 
-        RootSyntaxNode*                 match_includes();
+        AbstractSyntaxNode*             match_include();
 
     protected:
         const Filepath&                 entry_path;
