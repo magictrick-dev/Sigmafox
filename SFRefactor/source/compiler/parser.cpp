@@ -98,7 +98,8 @@ AbstractSyntaxNode* SyntaxParser::
 construct_ast()
 {
 
-    RootSyntaxNode *root_node = new RootSyntaxNode();
+    std::vector<AbstractSyntaxNode*> children;
+    RootSyntaxNode *root_node = new RootSyntaxNode(children);
     return root_node;
 
 }
@@ -113,6 +114,7 @@ get_includes()
     {
         IncludeSyntaxNode *include_node = current_node->cast_to<IncludeSyntaxNode*>();
         file_paths.push_back(include_node->file_path_as_string());
+        delete current_node; // The parser doesn't actually need this, we can discard.
         current_node = this->match_include();
     }
 
@@ -150,13 +152,162 @@ synchronize_to(TokenType type)
 
 
 
+// --- Abstract Syntax Node Base Class Implementation --------------------------
 
+AbstractSyntaxNode::
+AbstractSyntaxNode()
+{
 
+    this->type = type;
 
+}
 
+AbstractSyntaxNode::
+~AbstractSyntaxNode()
+{
 
+}
 
+bool AbstractSyntaxNode::
+is_void() const
+{
 
+    bool result = (this->type == SyntaxNodeType::SyntaxNodeVoid);
+    return result;
+
+}
+
+SyntaxNodeType AbstractSyntaxNode::
+get_type() const
+{
+
+    return this->type;
+
+}
+
+template <class T> T AbstractSyntaxNode::
+cast_to()
+{
+    
+    T result = dynamic_cast<T>(this);
+    return result;
+
+}
+
+// --- Void Syntax Node Implementation -----------------------------------------
+
+VoidSyntaxNode::
+VoidSyntaxNode()
+{
+
+    this->type = SyntaxNodeType::SyntaxNodeVoid;
+
+}
+
+VoidSyntaxNode::
+~VoidSyntaxNode()
+{
+
+}
+
+void VoidSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor)
+{
+
+    visitor->visit_void_syntax_node(this);
+
+}
+
+// --- Include Syntax Node Implementation --------------------------------------
+
+IncludeSyntaxNode::
+IncludeSyntaxNode(Filepath path)
+{
+
+    this->type = SyntaxNodeType::SyntaxNodeInclude;
+    this->path = path;
+
+}
+
+IncludeSyntaxNode::
+~IncludeSyntaxNode()
+{
+
+}
+
+Filepath IncludeSyntaxNode::
+file_path() const
+{
+    
+    return this->path;
+
+}
+
+std::string IncludeSyntaxNode::
+file_path_as_string() const
+{
+    
+    return this->path.c_str();
+
+}
+
+void IncludeSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor) 
+{
+
+    visitor->visit_include_syntax_node(this);
+
+}
+
+// --- Main Syntax Node --------------------------------------------------------
+
+MainSyntaxNode::
+MainSyntaxNode(std::vector<AbstractSyntaxNode*> children)
+{
+
+    this->type      = SyntaxNodeType::SyntaxNodeMain;
+    this->children  = children;
+
+}
+
+MainSyntaxNode::
+~MainSyntaxNode()
+{
+
+}
+
+void MainSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor) 
+{
+
+    visitor->visit_main_syntax_node(this);
+
+}
+
+// --- Root Syntax Node --------------------------------------------------------
+
+RootSyntaxNode::
+RootSyntaxNode(std::vector<AbstractSyntaxNode*> children)
+{
+
+    this->type      = SyntaxNodeType::SyntaxNodeRoot;
+    this->children  = children;
+
+}
+
+RootSyntaxNode::
+~RootSyntaxNode()
+{
+
+}
+
+void RootSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor) 
+{
+
+    visitor->visit_root_syntax_node(this);
+
+}
 
 
 

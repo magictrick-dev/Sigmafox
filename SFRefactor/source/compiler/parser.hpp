@@ -20,7 +20,20 @@
 //      main                        :   "begin" (body_statement)* "end" ;
 //      include_statement           :   "include" TOKEN_STRING ;
 //
+// --- Creating AST Traversals -------------------------------------------------
+//
+//      The parser constructs a set of AST nodes with a visitor interface that
+//      allows you to create custom traversals using a neat little interface.
+//      The ISyntaxNodeVisitor basically provides the base class which allows you
+//      to run along the entire tree (or parts, if you see fit) and perform operations
+//      that otherwise requires a custom recursive traversal routine.
+//
+//      The cost of such a procedure is kind of expensive in the grand scheme of
+//      things, but generally we aren't stingy with compute power when it comes to
+//      performing an operation once.
+//
 // -----------------------------------------------------------------------------
+
 #ifndef SIGMAFOX_COMPILER_PARSER_H 
 #define SIGMAFOX_COMPILER_PARSER_H 
 #include <vector>
@@ -29,11 +42,29 @@
 #include <compiler/tokenizer.hpp>
 #include <compiler/dependencygraph.hpp>
 
-// --- Abstract Syntax Tree Nodes ------------------------------------------
+// --- Abstract Syntax Tree Nodes ----------------------------------------------
 //
 // These define the behavior and layout of the various nodes that comprise the
-// abstracy syntax tree that the parser produces.
+// abstract syntax tree that the parser produces.
 //
+
+class AbstractSyntaxNode;
+class VoidSyntaxNode;
+class RootSyntaxNode;
+class MainSyntaxNode;
+class IncludeSyntaxNode;
+
+// Provides an easy way to traverse the AST in a uniform fashion without having to
+// extend any internal behaviors on the nodes themselves. They automatically recurse
+// on their child nodes.
+class ISyntaxNodeVisitor
+{
+    public:
+        virtual void visit_void_syntax_node(VoidSyntaxNode *node)               = 0;
+        virtual void visit_root_syntax_node(RootSyntaxNode *node)               = 0;
+        virtual void visit_main_syntax_node(MainSyntaxNode *node)               = 0;
+        virtual void visit_include_syntax_node(IncludeSyntaxNode *node)         = 0;
+};
 
 // Provides a way of easily identifying which node was encountered.
 enum class SyntaxNodeType
@@ -45,103 +76,144 @@ enum class SyntaxNodeType
 };
 
 // --- Abstract Syntax Node Base Class -----------------------------------------
+//
+// The abstract node basically provides the universal feature set of all AST
+// nodes. There's a way to inspect the type of node (all nodes are defined with
+// a given type and are always reliably that type) and a way to cast the syntax
+// node to its given sub-class. The current implementation is a dynamic_cast wrapper,
+// but if we want to do anything fancy in the future, internal functionality could
+// change to something more complex.
+//
+// The "accept" visitor method is an important function to override, as it allows
+// visitor interfaces to propagate to their respective node types without having
+// to actually manually inspect the type, cast, and perform the operation. Of
+// course, this comes with a performance penalty, so we don't want to do this
+// for something more intense.
+//
+// The "is_void" function determines if the type of the base node is void. This
+// basically shorthands the type check for when a void node is returned. Use this
+// over "cast_to" or "get_type" when checking for void nodes.
+//
 
 class AbstractSyntaxNode
 {
     public:
-                                        AbstractSyntaxNode() { };
-        virtual                        ~AbstractSyntaxNode() { };
+                                        AbstractSyntaxNode();
+        virtual                        ~AbstractSyntaxNode();
 
-        SyntaxNodeType                  get_type() const { return this->type; }
-        template <class T> inline T     cast_to() { return dynamic_cast<T>(this); }
+        bool                            is_void() const;
+        SyntaxNodeType                  get_type() const;
+        template <class T> T            cast_to();
 
-    public:
-        std::vector<AbstractSyntaxNode *> siblings;
+        virtual void accept(ISyntaxNodeVisitor *visitor) = 0;
 
     protected:
-        SyntaxNodeType type = SyntaxNodeType::SyntaxNodeVoid;
+        SyntaxNodeType type;
+
+};
+
+// --- Void Syntax Node --------------------------------------------------------
+//
+// The void syntax node is a node that is returned when node valid node can be
+// returned. We enforce that all nodes are returned as valid nodes, so we must
+// ensure that this exists and is inspectable.
+//
+
+class VoidSyntaxNode : public AbstractSyntaxNode
+{
+
+    public:
+                        VoidSyntaxNode();
+        virtual        ~VoidSyntaxNode();
+
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
 
 };
 
 // --- Include Syntax Node -----------------------------------------------------
+//
+// The include syntax node corresponds to the grammar specification for includes.
+// This node is somewhat special in that we typically don't see this in the root
+// syntax tree. The DependencyResolver is responsible for collecting these nodes
+// and ensures that sub-parsers are constructed and circular inclusions are
+// properly discovered.
+//
 
 class IncludeSyntaxNode : public AbstractSyntaxNode
 {
 
     public:
-        inline          IncludeSyntaxNode(Filepath path);
-        inline virtual ~IncludeSyntaxNode();
+                        IncludeSyntaxNode(Filepath path);
+        virtual        ~IncludeSyntaxNode();
 
-        inline Filepath         file_path() const;
-        inline std::string      file_path_as_string() const;
+        Filepath        file_path() const;
+        std::string     file_path_as_string() const;
 
-    public:
-        std::string path;
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+
+    protected:
+        Filepath path;
 
 };
 
-inline IncludeSyntaxNode::
-IncludeSyntaxNode(Filepath path)
-{
-
-    this->type = SyntaxNodeType::SyntaxNodeInclude;
-    this->path = path.c_str();
-
-}
-
-inline IncludeSyntaxNode::
-~IncludeSyntaxNode()
-{
-
-}
-
-inline Filepath IncludeSyntaxNode::
-file_path() const
-{
-    
-    return this->path;
-
-}
-
-inline std::string IncludeSyntaxNode::
-file_path_as_string() const
-{
-    
-    return this->path.c_str();
-
-}
-
 // --- Main Syntax Node --------------------------------------------------------
+//
+// The main syntax node is the node which contains all nodes in the "begin" and
+// "end" block of the main program entry point. Since the specification of this
+// node is not the same as the root syntax node, behaviors within are considered
+// runtime specific.
+//
 
 class MainSyntaxNode : public AbstractSyntaxNode
 {
 
     public:
-                        MainSyntaxNode();
+                        MainSyntaxNode(std::vector<AbstractSyntaxNode*> children);
         virtual        ~MainSyntaxNode();
 
-    public:
-        std::vector<AbstractSyntaxNode *> children;
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+
+    protected:
+        std::vector<AbstractSyntaxNode*> children;
 
 };
 
 // --- Root Syntax Node --------------------------------------------------------
+//
+// The root syntax node is what is returned by the parser after it constructs
+// the tree. The root syntax node is special in that it also determines if the
+// tree itself is a valid tree. The parser enforces proper construction of the
+// root node by the grammar specification as outlined above.
+//
+
 class RootSyntaxNode : public AbstractSyntaxNode
 {
 
     public:
-                        RootSyntaxNode() {};
-        virtual        ~RootSyntaxNode() {};
+                        RootSyntaxNode(std::vector<AbstractSyntaxNode*> children);
+        virtual        ~RootSyntaxNode();
 
-    public:
-        std::vector<AbstractSyntaxNode*> internal_includes;
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+
+    protected:
+        std::vector<AbstractSyntaxNode*> children;
 
 };
 
-// --- Parser ------------------------------------------------------------------
+// --- SyntaxParser ------------------------------------------------------------
 //
 // I'm going to be honest, you're about to see some of the most cooked C++ code
-// you've probably ever seen in your life. This is your warning.
+// you've probably ever seen in your life.
+//
+// There are two types of "parsers", the "entry" parser, which is the one that
+// is created when the program collects the entry point file, and sub-parsers.
+// Sub-parsers are just file dependencies from the include statements and are
+// nested in the entry parser.
+//
+// The DependencyResolver will automatically check for top-level includes, parse
+// them, and validate for circular inclusions. The "construct_ast" function takes
+// the dependency graph, determines the proper order to parse, and collapses
+// everything down until parsing is complete.
 //
 
 class SyntaxParser
@@ -158,14 +230,17 @@ class SyntaxParser
 
     protected:
         void                            synchronize_to(TokenType type);
+        template <class T> T*           generate_node();
 
         AbstractSyntaxNode*             match_include();
 
     protected:
-        Filepath                        entry_path;
-        Tokenizer                       tokenizer;
-        SyntaxParser                   *parent_parser;
-        std::vector<SyntaxParser*>      children_parsers;
+        Filepath        entry_path;
+        Tokenizer       tokenizer;
+        SyntaxParser   *parent_parser;
+
+        std::vector<SyntaxParser*>          children_parsers;
+        std::vector<AbstractSyntaxNode*>    internal_nodes;
 
 };
 
