@@ -3,7 +3,7 @@ include "dependents/file_a.fox";
 include "dependents/file_b.fox";
 include "dependents/file_c.fox";
 
-{ include "dependents/circular.fox"; }
+include "dependents/circular.fox";
 
 include "dependents/deeper.fox";
 include "dependents/nest/file_2.fox";

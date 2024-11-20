@@ -3,13 +3,17 @@
 Sigmafox is a transpiled scripting language designed to aid in the development of
 complex physics applications by abstracting out low-level detail into a simplified
 scripting language. Sigmafox transpiles to C++ for performance and extensibility.
-Sigmafox is not an interpretted scripting language, so it requires both a transpilation
-and a compilation steps to execute code written in Sigmafox.
+Sigmafox supports n-th order automatic differentiation and parallel computation in
+cluster computation environments.
 
-The Sigmafox scripting language is designed for scientific computation. Unlike other
-scripting languages, it is not interpretted or JIT compiled. Sigmafox directly translates
-to C++ for performance and extensibility. This makes it possible to develop through
-Sigmafox and optimize in C++.
+### Project Status
+
+The current state of the project is a work in-progress. As such, it is not in a state
+for use development. Currently, Sigmafox is being refactored in C++ for better clarity
+and scaleability in the long term, which can be tracked in the `SFRefactor/` subfolder.
+There, you will find the current working project. The existing project in the root directory
+is working and compileable on Windows, however it lacks many of the necessary functionalities
+that is typically desired of a complete programming language library.
 
 # Documentation
 
@@ -52,3 +56,8 @@ sigmafox my_script.fox
 This will automatically convert the script to C++ and generate the `CMakeLists.txt` 
 file needed to compile it.
 
+# License
+
+Sigmafox is developed and owned by Northern Illinois University. Please contact
+the Department of Physics at NIU for more information. You can also reach out to
+the current maintainer at `Z1836870@students.niu.edu`.
