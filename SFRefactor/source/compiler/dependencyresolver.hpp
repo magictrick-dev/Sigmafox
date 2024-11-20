@@ -30,6 +30,7 @@ class DependencyResolver
 {
 
     public:
+                    DependencyResolver(Filepath entry);
                     DependencyResolver(SyntaxParser *entry);
         virtual    ~DependencyResolver();
 

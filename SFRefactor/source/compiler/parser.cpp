@@ -19,6 +19,7 @@
 // -----------------------------------------------------------------------------
 #include <compiler/parser.hpp>
 #include <compiler/errorhandler.hpp>
+#include <compiler/dependencyresolver.hpp>
 
 // --- Parser Constructor/Destructors ------------------------------------------
 
@@ -51,6 +52,18 @@ get_source_path() const
 {
 
     return this->entry_path;
+
+}
+
+template <class T, typename... Params> std::shared_ptr<T> SyntaxParser::
+create_node(Params... args)
+{
+
+    // Thanks C++, very cool.
+    std::shared_ptr<T> result = std::make_shared<T>(args...);
+    std::shared_ptr<AbstractSyntaxNode*> cast_back = dynamic_cast<AbstractSyntaxNode*>(result);
+    this->internal_nodes.push_back(cast_back);
+    return result;
 
 }
 
@@ -106,12 +119,32 @@ match_include()
 
 }
 
-AbstractSyntaxNode* SyntaxParser::
+std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
+match_main()
+{
+
+    return nullptr;
+}
+
+std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
+match_global()
+{
+
+    return nullptr;
+}
+
+std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
+match_root()
+{
+
+    return nullptr;
+}
+
+std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
 construct_ast()
 {
 
-    std::vector<AbstractSyntaxNode*> children;
-    RootSyntaxNode *root_node = new RootSyntaxNode(children);
+    std::shared_ptr<AbstractSyntaxNode*> root_node = this->match_root();
     return root_node;
 
 }
@@ -302,8 +335,7 @@ RootSyntaxNode::
 RootSyntaxNode(std::vector<AbstractSyntaxNode*> children)
 {
 
-    this->type      = SyntaxNodeType::SyntaxNodeRoot;
-    this->children  = children;
+    this->type = SyntaxNodeType::SyntaxNodeRoot;
 
 }
 

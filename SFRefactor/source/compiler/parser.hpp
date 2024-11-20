@@ -196,7 +196,9 @@ class RootSyntaxNode : public AbstractSyntaxNode
         virtual void    accept(ISyntaxNodeVisitor *visitor) override;
 
     protected:
-        std::vector<AbstractSyntaxNode*> children;
+        std::vector<AbstractSyntaxNode*> upper_globals;
+        std::vector<AbstractSyntaxNode*> lower_globals; // This should probably be empty.
+        AbstractSyntaxNode *main;
 
 };
 
@@ -225,6 +227,7 @@ class SyntaxParser
         virtual        ~SyntaxParser();
 
         AbstractSyntaxNode*             construct_ast();           
+
         Filepath                        get_source_path() const;
         std::vector<std::string>        get_includes();
 
@@ -232,15 +235,24 @@ class SyntaxParser
         void                            synchronize_to(TokenType type);
         template <class T> T*           generate_node();
 
+        AbstractSyntaxNode*             match_main();
+        AbstractSyntaxNode*             match_global();
         AbstractSyntaxNode*             match_include();
+        AbstractSyntaxNode*             match_root();
+
+        // It's as bad as you think it is.
+        template <class T, typename ...Params> std::shared_ptr<T> create_node(Params... args);
 
     protected:
         Filepath        entry_path;
         Tokenizer       tokenizer;
         SyntaxParser   *parent_parser;
 
-        std::vector<SyntaxParser*>          children_parsers;
-        std::vector<AbstractSyntaxNode*>    internal_nodes;
+        DependencyGraph dependency_graph;
+        std::shared_ptr<DependencyNode> dependency_node;
+
+        std::vector<SyntaxParser*> children_parsers;
+        std::vector<std::shared_ptr<AbstractSyntaxNode*>> internal_nodes;
 
 };
 
