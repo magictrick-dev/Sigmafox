@@ -14,6 +14,10 @@ and scaleability. This can be tracked in the `SFRefactor/` subfolder. If you are
 to see the current state of the project, visit the `version-alpha` branch where the commits
 are being pushed to.
 
+Sigamfox is being developed on the Windows platform, with the intention to port to
+UNIX and MacOSX once the core language implementation is complete. Therefore, you will
+not be able to compile this on any platform but Windows with MSVC installed.
+
 # Documentation
 
 ### Building Sigmafox
