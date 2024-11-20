@@ -1,0 +1,93 @@
+{ Testing standard variable declaration. }
+variable test_variable 4;
+
+{ Testing array variable declaration. }
+variable foo 4 32;
+variable bar 4 32 16;
+variable baz 4 32 16 8;
+variable bax 4 32 16 8 4;
+
+{ Testing variable assignment. }
+variable number_a 4;
+variable number_b 4;
+variable number_c 4;
+number_a := 3;
+number_b := 7;
+
+number_c := number_a + number_b;
+
+{ Testing variable scopes. }
+scope;
+
+    { Inner scope only. }
+    variable inner_scope_a 4;
+    variable inner_scope_b 4;
+    variable inner_scope_sum 4;
+    inner_scope_sum := inner_scope_a + inner_scope_b;
+
+    { Outer scope usage with inner scope useage. }
+    variable outer_inner_sum 4;
+    outer_inner_sum := number_a + inner_scope_a;
+
+    { Overwriting outer scope. } { Commented out. }
+    { variable number_b 4; }
+    { number_b := 10; }
+
+endscope;
+
+{ Now testing loop syntax. }
+variable loop_start 4;
+variable loop_end 4;
+loop_start := 0;
+loop_end := 10;
+
+{ NOTE(Chris): The bracketing is not required. }
+while loop_start < loop_end;
+    
+    { Print or do something here. }
+    variable foobar 4;
+    foobar := loop_start * 2;
+
+    loop_start := loop_start + 1;
+
+endwhile;
+
+{ Various loop tests. }
+loop index 0 10;
+
+    variable foobar 4;
+    foobar := index * 2;
+
+endloop;
+
+{ Speaking the magical incantation to invoke weird loop behavior. }
+loop index 0 10 (4 / 2);
+    
+    variable foobar 4;
+    foobar := index * (3 * 1 * 2);
+
+endloop;
+
+{ Testing error conditions. } { Commented out. }
+{ inner_scope_a := 20; }
+
+{ Conditionals, if and elseif. }
+if loop_start < loop_end;
+    loop_start := loop_end;
+    variable foobar 4;
+    foobar := loop_end * ((16 / 2) / 2);
+elseif loop_start > loop_end;
+    loop_start := loop_end;
+    variable foobar 4;
+    foobar := loop_end + 4 * (16 / 4 / 2);
+endif;
+
+{ Finally, procedures. }
+procedure add_numbers a b out;
+    variable result 4;
+    result := a + b;
+    out := result;
+endprocedure;
+
+{ This is a comment. }
+

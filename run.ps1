@@ -1,1 +1,1 @@
-./bin/Debug/Sigmafox $args
+./bin/Debug/Sigmafox ./tests/fib.fox

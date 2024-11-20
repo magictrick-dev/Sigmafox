@@ -1,0 +1,42 @@
+{ Operators }
+();
++ - / * ^ :=
+< > # & | % = <= >=
+
+{ Numerics }
+1234
+12.34
+
+{ String }
+'this is a string'
+
+{ Identifiers }
+foo             FOO
+bar123          BAR123
+baz_bax         BAZ_BAX
+
+{ Keywords }
+begin           BEGIN
+end             END
+procedure       PROCEDURE
+endprocedure    ENDPROCEDURE
+function        FUNCTION
+endfunction     ENDFUNCTION
+if              IF
+endif           ENDIF
+while           WHILE
+endwhile        ENDWHILE
+loop            LOOP
+endloop         ENDLOOP
+ploop           PLOOP
+endploop        ENDPLOOP
+fit             FIT
+endfit          ENDFIT
+variable        VARIABLE
+write           WRITE
+read            READ
+save            SAVE
+include         INCLUDE
+scope           SCOPE
+endscope        ENDSCOPE
+

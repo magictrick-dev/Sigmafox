@@ -1,0 +1,5 @@
+{ This will cause the circular dependency. }
+include "file_a.fox";
+include "file_c.fox";
+include "circular.fox"; { We break here. }
+

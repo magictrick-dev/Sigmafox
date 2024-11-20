@@ -1,0 +1,3 @@
+{ This is file b. }
+include "file_c.fox";
+include "file_d.fox";
