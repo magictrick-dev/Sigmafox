@@ -3,8 +3,20 @@
 Sigmafox is a transpiled scripting language designed to aid in the development of
 complex physics applications by abstracting out low-level detail into a simplified
 scripting language. Sigmafox transpiles to C++ for performance and extensibility.
-Sigmafox is not an interpretted scripting language, so it requires both a transpilation
-and a compilation steps to execute code written in Sigmafox.
+Sigmafox supports n-th order automatic differentiation and parallel computation in
+cluster computation environments.
+
+### Project Status
+
+The current state of the project is a work in-progress. As such, it is not in a state
+for use in development. Currently, Sigmafox is currently being refactored in C++ for better clarity
+and scaleability. This can be tracked in the `SFRefactor/` subfolder. If you are interested
+to see the current state of the project, visit the `version-alpha` branch where the commits
+are being pushed to.
+
+Sigamfox is being developed on the Windows platform, with the intention to port to
+UNIX and MacOSX once the core language implementation is complete. Therefore, you will
+not be able to compile this on any platform but Windows with MSVC installed.
 
 # Documentation
 
@@ -24,14 +36,6 @@ currently requires no additional SDKs or dependencies to work.
     This will create the required build files needed for your current platform. For
     Windows, you will need [Visual Studio's C/C++ MSVC Compiler](https://visualstudio.microsoft.com/#vs-section)
     in order to do this. On most UNIX platforms, [the GCC compiler is installed by default](https://gcc.gnu.org/).
-    Currently, MacOSX is not supported. You only need to generate the project files once.
-    In some rare cases during development, the project files might mismatch against the
-    source files. In that event, you can delete the project folder `./comp` and rerun the
-    above command to regenerate the build files.
-
-    The CMakeLists.txt automatically checks for the platform you are on and switches which
-    files it needs to compile for your system. See **Platform Abstraction API** for more
-    information on how that works.
 
 2.  Build the project.
 
@@ -39,44 +43,24 @@ currently requires no additional SDKs or dependencies to work.
     cmake --build ./comp
     ```
 
-    This will compile the project. The build output will be in the calling directory under
+    This will build the compiler from source. The build output will be in the calling directory under
     `./bin`. You can run executable from there or move the contents of that directory
     somewhere more permanent. You may freely recompile the project using this command
     if you make any changes to the source code.
 
-### Project File Structure
+### Using Sigmafox
 
-The project file structure diagram describes the basic layout of how files are laid out.
-Take careful note of platform directory since it is the only directory in Sigmafox that
-has special meaning to the build system. Header files within this directory are the only
-files meant to be included by the front-end APIs; sub-directories like win32, unix, or macosx
-are not meant to be directly imported.
+In order to build sigmafox scripts, provide the file path as such:
 
-<p align="center"><img src="./documentation/images/file_layout_structure.svg" /></p>
+```
+sigmafox my_script.fox
+```
 
--   **source/** Contains runtime specific files and library directories. Files of note in
-    this directory are `main.cpp` which serves as the application entry point, and `runtime.h`
-    which describes the runtime environment that main directly invokes at startup.
+This will automatically convert the script to C++ and generate the `CMakeLists.txt` 
+file needed to compile it.
 
--   **source/core** Contains commonly used libraries for the project.
+# License
 
-    -   **source/core/utilities** A set of libraries such as `array`, `string`, and various
-        other utilities such as custom allocators. You can selective choose which libraries
-        to use from this directory or include `<core/utilities.h>` for them all.
-
--   **source/compiler** Contains implementation files for the Sigmafox compiler.
-
--   **source/platform** Contains a set of header definition files that each platform must
-    implement in their respective folders. CMake will automatically detect which OS the
-    project is built on and appropriately include the implementation files.
-
-# Documentation
-
--   **[Utilites: Allocators](./documentation/allocators.md)**
-
-    Various memory allocators and memory management utilities.
-
--   **[Compiler: Scanner](./documentation/scanner.md)**
-
-    Routines for converting raw text files into tokenized outputs for further parsing.
-
+Sigmafox is developed and owned by Northern Illinois University. Please contact
+the Department of Physics at NIU for more information. You can also reach out to
+the current maintainer at `Z1836870@students.niu.edu`.

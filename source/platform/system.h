@@ -12,9 +12,9 @@ r64 system_timestamp_difference_ns(u64 a, u64 b);
 u64 system_cpustamp();
 u64 system_cpustamp_frequency();
 
-void*   system_virtual_alloc(void* offset, u64 size);
-void    system_virtual_free(void* buffer);
-u64 system_virtual_buffer_size(void *buffer);
+void*   system_virtual_alloc(vptr offset, u64 size);
+void    system_virtual_free(vptr buffer);
+u64 system_virtual_buffer_size(vptr buffer);
 u64 system_virtual_size_to_nearest_page(u64 size);
 u64 system_virtual_page_size();
 

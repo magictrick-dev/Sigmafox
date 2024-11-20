@@ -375,6 +375,15 @@ transpile_program_node(syntax_node *root_node, source_section *section, source_f
 
     assert(root_node->type == PROGRAM_ROOT_NODE);
 
+    syntax_node *global_node = root_node->program.global_statements;
+    while (global_node != NULL)
+    {
+
+        transpile_node(global_node, section, file, arena);
+        global_node = global_node->next_node;
+        
+    }
+
     insert_text_at(section, arena, "int\n");
     insert_text_at(section, arena, "main(int argc, char **argv)\n");
     insert_text_at(section, arena, "{\n\n");
@@ -404,7 +413,26 @@ transpile_variable_node(syntax_node *root_node, source_section *section, source_
     insert_text_at(section, arena, "int ");
     insert_text_at(section, arena, root_node->variable.name);
 
-    if (root_node->variable.assignment != NULL)
+    if (root_node->variable.dimensions != NULL)
+    {
+        
+        insert_text_at(section, arena, "[");
+
+        syntax_node *current_node = root_node->variable.dimensions;
+        while (current_node != NULL)
+        {
+
+            transpile_node(current_node, section, file, arena);
+            current_node = current_node->next_node;
+            if (current_node != NULL) insert_text_at(section, arena, ", ");
+
+        }
+
+        insert_text_at(section, arena, "]");
+
+    }
+
+    else if (root_node->variable.assignment != NULL)
     {
         insert_text_at(section, arena, " = ");
         transpile_node(root_node->variable.assignment, section, file, arena);
@@ -415,8 +443,57 @@ transpile_variable_node(syntax_node *root_node, source_section *section, source_
 }
 
 void 
+transpile_array_index_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    SF_ENSURE_PTR(root_node);   
+    SF_ENSURE_PTR(section);   
+    SF_ENSURE_PTR(file);   
+    SF_ENSURE_PTR(arena);   
+
+    SF_ASSERT(root_node->type == ARRAY_INDEX_EXPRESSION_NODE);
+
+    //insert_tabbing_at(section, arena);
+    insert_text_at(section, arena, root_node->array_index.name);
+    insert_text_at(section, arena, "[");
+    
+    syntax_node *current_accessor = root_node->array_index.accessors;
+    while (current_accessor != NULL)
+    {
+
+        transpile_node(current_accessor, section, file, arena);
+        current_accessor = current_accessor->next_node;
+        if (current_accessor != NULL) insert_text_at(section, arena, ", ");
+
+    }
+
+    insert_text_at(section, arena, "]");
+
+}
+
+void 
+transpile_expression_statement_node(syntax_node *root_node, source_section *section,
+        source_file *file, memory_arena *arena)
+{
+
+    SF_ENSURE_PTR(root_node);
+    SF_ENSURE_PTR(section);
+    SF_ENSURE_PTR(file);
+    SF_ENSURE_PTR(arena);
+    SF_ASSERT(root_node->type == EXPRESSION_STATEMENT_NODE);
+
+    insert_tabbing_at(section, arena);
+    transpile_node(root_node->expression.expression, section, file, arena);
+    insert_text_at(section, arena, ";\n");
+
+}
+
+
+void 
 transpile_binary_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
 {
+
+    SF_ASSERT(root_node->type == BINARY_EXPRESSION_NODE);
 
     transpile_node(root_node->binary.left, section, file, arena);
 
@@ -486,16 +563,16 @@ transpile_grouping_node(syntax_node *root_node, source_section *section, source_
 }
 
 void
-transpile_assignment_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+transpile_assignment_node(syntax_node *root_node, source_section *section,
+        source_file *file, memory_arena *arena)
 {
 
     assert(root_node->type == ASSIGNMENT_EXPRESSION_NODE);
 
-    insert_tabbing_at(section, arena);
-    insert_text_at(section, arena, root_node->assignment.identifier);
+    transpile_node(root_node->assignment.left, section, file, arena);
+    //insert_text_at(section, arena, root_node->assignment.identifier);
     insert_text_at(section, arena, " = ");
     transpile_node(root_node->assignment.right, section, file, arena);
-    insert_text_at(section, arena, ";\n");
 
 }
 
@@ -520,6 +597,21 @@ transpile_primary_node(syntax_node *root_node, source_section *section, source_f
 }
 
 void
+transpile_module_node(syntax_node *root_node, source_section *section, source_file *file, memory_arena *arena)
+{
+
+    assert(root_node->type == MODULE_ROOT_NODE);
+
+    syntax_node *current_node = root_node->module.global_statements;
+    while (current_node != NULL)
+    {
+        transpile_node(current_node, section, file, arena);
+        current_node = current_node->next_node;
+    }
+
+}
+
+void
 transpile_node(syntax_node *root_node, source_section *section,  source_file *file, memory_arena *arena)
 {
 
@@ -530,6 +622,14 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
         {
 
             transpile_program_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
+        case MODULE_ROOT_NODE:
+        {
+
+            transpile_module_node(root_node, section, file, arena);
             return;
 
         } break;
@@ -590,6 +690,14 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
 
         } break;
 
+        case ARRAY_INDEX_EXPRESSION_NODE:
+        {
+
+            transpile_array_index_node(root_node, section, file, arena);
+            return;
+
+        } break;
+
         case IF_STATEMENT_NODE:
         {
             transpile_if_node(root_node, section, file, arena);
@@ -623,6 +731,12 @@ transpile_node(syntax_node *root_node, source_section *section,  source_file *fi
         case VARIABLE_STATEMENT_NODE:
         {
             transpile_variable_node(root_node, section, file, arena);
+            return;
+        } break;
+
+        case EXPRESSION_STATEMENT_NODE:
+        {
+            transpile_expression_statement_node(root_node, section, file, arena);
             return;
         } break;
 

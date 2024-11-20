@@ -1,7 +1,7 @@
 #include <core/arena.h>
 #include <core/cli.h>
 #include <platform/system.h>
-#include <compiler/rparser.h>
+#include <compiler/parser.h>
 #include <compiler/generation.h>
 
 int

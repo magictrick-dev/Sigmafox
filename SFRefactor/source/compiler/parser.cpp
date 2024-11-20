@@ -1,42 +1,358 @@
-#include <compiler/rparser.h>
+// --- Syntax Parser -----------------------------------------------------------
+//
+// Apologies to the next poor soul that has to read my code. Firstly, you're
+// probably asking yourself why there's >3000 lines of commented out C code at
+// the bottom of this document. The short answer is that its a reference implementation
+// that I wrote over the Summer of 2024. The implementation in C is significantly
+// faster, albeit not quite as fleshed out as what you see before you now. Perhaps
+// it will provide some insight into future optimizations should the need arise.
+//
+// The actual implementation of the parser is a bit convoluted to say the least.
+// It's the nature of recursive descent parsers. There's absolutely no way you're
+// going to be able to tell what's going on without looking at the CFG specification
+// outlined in the header or the (at the time of writing this doc box, non-existent)
+// documentation file to accompany this compiler. If you absolutely must understand
+// each nook and cranny of this monstrocity, then I suggest a well-performing
+// debugger like (and I hate to say this) Visual Studio and step through the
+// programmer to see how everything interconnects.
+//
+// -----------------------------------------------------------------------------
+#include <compiler/parser.hpp>
+#include <compiler/errorhandler.hpp>
 
-// --- Parser ------------------------------------------------------------------
+// --- Parser Constructor/Destructors ------------------------------------------
+
+SyntaxParser::
+SyntaxParser(Filepath filepath) : tokenizer(filepath)
+{
+
+    this->entry_path = filepath;
+    this->parent_parser = nullptr;
+
+}
+
+SyntaxParser::
+SyntaxParser(Filepath filepath, SyntaxParser *parent) : tokenizer(filepath)
+{
+
+    this->entry_path = filepath;
+    this->parent_parser = nullptr;
+
+}
+
+SyntaxParser::
+~SyntaxParser()
+{
+
+}
+
+Filepath SyntaxParser::
+get_source_path() const
+{
+
+    return this->entry_path;
+
+}
+
+// --- Grammar Parsing Methods -------------------------------------------------
+
+AbstractSyntaxNode* SyntaxParser::
+match_include()
+{
+
+
+    // Grammar Specification:
+    //      include_statement : "include" TOKEN_STRING ;
+
+    // If the token isn't an include token, then we don't parse it.
+    if (!this->tokenizer.current_token_is(TokenType::TOKEN_KEYWORD_INCLUDE))
+        return nullptr;
+
+    // Shift, we expect a string token.
+    this->tokenizer.shift();
+
+    // If the token isn't a string token, it's an error. Synchronize to semicolon.
+    if (!this->tokenizer.current_token_is(TokenType::TOKEN_STRING))
+    {
+        printf("ERROR: Expected a string in include statement.\n");
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+
+    // We have the path.
+    std::string filepath = this->tokenizer.get_current_token().to_string();
+    this->tokenizer.shift();
+
+    // If the token isn't a semicolon, it's an error. Synchronize to the next semicolon.
+    if (!this->tokenizer.current_token_is(TokenType::TOKEN_SEMICOLON))
+    {
+        printf("ERROR: Expected a semicolon at the of the include statement.\n");
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+
+    // Clear the semicolon token.
+    this->tokenizer.shift();
+
+    // Canonicalize the new path.
+    Filepath current_path = this->entry_path;
+    current_path = current_path.root_directory();
+    current_path += "./";
+    current_path += filepath;
+    current_path.canonicalize();
+
+    IncludeSyntaxNode *include_node = new IncludeSyntaxNode(current_path);
+    return include_node;
+
+}
+
+AbstractSyntaxNode* SyntaxParser::
+construct_ast()
+{
+
+    std::vector<AbstractSyntaxNode*> children;
+    RootSyntaxNode *root_node = new RootSyntaxNode(children);
+    return root_node;
+
+}
+
+std::vector<std::string> SyntaxParser::
+get_includes()
+{
+
+    std::vector<std::string> file_paths;
+    AbstractSyntaxNode *current_node = this->match_include();
+    while (current_node != nullptr)
+    {
+        IncludeSyntaxNode *include_node = current_node->cast_to<IncludeSyntaxNode*>();
+        file_paths.push_back(include_node->file_path_as_string());
+        delete current_node; // The parser doesn't actually need this, we can discard.
+        current_node = this->match_include();
+    }
+
+    return file_paths;
+
+}
+
+// --- Parser Helpers ----------------------------------------------------------
+
+void SyntaxParser::
+synchronize_to(TokenType type)
+{
+
+    while (this->tokenizer.get_current_token().type != type)
+    {
+
+        // If the token is EOF, then we will break.
+        if (this->tokenizer.get_current_token().type == TokenType::TOKEN_EOF) break;
+
+        // Otherwise, shift until we reach our desired synchronization point.
+        this->tokenizer.shift();
+
+    }
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+// --- Abstract Syntax Node Base Class Implementation --------------------------
+
+AbstractSyntaxNode::
+AbstractSyntaxNode()
+{
+
+    this->type = type;
+
+}
+
+AbstractSyntaxNode::
+~AbstractSyntaxNode()
+{
+
+}
+
+bool AbstractSyntaxNode::
+is_void() const
+{
+
+    bool result = (this->type == SyntaxNodeType::SyntaxNodeVoid);
+    return result;
+
+}
+
+SyntaxNodeType AbstractSyntaxNode::
+get_type() const
+{
+
+    return this->type;
+
+}
+
+template <class T> T AbstractSyntaxNode::
+cast_to()
+{
+    
+    T result = dynamic_cast<T>(this);
+    return result;
+
+}
+
+// --- Void Syntax Node Implementation -----------------------------------------
+
+VoidSyntaxNode::
+VoidSyntaxNode()
+{
+
+    this->type = SyntaxNodeType::SyntaxNodeVoid;
+
+}
+
+VoidSyntaxNode::
+~VoidSyntaxNode()
+{
+
+}
+
+void VoidSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor)
+{
+
+    visitor->visit_void_syntax_node(this);
+
+}
+
+// --- Include Syntax Node Implementation --------------------------------------
+
+IncludeSyntaxNode::
+IncludeSyntaxNode(Filepath path)
+{
+
+    this->type = SyntaxNodeType::SyntaxNodeInclude;
+    this->path = path;
+
+}
+
+IncludeSyntaxNode::
+~IncludeSyntaxNode()
+{
+
+}
+
+Filepath IncludeSyntaxNode::
+file_path() const
+{
+    
+    return this->path;
+
+}
+
+std::string IncludeSyntaxNode::
+file_path_as_string() const
+{
+    
+    return this->path.c_str();
+
+}
+
+void IncludeSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor) 
+{
+
+    visitor->visit_include_syntax_node(this);
+
+}
+
+// --- Main Syntax Node --------------------------------------------------------
+
+MainSyntaxNode::
+MainSyntaxNode(std::vector<AbstractSyntaxNode*> children)
+{
+
+    this->type      = SyntaxNodeType::SyntaxNodeMain;
+    this->children  = children;
+
+}
+
+MainSyntaxNode::
+~MainSyntaxNode()
+{
+
+}
+
+void MainSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor) 
+{
+
+    visitor->visit_main_syntax_node(this);
+
+}
+
+// --- Root Syntax Node --------------------------------------------------------
+
+RootSyntaxNode::
+RootSyntaxNode(std::vector<AbstractSyntaxNode*> children)
+{
+
+    this->type      = SyntaxNodeType::SyntaxNodeRoot;
+    this->children  = children;
+
+}
+
+RootSyntaxNode::
+~RootSyntaxNode()
+{
+
+}
+
+void RootSyntaxNode::
+accept(ISyntaxNodeVisitor *visitor) 
+{
+
+    visitor->visit_root_syntax_node(this);
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// --- C-Style Parser Implementation -------------------------------------------
 //
-// The following code pertains to the parser implementation which generates the
-// AST for the language.
-//
-// NOTE(Chris): For anyone who intends to maintain this code, please refer to
-//              the grammar specification for a better understanding of how these
-//              functions traverse during runtime. The recursive nature makes it
-//              difficult to follow by looking at the code alone.
-//
-//            - Errors are propagated upwards as NULL and should end at an appropriate
-//              "synchronization point" where the parser can recover and replace
-//              itself to a point where it can continue to process more errors.
-//              This is pretty typical behavior of most compilers. At no point
-//              should the tree actually contain NULLs. Either the parser fully
-//              processes and validates completely or the AST is NULL due to an
-//              error. Any generated tree should be fully valid (no NULLs).
-//
-//            - The memory arena should also restore itself as errors propagate
-//              upwards. This unwinding ensures that the final output list of nodes
-//              of the generated tree is completely valid regardless if the final
-//              AST is invalid and NULL. The current implementation fully restores
-//              the arena on error, but we may want to create a debugger in order
-//              to track tricky errors that would be otherwise be hard to follow.
-//
-//            - The parser uses a fixed memory pool and treats out-of-memory
-//              conditions as "hard errors" and should force exit the parse routine
-//              and display an extremely helpful error message to inform the user
-//              what occured and how to adjust the memory parameters to avoid this
-//              problem during compilation. It's important that this clear without
-//              ambiguity. We should target the compiler to work with low memory
-//              overhead, so we should target a maximum of 4GB under extreme conditions
-//              and 2GB for normal conditions. If we need more than that, it's a
-//              symptom of poor architecture *or* the generated program is fairly
-//              substantial. Generally speaking, the latter of which is unlikely.
+// The code that turns C++ programmers to Rust programmers.
 //
 
+/*
 syntax_node*
 source_parser_match_primary(source_parser *parser)
 {
@@ -72,16 +388,10 @@ source_parser_match_primary(source_parser *parser)
         // Determine if the identifier is declared for use in expressions.
         if (!source_parser_identifier_is_declared(parser, object.identifier))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION, __LINE__);
-            source_parser_should_propagate_error(NULL, parser, mem_state);
-            return NULL;
-        }
-
-        else if (!source_parser_identifier_is_defined(parser, object.identifier))
-        {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION, __LINE__);
+            parser->error_count++; 
+            
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token, 
+                    PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'", object.identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -106,8 +416,9 @@ source_parser_match_primary(source_parser *parser)
 
         if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL, ": expected ')'.", "");
             return NULL;
         }
 
@@ -126,14 +437,175 @@ source_parser_match_primary(source_parser *parser)
     }
     
     // Error tokens.
-    else if (source_parser_match_token(parser, 2, TOKEN_UNDEFINED_EOF, TOKEN_UNDEFINED_EOL))
+    else if (source_parser_match_token(parser, 1, TOKEN_UNDEFINED_EOF))
     {
-        parser_error_handler_display_error(parser, PARSE_ERROR_UNEXPECTED_EXPRESSION_EOF_EOL, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_UNEXPECTED_EOF, ".", "");
         return NULL;
     }
 
-    parser_error_handler_display_error(parser, PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN, __LINE__);
+    else if (source_parser_match_token(parser, 1, TOKEN_UNDEFINED_EOL))
+    {
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_UNEXPECTED_EOL, ".", "");
+        return NULL;
+    }
+
+    char hold_character;
+    cc64 string = source_token_string_nullify(parser->tokenizer->current_token, &hold_character);
+    parser->error_count++; 
+    display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+            PARSER_ERROR_UNEXPECTED_SYMBOL, ": '%s'.", string);
+    source_token_string_unnullify(parser->tokenizer->current_token, hold_character);
+
     return NULL;
+
+}
+
+syntax_node*
+source_parser_match_array_index(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    if (source_parser_expect_token(parser, TOKEN_IDENTIFIER))
+    {
+
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser,
+                parser->tokenizer->current_token, &object);
+        cc64 identifier = object.identifier;
+
+        // If it isn't defined, then its probably not an array.
+        if (!source_parser_identifier_is_defined(parser, identifier))
+        {
+            syntax_node *forward = source_parser_match_primary(parser);
+            return forward;
+        }
+
+        // Check if it is an indexable array.
+        symbol *array_symbol = source_parser_locate_symbol(parser, identifier);
+        if (array_symbol->type != SYMBOL_TYPE_ARRAY)
+        {
+            syntax_node *forward = source_parser_match_primary(parser);
+            return forward;
+        }
+
+        // Consume the identifier.
+        source_parser_consume_token(parser);
+
+        // We have the array, now we need to ensure we match syntax.
+        if (!source_parser_expect_token(parser, TOKEN_LEFT_PARENTHESIS))
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected '(' for array indexing.", "");
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // Consume the left parenthesis.
+        source_parser_consume_token(parser);
+
+        syntax_node *head_index_node = NULL;
+        syntax_node *last_index_node = NULL;
+        i32 arity_count = 0;
+        while (!source_parser_match_token(parser, 2, TOKEN_RIGHT_PARENTHESIS, TOKEN_SEMICOLON))
+        {
+
+            if (source_parser_should_break_on_eof(parser)) break;
+
+            // The first entry has arity zero and we don't need to check if it is
+            // a comma. Otherwise, the entry must be a comma followed by an expression.
+            if (arity_count != 0)
+            {
+
+                if (!source_parser_expect_token(parser, TOKEN_COMMA))
+                {
+
+                    parser->error_count++; 
+                    display_error_message(parser->tokenizer->tokenizer.file_path,
+                            parser->tokenizer->current_token,
+                            PARSER_ERROR_EXPECTED_SYMBOL,
+                            ": expected ',' for array indexing.", "");
+                    source_parser_should_propagate_error(NULL, parser, mem_state);
+                    return NULL;
+                    
+                }
+
+                // Consume the comma.
+                source_parser_consume_token(parser);
+
+            }
+ 
+            // Get the index expression.
+            syntax_node *index = source_parser_match_expression(parser);
+            if (source_parser_should_propagate_error(index, parser, mem_state))
+            {
+                return NULL;
+            }
+
+            // Set the parameter.
+            if (head_index_node == NULL)
+            {
+                head_index_node = index;
+                last_index_node = index;
+            }
+
+            else
+            {
+                last_index_node->next_node = index;
+                last_index_node = index;
+            }
+
+            arity_count++;
+
+        }
+
+        // Validate the arity of the array access.
+        if (array_symbol->arity != arity_count)
+        {
+
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_ARITY_MISMATCH,
+                    ": array access members mismatch from definition of '%s'.",
+                    identifier);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+
+        }
+
+        // Check for right bracket.
+        if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected ')' for array indexing.", "");
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // Consume the right bracket.
+        source_parser_consume_token(parser);
+
+        syntax_node *array_index_node = source_parser_push_node(parser);
+        array_index_node->type = ARRAY_INDEX_EXPRESSION_NODE;
+        array_index_node->array_index.name = identifier;
+        array_index_node->array_index.accessors = head_index_node;
+        return array_index_node;
+
+    }
+
+    syntax_node *forward = source_parser_match_primary(parser);
+    return forward;
 
 }
 
@@ -148,13 +620,13 @@ source_parser_match_function_call(source_parser *parser)
 
         object_literal object = {0};
         object_type type = source_parser_token_to_literal(parser,
-                parser->current_token, &object);
+                parser->tokenizer->current_token, &object);
         cc64 identifier = object.identifier;
 
         // If it isn't defined, then its probably not a procedure.
         if (!source_parser_identifier_is_defined(parser, identifier))
         {
-            syntax_node *forward = source_parser_match_primary(parser);
+            syntax_node *forward = source_parser_match_array_index(parser);
             return forward;
         }
 
@@ -162,7 +634,7 @@ source_parser_match_function_call(source_parser *parser)
         symbol *procedure_call = source_parser_locate_symbol(parser, identifier);
         if (procedure_call->type != SYMBOL_TYPE_FUNCTION)
         {
-            syntax_node *forward = source_parser_match_primary(parser);
+            syntax_node *forward = source_parser_match_array_index(parser);
             return forward;
         }
 
@@ -172,8 +644,11 @@ source_parser_match_function_call(source_parser *parser)
         // Check for left bracket.
         if (!source_parser_expect_token(parser, TOKEN_LEFT_PARENTHESIS))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_FUNCTION_MISSING_LEFT_PARENTHESIS, __LINE__); 
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected '(' for procedure call.", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -190,6 +665,26 @@ source_parser_match_function_call(source_parser *parser)
         {
 
             if (source_parser_should_break_on_eof(parser)) break;
+            if (arity_count != 0)
+            {
+
+                if (!source_parser_expect_token(parser, TOKEN_COMMA))
+                {
+
+                    parser->error_count++; 
+                    display_error_message(parser->tokenizer->tokenizer.file_path,
+                            parser->tokenizer->current_token,
+                            PARSER_ERROR_EXPECTED_SYMBOL,
+                            ": expected ',' for function parameters.", "");
+                    source_parser_should_propagate_error(NULL, parser, mem_state);
+                    return NULL;
+                    
+                }
+
+                // Consume the comma.
+                source_parser_consume_token(parser);
+
+            }
  
             syntax_node *parameter = source_parser_match_expression(parser);
             if (source_parser_should_propagate_error(parameter, parser, mem_state))
@@ -217,8 +712,11 @@ source_parser_match_function_call(source_parser *parser)
         // Check for right bracket.
         if (!source_parser_expect_token(parser, TOKEN_RIGHT_PARENTHESIS))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_FUNCTION_MISSING_RIGHT_PARENTHESIS, __LINE__); 
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL,
+                    ": expected ')' for procedure call.", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -233,8 +731,9 @@ source_parser_match_function_call(source_parser *parser)
         
         if (arity_count != procedure_call->arity)
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_FUNCTION_ARITY_MISMATCH, __LINE__); 
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_ARITY_MISMATCH, ": see definition of '%s'.", identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -245,7 +744,7 @@ source_parser_match_function_call(source_parser *parser)
 
     }
 
-    syntax_node *forward = source_parser_match_primary(parser);
+    syntax_node *forward = source_parser_match_array_index(parser);
     return forward;
 
 }
@@ -425,7 +924,7 @@ source_parser_match_procedure_call(source_parser *parser)
 
         object_literal object = {0};
         object_type type = source_parser_token_to_literal(parser,
-                parser->current_token, &object);
+                parser->tokenizer->current_token, &object);
         cc64 identifier = object.identifier;
 
         // If it isn't defined, then its probably not a procedure.
@@ -487,8 +986,9 @@ source_parser_match_procedure_call(source_parser *parser)
         
         if (arity_count != procedure_call->arity)
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_PROCEDURE_ARITY_MISMATCH, __LINE__); 
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_ARITY_MISMATCH, ": see definition of '%s'.", identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
         }
@@ -510,10 +1010,102 @@ source_parser_match_assignment(source_parser *parser)
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
-    // An assignment expression begins with an identifier and ':=', so if these
-    // two conditions are met, we short circuit the recursive descent and validate
-    // that here. Assignment expressions match at equality, ensuring only single-variable
-    // assignments are valid.
+#if 1
+    // 1. We match LHS.
+    // 2. LHS can either be: primary identifier OR array index.
+    // 3. If we have either, we check for assignment.
+    // 4. If we have an assignment, we validate the assignment.
+    // 5. Otherwise, we pass the node on.
+
+    // Match the left hand side.
+    syntax_node *left_hand_side = source_parser_match_procedure_call(parser);
+    if (source_parser_should_propagate_error(left_hand_side, parser, mem_state))
+    {
+        return NULL;
+    }
+
+    // If we aren't primary or an index expression node, return it since we aren't
+    // matching these for assignment expressions.
+    if (!(left_hand_side->type == PRIMARY_EXPRESSION_NODE ||
+        left_hand_side->type == ARRAY_INDEX_EXPRESSION_NODE))
+    {
+        return left_hand_side;
+    }
+
+    // If the next thing we're looking at isn't the assignment op, we return
+    // the expression as-is.
+    if (!source_parser_expect_token(parser, TOKEN_COLON_EQUALS))
+    {
+        return left_hand_side;
+    }
+
+    // Consume the colon equals.
+    source_parser_consume_token(parser);
+
+    // Now, assuming that we have the assignment operator, then we need to check if
+    // the thing we're checking is a validatable.
+    if (left_hand_side->type == PRIMARY_EXPRESSION_NODE)
+    {
+
+        if (left_hand_side->primary.type != OBJECT_IDENTIFIER)
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->current_token,
+                    PARSER_ERROR_UNEXPECTED_SYMBOL,
+                    ": non-identifying primary symbol encountered: '%s'.",
+                    left_hand_side->primary.literal.identifier);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+        }
+
+        // We need to check if the identifier is declared. We know it's an identifier
+        // by this point.
+        ccptr identifier = left_hand_side->primary.literal.identifier;
+        if (!source_parser_identifier_is_declared(parser, identifier))
+        {
+
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'.", identifier);
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            return NULL;
+
+        }
+
+    }
+
+    // Now, we have a valid LHS, we need a valid RHS.
+    syntax_node *right_hand_side = source_parser_match_expression(parser);
+    if (source_parser_should_propagate_error(right_hand_side, parser, mem_state))
+        return NULL;
+
+    // Now, we need to update the symbol table entry.
+    if (left_hand_side->type == PRIMARY_EXPRESSION_NODE)
+    {
+
+        ccptr identifier = left_hand_side->primary.literal.identifier;
+        symbol *variable_symbol = source_parser_locate_symbol(parser, identifier);
+        if (source_parser_should_propagate_error(variable_symbol, parser, mem_state))
+        {
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    SYSTEM_ERROR_SYMBOL_SHOULD_BE_LOCATABLE, ": this is a runtime error.", "");
+            return NULL;
+        }
+
+        variable_symbol->type = SYMBOL_TYPE_VARIABLE;
+
+    }
+
+    // We have the LHS and RHS, we can construct the node.
+    syntax_node *assignment_node = source_parser_push_node(parser);
+    assignment_node->type = ASSIGNMENT_EXPRESSION_NODE;
+    assignment_node->assignment.left = left_hand_side;
+    assignment_node->assignment.right = right_hand_side;
+    return assignment_node;
+
+#else 
     b32 current_is_identifier = source_parser_expect_token(parser, TOKEN_IDENTIFIER);
     b32 next_is_assignment = source_parser_next_token_is(parser, TOKEN_COLON_EQUALS);
     if (current_is_identifier && next_is_assignment)
@@ -522,15 +1114,16 @@ source_parser_match_assignment(source_parser *parser)
         // Get the object literal.
         object_literal object = {0};
         object_type type = source_parser_token_to_literal(parser,
-                parser->current_token, &object);
+                parser->tokenizer->current_token, &object);
         cc64 identifier = object.identifier;
 
         // We need to check if the identifier is declared.
         if (!source_parser_identifier_is_declared(parser, identifier))
         {
 
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT, __LINE__); 
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'.", identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             return NULL;
 
@@ -550,8 +1143,9 @@ source_parser_match_assignment(source_parser *parser)
         symbol *variable_symbol = source_parser_locate_symbol(parser, identifier);
         if (source_parser_should_propagate_error(variable_symbol, parser, mem_state))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_SYMBOL_UNLOCATABLE, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    SYSTEM_ERROR_SYMBOL_SHOULD_BE_LOCATABLE, ": this is a runtime error.", "");
             return NULL;
         }
 
@@ -569,6 +1163,7 @@ source_parser_match_assignment(source_parser *parser)
 
     syntax_node *forward = source_parser_match_procedure_call(parser);
     return forward;
+#endif
 
 }
 
@@ -585,20 +1180,25 @@ source_parser_match_expression_statement(source_parser *parser)
         return NULL;
     }
 
+    syntax_node *expression_node = source_parser_push_node(parser);
+    expression_node->type = EXPRESSION_STATEMENT_NODE;
+    expression_node->expression.expression = expression;
+
     // Expect a semi-colon at EOS.
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
     }
-    else
-    {
-        source_parser_consume_token(parser);
-        return expression;
-    }
+
+    // Consume the semicolon.
+    source_parser_consume_token(parser);
+
+    return expression_node;
 
 }
 
@@ -618,8 +1218,9 @@ source_parser_match_variable_statement(source_parser *parser)
     // Check for identifier.
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -636,8 +1237,10 @@ source_parser_match_variable_statement(source_parser *parser)
 
         if (source_parser_identifier_is_declared_in_scope(parser, object.identifier))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_VARIABLE_REDECLARATION, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->previous_token, 
+                    PARSER_ERROR_VARIABLE_REDECLARATION, ": '%s'.", object.identifier);
             source_parser_should_propagate_error(NULL, parser, mem_state);
             source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
             return NULL;
@@ -645,8 +1248,10 @@ source_parser_match_variable_statement(source_parser *parser)
 
         else if (source_parser_identifier_is_declared_above_scope(parser, object.identifier))
         {
-            parser_error_handler_display_warning(parser,
-                    PARSE_WARNING_SHADOWED_VARIABLE, __LINE__);
+            display_warning_message(parser->tokenizer->tokenizer.file_path,
+                    parser->tokenizer->previous_token,
+                    PARSER_WARNING_VARIABLE_SCOPE_SHADOW,
+                    ", see previous declaration of '%s'", object.identifier);
         }
 
         variable_node->variable.name = object.identifier;
@@ -667,6 +1272,7 @@ source_parser_match_variable_statement(source_parser *parser)
     // Stopping points are :=, ;, or EOF.
     syntax_node *head_dimension_expression = NULL;
     syntax_node *last_dimension_expression = NULL;
+    u32 array_arity = 0;
     while (!source_parser_match_token(parser, 2, TOKEN_SEMICOLON, TOKEN_COLON_EQUALS))
     {
 
@@ -680,6 +1286,8 @@ source_parser_match_variable_statement(source_parser *parser)
             source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
             return NULL;
         }
+
+        array_arity++;
 
         // First expression.
         if (head_dimension_expression == NULL)
@@ -718,7 +1326,9 @@ source_parser_match_variable_statement(source_parser *parser)
     // Check for semicolon.
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
-        parser_error_handler_display_error(parser, PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         return NULL;
     }
@@ -733,6 +1343,11 @@ source_parser_match_variable_statement(source_parser *parser)
     if (variable_node->variable.assignment != NULL)
     {
         identifier->type = SYMBOL_TYPE_VARIABLE;
+    }
+    else if (variable_node->variable.dimensions != NULL)
+    {
+        identifier->type = SYMBOL_TYPE_ARRAY;
+        identifier->arity = array_arity;
     }
     else
     {
@@ -764,8 +1379,9 @@ source_parser_match_read_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_IDENTIFIER_IN_READ, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token,
+                PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -780,8 +1396,9 @@ source_parser_match_read_statement(source_parser *parser)
     if (!source_parser_identifier_is_declared(parser, object.identifier))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_UNDECLARED_VARIABLE_IN_READ, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->previous_token,
+                PARSER_ERROR_UNDECLARED_IDENTIFIER, ": '%s'.", object.identifier);
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -792,8 +1409,9 @@ source_parser_match_read_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -865,8 +1483,9 @@ source_parser_match_write_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -900,8 +1519,9 @@ source_parser_match_scope_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         // Synchronize to endscope, then check for semicolon. If it is, consume it
@@ -966,8 +1586,9 @@ source_parser_match_scope_statement(source_parser *parser)
     // We assume now that the ending token is the end scope token.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDSCOPE))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_ENDSCOPE, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endscope' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDSCOPE);
         return NULL;
@@ -980,8 +1601,9 @@ source_parser_match_scope_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -1007,8 +1629,9 @@ source_parser_match_loop_statement(source_parser *parser)
     // The first parameter of a loop is an identifier.
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ": expected identifier in loop expression.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP))
@@ -1080,8 +1703,9 @@ source_parser_match_loop_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP))
@@ -1159,8 +1783,9 @@ source_parser_match_loop_statement(source_parser *parser)
     // We are assuming the following the token is ENDLOOP token.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDLOOP))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_ENDLOOP, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endloop' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDLOOP);
         return NULL;
@@ -1173,8 +1798,9 @@ source_parser_match_loop_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -1218,8 +1844,9 @@ source_parser_match_if_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
@@ -1311,8 +1938,9 @@ source_parser_match_if_statement(source_parser *parser)
         if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
         {
 
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
 
             if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
@@ -1400,8 +2028,9 @@ source_parser_match_if_statement(source_parser *parser)
     // token or an error, which ever it may be.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDIF))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_ENDIF, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endif' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF);
         return NULL;
@@ -1414,8 +2043,9 @@ source_parser_match_if_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDIF))
@@ -1466,8 +2096,9 @@ source_parser_match_while_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDWHILE))
@@ -1530,8 +2161,9 @@ source_parser_match_while_statement(source_parser *parser)
     // We are assuming the following the token is ENDWHILE token.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDWHILE))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_ENDWHILE, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ": expected 'endwhile' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDWHILE);
         return NULL;
@@ -1544,8 +2176,9 @@ source_parser_match_while_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -1572,8 +2205,9 @@ source_parser_match_procedure_statement(source_parser *parser)
     // The first identifier is the name of procedure.
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
@@ -1595,8 +2229,9 @@ source_parser_match_procedure_statement(source_parser *parser)
     if (source_parser_identifier_is_declared(parser, object.identifier))
     {
         
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_VARIABLE_REDECLARATION, ", procedure is already defined.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
@@ -1639,8 +2274,9 @@ source_parser_match_procedure_statement(source_parser *parser)
         // Each parameter must be an identifier.
         if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
 
             if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
@@ -1687,8 +2323,9 @@ source_parser_match_procedure_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE))
@@ -1744,8 +2381,9 @@ source_parser_match_procedure_statement(source_parser *parser)
     // Expecting the ENDPROCEDURE.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDPROCEDURE))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_ENDPROCEDURE, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'endprocedure' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDPROCEDURE);
         return NULL;
@@ -1762,8 +2400,9 @@ source_parser_match_procedure_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -1788,8 +2427,9 @@ source_parser_match_function_statement(source_parser *parser)
     // The first identifier is the name of procedure.
     if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
@@ -1811,8 +2451,9 @@ source_parser_match_function_statement(source_parser *parser)
     if (source_parser_identifier_is_declared(parser, object.identifier))
     {
         
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_VARIABLE_REDECLARATION, ", function is already defined.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
@@ -1860,8 +2501,9 @@ source_parser_match_function_statement(source_parser *parser)
         // Each parameter must be an identifier.
         if (!source_parser_expect_token(parser, TOKEN_IDENTIFIER))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_IDENTIFIER, ".", "");
             source_parser_should_propagate_error(NULL, parser, mem_state);
 
             if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
@@ -1908,8 +2550,9 @@ source_parser_match_function_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
 
         if (source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION))
@@ -1964,8 +2607,9 @@ source_parser_match_function_statement(source_parser *parser)
     // Expecting the ENDFUNCTION.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_ENDFUNCTION))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_ENDFUNCTION, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'endfunction' keyword.", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_KEYWORD_ENDFUNCTION);
         return NULL;
@@ -1979,8 +2623,9 @@ source_parser_match_function_statement(source_parser *parser)
     // defined. We can easily check that.
     if (return_symbol->type != SYMBOL_TYPE_VARIABLE)
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_NO_RETURN, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -1994,8 +2639,9 @@ source_parser_match_function_statement(source_parser *parser)
     if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
     {
 
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
         source_parser_should_propagate_error(NULL, parser, mem_state);
         source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
         return NULL;
@@ -2079,16 +2725,295 @@ source_parser_match_statement(source_parser *parser)
 }
 
 syntax_node*
+source_parser_match_global_statement(source_parser *parser)
+{
+
+    syntax_node *result = NULL;
+
+    // Procedure statement.
+    if (source_parser_expect_token(parser, TOKEN_KEYWORD_PROCEDURE))
+    {
+        result = source_parser_match_procedure_statement(parser);
+    }
+    
+    // Function statement.
+    else if (source_parser_expect_token(parser, TOKEN_KEYWORD_FUNCTION))
+    {
+        result = source_parser_match_function_statement(parser);
+    }
+
+    else
+    {
+        
+        char hold_character;
+        cc64 string = source_token_string_nullify(parser->tokenizer->current_token, &hold_character);
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_UNEXPECTED_GLOBAL_STATEMENT, ", '%s' encountered.", string);
+        source_token_string_unnullify(parser->tokenizer->current_token, hold_character);
+        source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+        parser->error_count++;
+        return NULL;
+
+    }
+
+    return result;
+
+}
+
+syntax_node*
+source_parser_match_include_statement(source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+
+    syntax_node *head_include_node = NULL;
+    syntax_node *last_include_node = NULL;
+    while (source_parser_match_token(parser, 1, TOKEN_KEYWORD_INCLUDE))
+    {
+
+        if (source_parser_should_break_on_eof(parser)) break;
+        
+        // Consume the include keyword.
+        source_parser_consume_token(parser);
+
+        // The following token should be a string.
+        if (!source_parser_expect_token(parser, TOKEN_STRING))
+        {
+            parser->error_count++;
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SYMBOL, ", expected string in include statement.", "");
+            continue;
+        }
+
+        // Get the path.
+        source_token path = source_parser_consume_token(parser);
+        object_literal object = {0};
+        object_type type = source_parser_token_to_literal(parser, &path, &object);
+        assert(type == OBJECT_STRING); // This should always be true.
+
+        // After processing, we can now expect a semicolon.
+        if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
+        {
+
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
+            source_parser_should_propagate_error(NULL, parser, mem_state);
+            source_parser_synchronize_to(parser, TOKEN_SEMICOLON);
+            return NULL;
+
+        }
+
+        source_parser_consume_token(parser);
+
+        // We need to now process this.
+        syntax_node *include_node = source_parser_push_node(parser);
+        include_node->type = INCLUDE_STATEMENT_NODE;
+        include_node->include.file_path = object.string;
+        
+        // First statement.
+        if (head_include_node == NULL)
+        {
+            head_include_node = include_node;
+            last_include_node = include_node;
+        }
+
+        // All other statements.
+        else
+        {
+            last_include_node->next_node = include_node;   
+            last_include_node = include_node;
+        }
+
+
+
+    }
+
+    return head_include_node;
+
+}
+
+void 
+source_parser_push_tokenizer(source_parser *parser, ccptr file_path, cptr source_buffer)
+{
+
+    // Push, set parent, and then set before we perform any initialization.
+    parser_tokenizer *current_tokenizer = memory_arena_push_type_top(
+            &parser->transient_arena, parser_tokenizer);
+    current_tokenizer->parent_tokenizer = parser->tokenizer;
+    parser->tokenizer = current_tokenizer;
+
+    current_tokenizer->previous_token   = &current_tokenizer->tokens[0];
+    current_tokenizer->current_token    = &current_tokenizer->tokens[1];
+    current_tokenizer->next_token       = &current_tokenizer->tokens[2];
+    source_tokenizer_initialize(&current_tokenizer->tokenizer, source_buffer, file_path);
+    source_parser_consume_token(parser); // Prime the parser tokens.
+    source_parser_consume_token(parser);
+
+}
+
+void 
+source_parser_pop_tokenizer(source_parser *parser)
+{
+
+    parser->tokenizer = parser->tokenizer->parent_tokenizer;
+    return;
+
+}
+
+syntax_node*
+source_parser_match_module(ccptr file_name, source_parser *parser)
+{
+
+    u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
+    u64 top_state = memory_arena_save_top(&parser->transient_arena);
+
+    // We need to load the file into memory.
+    if (!fileio_file_exists(file_name)) 
+    {
+        parser->error_count++;
+        printf("Resource error: Unable to open file: %s\n", file_name);
+        return NULL;
+    }
+
+    u64 source_size = fileio_file_size(file_name);
+    char *source_buffer = (char*)memory_arena_push_top(&parser->transient_arena, source_size + 1);
+    fileio_file_read(file_name, source_buffer, source_size, source_size + 1);
+    source_buffer[source_size] = '\0'; // Null-terminate.
+
+    // Now we need to create the tokenizer for it.
+    source_parser_push_tokenizer(parser, file_name, source_buffer);
+
+    // Generate program syntax node.
+    syntax_node *module_node = source_parser_push_node(parser);
+    module_node->type = MODULE_ROOT_NODE;
+
+    // Match all global statements.
+    syntax_node *head_global_node = NULL;
+    syntax_node *last_global_node = NULL;
+    while (!source_parser_match_token(parser, 1, TOKEN_EOF))
+    {
+
+        syntax_node *global_statement = source_parser_match_global_statement(parser);
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (global_statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_global_node == NULL)
+        {
+            head_global_node = global_statement;
+            last_global_node = global_statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_global_node->next_node = global_statement;   
+            last_global_node = global_statement;
+        }
+        
+        if (source_parser_should_break_on_eof(parser)) break;
+
+    }
+
+    module_node->module.global_statements = head_global_node;
+
+    source_parser_pop_tokenizer(parser);
+    memory_arena_restore_top(&parser->transient_arena, top_state);
+    return module_node;
+
+}
+
+syntax_node*
 source_parser_match_program(source_parser *parser)
 {
 
     u64 mem_state = memory_arena_save(&parser->syntax_tree_arena);
 
+    // Generate program syntax node.
+    syntax_node *program_node = source_parser_push_node(parser);
+    program_node->type = PROGRAM_ROOT_NODE;
+
+    // Match all global statements.
+    syntax_node *head_global_node = NULL;
+    syntax_node *last_global_node = NULL;
+
+    // Get all the first-layer depencies.
+    syntax_node *dependencies = source_parser_match_include_statement(parser);
+    if (dependencies != NULL)
+    {
+        syntax_node *current_dependency = dependencies;
+        while (current_dependency != NULL)
+        {
+            printf("-- Dependency requested: %s\n", current_dependency->include.file_path);
+            
+            syntax_node *module_node = source_parser_match_module(
+                    current_dependency->include.file_path, parser);
+            if (module_node != NULL) 
+            {
+
+                // First statement.
+                if (head_global_node == NULL)
+                {
+                    head_global_node = module_node;
+                    last_global_node = module_node;
+                }
+
+                // All other statements.
+                else
+                {
+                    last_global_node->next_node = module_node;   
+                    last_global_node = module_node;
+                }
+            }
+
+            current_dependency = current_dependency->next_node;
+        }
+    }
+
+    // Now, we should expect the begin keyword here.
+    while (!source_parser_match_token(parser, 1, TOKEN_KEYWORD_BEGIN))
+    {
+
+        syntax_node *global_statement = source_parser_match_global_statement(parser);
+        if (source_parser_should_break_on_eof(parser)) break;
+
+        // The statement could be NULL, which we ignore and move on. Synchronization
+        // happens inside statements.
+        if (global_statement == NULL)
+        {
+            continue;
+        }
+
+        // First statement.
+        if (head_global_node == NULL)
+        {
+            head_global_node = global_statement;
+            last_global_node = global_statement;
+        }
+
+        // All other statements.
+        else
+        {
+            last_global_node->next_node = global_statement;   
+            last_global_node = global_statement;
+        }
+
+    }
+
+    program_node->program.global_statements = head_global_node;
+
     // Match the begin keyword with trailing semicolon.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_BEGIN))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_PROGRAM_BEGIN, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'begin' keyword.", "");
         return NULL;
     }
 
@@ -2098,8 +3023,9 @@ source_parser_match_program(source_parser *parser)
 
         if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
             return NULL;
         }
 
@@ -2107,9 +3033,8 @@ source_parser_match_program(source_parser *parser)
 
     }
 
-    // Generate program syntax node.
-    syntax_node *program_node = source_parser_push_node(parser);
-    program_node->type = PROGRAM_ROOT_NODE;
+    // Push the scope.
+    source_parser_push_symbol_table(parser);
 
     // Match all expression statements and create a statement chain.
     syntax_node *head_statement_node = NULL;
@@ -2145,12 +3070,16 @@ source_parser_match_program(source_parser *parser)
 
     // Set the program node's next node as the head statement.
     program_node->program.body_statements = head_statement_node;
+    
+    // Pop the scope.
+    source_parser_pop_symbol_table(parser);
 
     // Match the end keyword with trailing semicolon.
     if (!source_parser_expect_token(parser, TOKEN_KEYWORD_END))
     {
-        parser_error_handler_display_error(parser,
-                PARSE_ERROR_EXPECTED_PROGRAM_END, __LINE__);
+        parser->error_count++; 
+        display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                PARSER_ERROR_EXPECTED_SYMBOL, ", expected 'end' keyword.", "");
         return NULL;
     }
     else
@@ -2160,8 +3089,9 @@ source_parser_match_program(source_parser *parser)
 
         if (!source_parser_expect_token(parser, TOKEN_SEMICOLON))
         {
-            parser_error_handler_display_error(parser,
-                    PARSE_ERROR_EXPECTED_SEMICOLON, __LINE__);
+            parser->error_count++; 
+            display_error_message(parser->tokenizer->tokenizer.file_path, parser->tokenizer->current_token,
+                    PARSER_ERROR_EXPECTED_SEMICOLON, ".", "");
             return NULL;
         }
 
@@ -2185,11 +3115,30 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     // Initialize.
     parser->entry           = NULL;
     parser->nodes           = NULL;
-    parser->previous_token  = &parser->tokens[0];
-    parser->current_token   = &parser->tokens[1];
-    parser->next_token      = &parser->tokens[2];
     parser->arena           = arena;
     parser->error_count     = 0;
+    parser->tokenizer       = NULL;
+
+    // Program Memory Layout:
+    // [      ][                               ]
+    // ^        ^-- String Pool               ^
+    // |          & Symbol Tables             |
+    // |                                      |
+    // |                 Files & Tokenizer -- |
+    // | -- AST nodes
+    //
+    // Take special note of what is where:
+    //
+    // 1.   The AST Nodes are placed at the head where they can be freely gen'd.
+    //
+    // 2.   The string pool and symbol tables are offsetted, placed where they
+    //      grow "up" from their location. These frequently update and therefore
+    //      will cause page faulting interrupts. OS expects faults to occur "upward"
+    //      and therefore more efficient than putting them at the end.
+    //
+    // 3.   Files and tokenizer are placed at the end and grow down. They don't change
+    //      as frequently as the others and therefore can take a hit in growing down.
+    //      Eventually, we will do away with this and use a resource manager instead.
 
     // Set the two arenas, the syntax tree arena is a fixed size of 64 megabytes,
     // which equates to (if each syntax node is 48 bytes) to 1.4 million nodes.
@@ -2204,6 +3153,10 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     char *source_buffer = (char*)memory_arena_push_top(&parser->transient_arena, source_size + 1);
     fileio_file_read(path, source_buffer, source_size, source_size + 1);
     source_buffer[source_size] = '\0'; // Null-terminate.
+                                    
+    // We look back at my absurdity and praise that it panned out as well 
+    // as it has up to this point.
+    source_parser_push_tokenizer(parser, path, source_buffer);
 
     // Reserve the string pool and the bottom of the transient arena.
     string_pool_initialize(&parser->spool, &parser->transient_arena, STRING_POOL_DEFAULT_SIZE);
@@ -2211,11 +3164,6 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
     // Allocate the global symbol table at the bottom of symbol table.
     parser->symbol_table = memory_arena_push_type(&parser->transient_arena, symbol_table);
     symbol_table_initialize(parser->symbol_table, &parser->transient_arena, 1024);
-
-    // Initialize the tokenizer then cycle in two tokens.
-    source_tokenizer_initialize(&parser->tokenizer, source_buffer, path);
-    source_parser_consume_token(parser);
-    source_parser_consume_token(parser);
 
     // Generate AST from program node.
     syntax_node *program = source_parser_match_program(parser);
@@ -2238,6 +3186,11 @@ source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena)
 
 }
 
+// --- Helpers -----------------------------------------------------------------
+//
+// The following functions are helper functions for the parser.
+//
+
 syntax_node*
 source_parser_push_node(source_parser *parser)
 {
@@ -2253,44 +3206,44 @@ source_parser_push_node(source_parser *parser)
 source_token
 source_parser_get_previous_token(source_parser *parser)
 {
-    source_token *result = parser->previous_token;
+    source_token *result = parser->tokenizer->previous_token;
     return *result;
 }
 
 source_token
 source_parser_get_current_token(source_parser *parser)
 {
-    source_token *result = parser->current_token;
+    source_token *result = parser->tokenizer->current_token;
     return *result;
 }
 
 source_token
 source_parser_get_next_token(source_parser *parser)
 {
-    source_token *result = parser->next_token;
+    source_token *result = parser->tokenizer->next_token;
     return *result;
 }
 
 source_token
 source_parser_consume_token(source_parser *parser)
 {
-    source_token *temporary = parser->previous_token;
-    parser->previous_token = parser->current_token;
-    parser->current_token = parser->next_token;
-    parser->next_token = temporary;
-    source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+    source_token *temporary = parser->tokenizer->previous_token;
+    parser->tokenizer->previous_token = parser->tokenizer->current_token;
+    parser->tokenizer->current_token = parser->tokenizer->next_token;
+    parser->tokenizer->next_token = temporary;
+    source_tokenizer_get_next_token(&parser->tokenizer->tokenizer, parser->tokenizer->next_token);
 
     // NOTE(Chris): Due to the fact that expression and statement grammar does
     //              not take into account that new lines and comments can coexist
     //              in them, we ignore them here for now.
 
-    while (parser->next_token->type == TOKEN_NEW_LINE ||
-           parser->next_token->type == TOKEN_COMMENT_BLOCK)
+    while (parser->tokenizer->next_token->type == TOKEN_NEW_LINE ||
+           parser->tokenizer->next_token->type == TOKEN_COMMENT_BLOCK)
     {
-        source_tokenizer_get_next_token(&parser->tokenizer, parser->next_token);
+        source_tokenizer_get_next_token(&parser->tokenizer->tokenizer, parser->tokenizer->next_token);
     }
     
-    return *parser->previous_token;
+    return *parser->tokenizer->previous_token;
 }
 
 b32 
@@ -2312,7 +3265,7 @@ b32
 source_parser_expect_token(source_parser *parser, source_token_type type)
 {
     
-    b32 is_type = (parser->current_token->type == type);
+    b32 is_type = (parser->tokenizer->current_token->type == type);
     return is_type;
 
 }
@@ -2321,7 +3274,7 @@ b32
 source_parser_next_token_is(source_parser *parser, source_token_type type)
 {
 
-    b32 is_type = (parser->next_token->type == type);
+    b32 is_type = (parser->tokenizer->next_token->type == type);
     return is_type;
 
 }
@@ -2334,7 +3287,7 @@ source_parser_match_token(source_parser *parser, u32 count, ...)
     va_start(args, count);
     b32 matched = false;
 
-    source_token_type current = parser->current_token->type;
+    source_token_type current = parser->tokenizer->current_token->type;
     for (u32 idx = 0; idx < count; ++idx)
     {
         source_token_type type = va_arg(args, source_token_type);
@@ -2634,739 +3587,6 @@ source_parser_locate_symbol(source_parser *parser, cc64 identifier)
 
 }
 
-
-
-// --- Error Handling ----------------------------------------------------------
-//
-// These routines provide verbal error and warnings back to the user in a uniform
-// format. Synchronization of the parser should not be performed here.
-//
-
-void    
-parser_error_handler_display_error(source_parser *parser, parse_error_type error, u64 sline)
-{
-
-    parser->error_count++;
-
-    switch (error)
-    {
-        
-        case PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): unexpected token in expression: '%s', ",
-                    file_name, line, column, error, sline, token_encountered);
-            printf("expected real, identifier, or grouping.\n");
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS:
-        {
-
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected matched ')' for expression.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_PROGRAM_BEGIN:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected program begin statement.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_PROGRAM_END:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected program end statement.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_ENDSCOPE:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected endscope keyword.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED:
-        {
-
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): return value of function not defined.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_ENDWHILE:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected endwhile keyword.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_ENDLOOP:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected endloop keyword.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_ENDPROCEDURE:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected endprocedure keyword.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_ENDFUNCTION:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected endfunction keyword.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_ENDIF:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected endif keyword.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_READ:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in read statement.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_SEMICOLON:
-        {
-
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected semicolon at end of statement.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_SYMBOL_UNLOCATABLE:
-        {
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): identifier should be located in "
-                   "the symbol table, but was not.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_UNEXPECTED_EXPRESSION_EOF_EOL:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): unexpected end-of-line or end-of-file.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-        } break;
-
-        case PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION:
-        {
-
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): undeclared identifer in expression: '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION:
-        {
-
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): undefined identifier used in expression: '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): undefined variable used in statement: '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in loop declaration: "
-                   " encountered '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in procedure declaration: "
-                   " encountered '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in procedure parameter: "
-                   " encountered '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function parameter: "
-                   " encountered '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION:
-        {
-
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected identifier in function declaration:"
-                   " encountered '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED:
-        {
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): procedure name already defined in scope:"
-                   " encountered '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-        } break;
-
-        case PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED:
-        {
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): function name already defined in scope:"
-                   " encountered '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-        } break;
-
-        case PARSE_ERROR_EXPECTED_ASSIGNMENT:
-        {
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected ':=' in variable "
-                   "assignment expression.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-        } break;
-
-        case PARSE_ERROR_PROCEDURE_ARITY_MISMATCH:
-        {
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): argument count in procedure call is incorrect.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_FUNCTION_ARITY_MISMATCH:
-        {
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): argument count in function call is incorrect.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_FUNCTION_MISSING_LEFT_PARENTHESIS:
-        {
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected '(' in expression for function call.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_FUNCTION_MISSING_RIGHT_PARENTHESIS:
-        {
-            source_token *error_at = parser->current_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): expected ')' in expression for function call.\n",
-                    file_name, line, column, error, sline);
-
-            source_token_string_unnullify(error_at, hold);
-
-        } break;
-
-        case PARSE_ERROR_VARIABLE_REDECLARATION:
-        {
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): redeclaring a variable that "
-                   "is already declared: '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-        } break;
-
-        case PARSE_ERROR_UNDECLARED_VARIABLE_IN_READ:
-        {
-            source_token *error_at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(error_at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(error_at, &hold);
-
-            printf("%s (%d,%d) (error:%d:%llu): identifier in read statement "
-                   "is not declared: '%s'.\n",
-                    file_name, line, column, error, sline, token_encountered);
-
-            source_token_string_unnullify(error_at, hold);
-        } break;
-
-        default:
-        {
-            assert(!"Uncaught error message handling routine.");
-            return;
-        } break;
-
-    };
-
-}
-
-void    
-parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning, u64 sline)
-{
-
-    switch (warning)
-    {
-
-        case PARSE_WARNING_SHADOWED_VARIABLE:
-        {
-            source_token *at = parser->previous_token;
-            cc64 file_name = parser->tokenizer.file_path;
-
-            i32 line;
-            i32 column;
-
-            source_token_position(at, &line, &column);
-
-            char hold;
-            cc64 token_encountered = source_token_string_nullify(at, &hold);
-
-            printf("%s (%d,%d) (warning:%d:%llu): "
-                   "variable declaration shadows previous declaration: '%s'.\n",
-                    file_name, line, column, warning, sline, token_encountered);
-
-            source_token_string_unnullify(at, hold);
-        } break;
-
-        default:
-        {
-            assert(!"Uncaught warning message handling routine.");
-            return;
-        } break;
-
-    }
-
-}
-
 // --- Print Traversal ---------------------------------------------------------
 //
 // The following print traversal is designed for viewing the raw output of the
@@ -3638,7 +3858,8 @@ parser_print_tree(syntax_node *root_node)
         case ASSIGNMENT_EXPRESSION_NODE:
         {
             
-            printf("%s = ", root_node->assignment.identifier);
+            parser_print_tree(root_node->assignment.left);
+            printf(" = ");
             parser_print_tree(root_node->assignment.right);
 
         } break;
@@ -3766,3 +3987,4 @@ parser_print_tree(syntax_node *root_node)
     };
 
 }
+*/

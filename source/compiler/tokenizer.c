@@ -346,6 +346,14 @@ source_tokenizer_match_symbols(source_tokenizer *tokenizer, source_token *token)
             source_tokenizer_synchronize(tokenizer);
             return true;
         } break;
+
+        case ',':
+        {
+            source_tokenizer_consume(tokenizer, 1);
+            source_tokenizer_set_token(tokenizer, token, TOKEN_COMMA);
+            source_tokenizer_synchronize(tokenizer);
+            return true;
+        } break;
         
         case ';':
         {

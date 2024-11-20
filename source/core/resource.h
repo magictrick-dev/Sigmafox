@@ -6,17 +6,18 @@
 
 typedef struct resource
 {
-    cc64 name;
 
-    void *buffer;
-    u64 size;
-    b32 active;
-    b32 defined;
+    cc64    user_path;
+    u64     buffer_size;
+    u64     buffer_commit;
+    void   *buffer;
+
 } resource;
 
-b32     resource_define(resource *res, cc64 file_name);
-void    resource_undefined(resource *res);
-void    resource_reserve(resource *res, u64 reserve_size);
-void    resource_release(resource *res);
+b32     resource_is_loaded(resource *res);
+b32     resource_is_path_valid(resource *res);
+void    resource_initialize(resource *res, ccptr file_path);
+void    resource_load(resource *res);
+void    resource_unload(resource *res);
 
 #endif

@@ -27,8 +27,20 @@ typedef int32_t     b32;
 typedef int64_t     b64;
 typedef float       r32;
 typedef double      r64;
+
+// --- Deprecated --------------------------------------------------------------
+//
+// These typedefs are on the chopping block.
+//
+
 typedef char*       c64;
 typedef const char* cc64;
+
+// -----------------------------------------------------------------------------
+
+typedef const char* ccptr;
+typedef char*       cptr;
+typedef void*       vptr;
 
 #if !defined(__cplusplus)
 #define false   0
@@ -40,5 +52,10 @@ typedef const char* cc64;
 #else
 #define externable
 #endif
+
+#define SF_ASSERT(expr)     assert((expr))
+#define SF_ENSURE_PTR(ptr)  assert((ptr != NULL))
+#define SF_NOREACH()        assert(!"Unreachable condition reached.")
+#define SF_NOIMPL()         assert(!"No implementation defined.")
 
 #endif

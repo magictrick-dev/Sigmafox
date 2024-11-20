@@ -33,8 +33,8 @@ endif (WIN32)
 add_executable(Sigmafox
     "source/main.c"
 
-    "source/compiler/rparser.h"
-    "source/compiler/rparser.c"
+    "source/compiler/parser.h"
+    "source/compiler/parser.c"
     "source/compiler/stringpool.h"
     "source/compiler/stringpool.c"
     "source/compiler/symboltable.h"
@@ -43,6 +43,8 @@ add_executable(Sigmafox
     "source/compiler/generation.c"
     "source/compiler/tokenizer.h"
     "source/compiler/tokenizer.c"
+    "source/compiler/errorhandler.h"
+    "source/compiler/errorhandler.c"
     
     "source/platform/fileio.h"
     "source/platform/system.h"
@@ -70,8 +72,6 @@ add_executable(Sigmafox
 # relative pathing.
 #
 
-target_include_directories(Sigmafox PUBLIC
-    "source"
-)
-
+target_include_directories(Sigmafox PUBLIC "source")
 set_property(TARGET Sigmafox PROPERTY CXX_STANDARD 20)
+set_property(TARGET Sigmafox PROPERTY C_STANDARD 17)

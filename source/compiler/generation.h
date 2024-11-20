@@ -3,7 +3,7 @@
 #include <core/arena.h>
 #include <core/definitions.h>
 #include <platform/fileio.h>
-#include <compiler/rparser.h>
+#include <compiler/parser.h>
 
 #define TAB_SPACE_SIZE 4
 
@@ -65,6 +65,10 @@ void transpile_if_node(syntax_node *root_node, source_section *section,
 void transpile_elseif_node(syntax_node *root_node, source_section *section,
         source_file *file, memory_arena *arena);
 void transpile_variable_node(syntax_node *root_node, source_section *section,
+        source_file *file, memory_arena *arena);
+void transpile_array_index_node(syntax_node *root_node, source_section *section,
+        source_file *file, memory_arena *arena);
+void transpile_expression_statement_node(syntax_node *root_node, source_section *section,
         source_file *file, memory_arena *arena);
 void transpile_procedure_call_node(syntax_node *root_node, source_section *section,
         source_file *file, memory_arena *arena);

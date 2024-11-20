@@ -1,3 +1,250 @@
+// --- Sigmafox Compiler Parser ------------------------------------------------
+//
+// Written by Chris DeJong Nov. 2024 / Northern Illinois University
+//
+//      Constructs an AST based on a given entry-source file. The grammar for
+//      the language is described in detail below. A program consists of n-include
+//      statements, followed by n-global statements. From there, "begin" marks the
+//      start of the runtime code, followed by n-body statements, an "end", semicolon,
+//      and some amount of whitespace until EOF. This means that include statements
+//      must occur at the top of every file.
+//
+//      Global statements are defined at the global level; all include files scope
+//      to this level. The main entry file is the only file which contains a "begin"
+//      and "end" block, which push the scope up as normal. Behavior beyond this
+//      point is pretty typical of most programs.
+//
+// --- Language Grammar --------------------------------------------------------
+//
+//      program                     :   (include_statement)* (global_statement)* main; EOF
+//      main                        :   "begin" (body_statement)* "end" ;
+//      include_statement           :   "include" TOKEN_STRING ;
+//
+// --- Creating AST Traversals -------------------------------------------------
+//
+//      The parser constructs a set of AST nodes with a visitor interface that
+//      allows you to create custom traversals using a neat little interface.
+//      The ISyntaxNodeVisitor basically provides the base class which allows you
+//      to run along the entire tree (or parts, if you see fit) and perform operations
+//      that otherwise requires a custom recursive traversal routine.
+//
+//      The cost of such a procedure is kind of expensive in the grand scheme of
+//      things, but generally we aren't stingy with compute power when it comes to
+//      performing an operation once.
+//
+// -----------------------------------------------------------------------------
+
+#ifndef SIGMAFOX_COMPILER_PARSER_H 
+#define SIGMAFOX_COMPILER_PARSER_H 
+#include <vector>
+#include <definitions.hpp>
+#include <utilities/path.hpp>
+#include <compiler/tokenizer.hpp>
+#include <compiler/dependencygraph.hpp>
+
+// --- Abstract Syntax Tree Nodes ----------------------------------------------
+//
+// These define the behavior and layout of the various nodes that comprise the
+// abstract syntax tree that the parser produces.
+//
+
+class AbstractSyntaxNode;
+class VoidSyntaxNode;
+class RootSyntaxNode;
+class MainSyntaxNode;
+class IncludeSyntaxNode;
+
+// Provides an easy way to traverse the AST in a uniform fashion without having to
+// extend any internal behaviors on the nodes themselves. They automatically recurse
+// on their child nodes.
+class ISyntaxNodeVisitor
+{
+    public:
+        virtual void visit_void_syntax_node(VoidSyntaxNode *node)               = 0;
+        virtual void visit_root_syntax_node(RootSyntaxNode *node)               = 0;
+        virtual void visit_main_syntax_node(MainSyntaxNode *node)               = 0;
+        virtual void visit_include_syntax_node(IncludeSyntaxNode *node)         = 0;
+};
+
+// Provides a way of easily identifying which node was encountered.
+enum class SyntaxNodeType
+{
+    SyntaxNodeVoid,
+    SyntaxNodeRoot,
+    SyntaxNodeMain,
+    SyntaxNodeInclude,
+};
+
+// --- Abstract Syntax Node Base Class -----------------------------------------
+//
+// The abstract node basically provides the universal feature set of all AST
+// nodes. There's a way to inspect the type of node (all nodes are defined with
+// a given type and are always reliably that type) and a way to cast the syntax
+// node to its given sub-class. The current implementation is a dynamic_cast wrapper,
+// but if we want to do anything fancy in the future, internal functionality could
+// change to something more complex.
+//
+// The "accept" visitor method is an important function to override, as it allows
+// visitor interfaces to propagate to their respective node types without having
+// to actually manually inspect the type, cast, and perform the operation. Of
+// course, this comes with a performance penalty, so we don't want to do this
+// for something more intense.
+//
+// The "is_void" function determines if the type of the base node is void. This
+// basically shorthands the type check for when a void node is returned. Use this
+// over "cast_to" or "get_type" when checking for void nodes.
+//
+
+class AbstractSyntaxNode
+{
+    public:
+                                        AbstractSyntaxNode();
+        virtual                        ~AbstractSyntaxNode();
+
+        bool                            is_void() const;
+        SyntaxNodeType                  get_type() const;
+        template <class T> T            cast_to();
+
+        virtual void accept(ISyntaxNodeVisitor *visitor) = 0;
+
+    protected:
+        SyntaxNodeType type;
+
+};
+
+// --- Void Syntax Node --------------------------------------------------------
+//
+// The void syntax node is a node that is returned when node valid node can be
+// returned. We enforce that all nodes are returned as valid nodes, so we must
+// ensure that this exists and is inspectable.
+//
+
+class VoidSyntaxNode : public AbstractSyntaxNode
+{
+
+    public:
+                        VoidSyntaxNode();
+        virtual        ~VoidSyntaxNode();
+
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+
+};
+
+// --- Include Syntax Node -----------------------------------------------------
+//
+// The include syntax node corresponds to the grammar specification for includes.
+// This node is somewhat special in that we typically don't see this in the root
+// syntax tree. The DependencyResolver is responsible for collecting these nodes
+// and ensures that sub-parsers are constructed and circular inclusions are
+// properly discovered.
+//
+
+class IncludeSyntaxNode : public AbstractSyntaxNode
+{
+
+    public:
+                        IncludeSyntaxNode(Filepath path);
+        virtual        ~IncludeSyntaxNode();
+
+        Filepath        file_path() const;
+        std::string     file_path_as_string() const;
+
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+
+    protected:
+        Filepath path;
+
+};
+
+// --- Main Syntax Node --------------------------------------------------------
+//
+// The main syntax node is the node which contains all nodes in the "begin" and
+// "end" block of the main program entry point. Since the specification of this
+// node is not the same as the root syntax node, behaviors within are considered
+// runtime specific.
+//
+
+class MainSyntaxNode : public AbstractSyntaxNode
+{
+
+    public:
+                        MainSyntaxNode(std::vector<AbstractSyntaxNode*> children);
+        virtual        ~MainSyntaxNode();
+
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+
+    protected:
+        std::vector<AbstractSyntaxNode*> children;
+
+};
+
+// --- Root Syntax Node --------------------------------------------------------
+//
+// The root syntax node is what is returned by the parser after it constructs
+// the tree. The root syntax node is special in that it also determines if the
+// tree itself is a valid tree. The parser enforces proper construction of the
+// root node by the grammar specification as outlined above.
+//
+
+class RootSyntaxNode : public AbstractSyntaxNode
+{
+
+    public:
+                        RootSyntaxNode(std::vector<AbstractSyntaxNode*> children);
+        virtual        ~RootSyntaxNode();
+
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+
+    protected:
+        std::vector<AbstractSyntaxNode*> children;
+
+};
+
+// --- SyntaxParser ------------------------------------------------------------
+//
+// I'm going to be honest, you're about to see some of the most cooked C++ code
+// you've probably ever seen in your life.
+//
+// There are two types of "parsers", the "entry" parser, which is the one that
+// is created when the program collects the entry point file, and sub-parsers.
+// Sub-parsers are just file dependencies from the include statements and are
+// nested in the entry parser.
+//
+// The DependencyResolver will automatically check for top-level includes, parse
+// them, and validate for circular inclusions. The "construct_ast" function takes
+// the dependency graph, determines the proper order to parse, and collapses
+// everything down until parsing is complete.
+//
+
+class SyntaxParser
+{
+
+    public:
+                        SyntaxParser(Filepath filepath);
+                        SyntaxParser(Filepath filepath, SyntaxParser *parent);
+        virtual        ~SyntaxParser();
+
+        AbstractSyntaxNode*             construct_ast();           
+        Filepath                        get_source_path() const;
+        std::vector<std::string>        get_includes();
+
+    protected:
+        void                            synchronize_to(TokenType type);
+        template <class T> T*           generate_node();
+
+        AbstractSyntaxNode*             match_include();
+
+    protected:
+        Filepath        entry_path;
+        Tokenizer       tokenizer;
+        SyntaxParser   *parent_parser;
+
+        std::vector<SyntaxParser*>          children_parsers;
+        std::vector<AbstractSyntaxNode*>    internal_nodes;
+
+};
+
+/*
 #ifndef SOURCE_COMPILER_RPARSER_H
 #define SOURCE_COMPILER_RPARSER_H
 #include <core/definitions.h>
@@ -85,6 +332,7 @@ typedef struct call_syntax_node     call_syntax_node;
 
 typedef enum syntax_node_type
 {
+
     NULL_EXPRESSION_NODE,
     BINARY_EXPRESSION_NODE,
     UNARY_EXPRESSION_NODE,
@@ -94,7 +342,11 @@ typedef enum syntax_node_type
     ASSIGNMENT_EXPRESSION_NODE,
     PROCEDURE_CALL_EXPRESSION_NODE,
     FUNCTION_CALL_EXPRESSION_NODE,
+    ARRAY_INDEX_EXPRESSION_NODE,
+
     EXPRESSION_STATEMENT_NODE,
+    INCLUDE_STATEMENT_NODE,
+
     COMMENT_STATEMENT_NODE,
     NEWLINE_STATEMENT_NODE,
     DECLARATION_STATEMENT_NODE,
@@ -109,7 +361,9 @@ typedef enum syntax_node_type
     FUNCTION_STATEMENT_NODE,
     PARAMETER_STATEMENT_NODE,
     VARIABLE_STATEMENT_NODE,
+    MODULE_ROOT_NODE,
     PROGRAM_ROOT_NODE,
+
 } syntax_node_type;
 
 typedef enum syntax_operation_type
@@ -183,7 +437,8 @@ typedef struct primary_syntax_node
 
 typedef struct assignment_syntax_node
 {
-    cc64 identifier;
+    ccptr identifier;
+    syntax_node *left;
     syntax_node *right;
 } assignment_syntax_node;
 
@@ -206,6 +461,21 @@ typedef struct variable_syntax_node
     syntax_node *assignment;
     cc64 name;
 } variable_syntax_node;
+
+typedef struct array_index_syntax_node
+{
+    
+    cc64 name;
+    syntax_node *accessors;
+
+} array_index_syntax_node;
+
+typedef struct expression_syntax_node
+{
+
+    syntax_node *expression;
+
+} expression_syntax_node;
 
 typedef struct scope_syntax_node
 {
@@ -273,11 +543,26 @@ typedef struct parameter_syntax_node
     syntax_node *next_parameter;
 } parameter_syntax_node;
 
+typedef struct include_syntax_node
+{
+    cc64 file_path;
+} include_syntax_node;
+
+typedef struct global_statement_syntax_node
+{
+    syntax_node *statement;
+} global_statement_syntax_node;
+
 typedef struct program_syntax_node
 {
     syntax_node *global_statements;
     syntax_node *body_statements;
 } program_syntax_node;
+
+typedef struct module_syntax_node
+{
+    syntax_node *global_statements;
+} module_syntax_node;
 
 typedef struct syntax_node
 {
@@ -287,36 +572,54 @@ typedef struct syntax_node
 
     union
     {
-        binary_syntax_node      binary;
-        unary_syntax_node       unary;
-        primary_syntax_node     primary;
-        grouping_syntax_node    grouping;
-        assignment_syntax_node  assignment;
-        variable_syntax_node    variable;
-        scope_syntax_node       scope;
-        while_syntax_node       while_loop;
-        loop_syntax_node        for_loop;
-        if_syntax_node          if_conditional;
-        elseif_syntax_node      elseif_conditional;
-        procedure_syntax_node   procedure;
-        function_syntax_node    function;
-        parameter_syntax_node   parameter;
-        program_syntax_node     program;
-        procedure_call_syntax_node  proc_call;
-        function_call_syntax_node   func_call;
-        write_syntax_node       write;
-        read_syntax_node        read;
+        binary_syntax_node          binary;
+        unary_syntax_node           unary;
+        primary_syntax_node         primary;
+        grouping_syntax_node        grouping;
+        assignment_syntax_node      assignment;
+        variable_syntax_node        variable;
+        scope_syntax_node           scope;
+        while_syntax_node           while_loop;
+        loop_syntax_node            for_loop;
+        if_syntax_node              if_conditional;
+        elseif_syntax_node          elseif_conditional;
+        procedure_syntax_node       procedure;
+        function_syntax_node        function;
+        parameter_syntax_node       parameter;
+        program_syntax_node         program;
+        write_syntax_node           write;
+        read_syntax_node            read;
+        include_syntax_node         include;
+        array_index_syntax_node     array_index;
+        expression_syntax_node      expression;
+        module_syntax_node          module;
+
+        procedure_call_syntax_node          proc_call;
+        function_call_syntax_node           func_call;
+
     };
 
 } syntax_node;
 
-typedef struct source_parser
+typedef struct parser_tokenizer parser_tokenizer;
+
+typedef struct parser_tokenizer
 {
+
     source_tokenizer tokenizer;
     source_token tokens[3];
     source_token *previous_token;
     source_token *current_token;
     source_token *next_token;
+
+    parser_tokenizer *parent_tokenizer;
+
+} parser_tokenizer;
+
+typedef struct source_parser
+{
+
+    parser_tokenizer *tokenizer;
 
     memory_arena *arena;
     memory_arena syntax_tree_arena;
@@ -333,6 +636,7 @@ typedef struct source_parser
 // --- Expressions -------------------------------------------------------------
 
 syntax_node* source_parser_match_primary(source_parser *parser);
+syntax_node* source_parser_match_array_index(source_parser *parser);
 syntax_node* source_parser_match_function_call(source_parser *parser);
 syntax_node* source_parser_match_unary(source_parser *parser);
 syntax_node* source_parser_match_factor(source_parser *parser);
@@ -356,6 +660,9 @@ syntax_node* source_parser_match_procedure_statement(source_parser *parser);
 syntax_node* source_parser_match_function_statement(source_parser *parser);
 syntax_node* source_parser_match_write_statement(source_parser *parser);
 syntax_node* source_parser_match_statement(source_parser *parser);
+syntax_node* source_parser_match_global_statement(source_parser *parser);
+syntax_node* source_parser_match_import_statement(source_parser *parser);
+syntax_node* source_parser_match_module(ccptr file_name, source_parser *parser);
 syntax_node* source_parser_match_program(source_parser *parser);
 
 syntax_node* source_parser_create_ast(source_parser *parser, cc64 path, memory_arena *arena);
@@ -381,6 +688,9 @@ b32 source_parser_synchronize_to(source_parser *parser, source_token_type type);
 syntax_operation_type source_parser_convert_token_to_operation(source_token_type type);
 object_type source_parser_token_to_literal(source_parser *parser, source_token *token, object_literal *object);
 
+void source_parser_push_tokenizer(source_parser *parser, ccptr file_path, cptr source);
+void source_parser_pop_tokenizer(source_parser *parser);
+
 // --- Symbol Table Helpers ----------------------------------------------------
 
 void source_parser_push_symbol_table(source_parser *parser);
@@ -392,65 +702,6 @@ b32 source_parser_identifier_is_declared_in_scope(source_parser *parser, cc64 id
 b32 source_parser_identifier_is_declared_above_scope(source_parser *parser, cc64 identifier);
 b32 source_parser_identifier_is_defined(source_parser *parser, cc64 identifier);
 
-// --- Error Handling ----------------------------------------------------------
-//
-// In the event that there is an error, the error handler is designed to properly
-// synronize the parser and display helpful error messages as they are processed.
-// Most errors are recoverable such that the parser can continue to process additional
-// error messages for the user.
-//
-//
-
-typedef enum parse_error_type
-{
-    PARSE_ERROR_HANDLED,
-    PARSE_ERROR_UNDEFINED_EXPRESSION_TOKEN,
-    PARSE_ERROR_EXPECTED_RIGHT_PARENTHESIS,
-    PARSE_ERROR_UNEXPECTED_EOL,
-    PARSE_ERROR_UNEXPECTED_EOF,
-    PARSE_ERROR_UNEXPECTED_EXPRESSION_EOF_EOL,
-    PARSE_ERROR_MEM_CONSTRAINT_STRING_POOL,
-    PARSE_ERROR_MEM_CONSTRAINT_SYMBOL_TABLE,
-    PARSE_ERROR_EXPECTED_PROGRAM_BEGIN,
-    PARSE_ERROR_EXPECTED_PROGRAM_END,
-    PARSE_ERROR_EXPECTED_ENDSCOPE,
-    PARSE_ERROR_EXPECTED_ENDWHILE,
-    PARSE_ERROR_EXPECTED_ENDLOOP,
-    PARSE_ERROR_EXPECTED_ENDIF,
-    PARSE_ERROR_EXPECTED_SEMICOLON,
-    PARSE_ERROR_EXPECTED_ASSIGNMENT,
-    PARSE_ERROR_EXPECTED_VARIABLE_IDENTIFIER,
-    PARSE_ERROR_UNDECLARED_IDENTIFIER_IN_EXPRESSION,
-    PARSE_ERROR_UNDEFINED_IDENTIFIER_IN_EXPRESSION,
-    PARSE_ERROR_UNDECLARED_VARIABLE_IN_ASSIGNMENT,
-    PARSE_ERROR_UNDECLARED_VARIABLE_IN_READ,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_LOOP,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_PROCEDURE_PARAMS,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_READ,
-    PARSE_ERROR_EXPECTED_ENDPROCEDURE,
-    PARSE_ERROR_PROCEDURE_IDENTIFIER_ALREADY_DECLARED,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION,
-    PARSE_ERROR_EXPECTED_IDENTIFIER_IN_FUNCTION_PARAMS,
-    PARSE_ERROR_FUNCTION_IDENTIFIER_ALREADY_DECLARED,
-    PARSE_ERROR_PROCEDURE_ARITY_MISMATCH,
-    PARSE_ERROR_FUNCTION_ARITY_MISMATCH,
-    PARSE_ERROR_FUNCTION_MISSING_LEFT_PARENTHESIS,
-    PARSE_ERROR_FUNCTION_MISSING_RIGHT_PARENTHESIS,
-    PARSE_ERROR_NO_FUNCTION_RETURN_DEFINED,
-    PARSE_ERROR_EXPECTED_ENDFUNCTION,
-    PARSE_ERROR_SYMBOL_UNLOCATABLE,
-    PARSE_ERROR_VARIABLE_REDECLARATION,
-} parse_error_type;
-
-typedef enum parse_warning_type
-{
-    PARSE_WARNING_SHADOWED_VARIABLE,
-} parse_warning_type;
-
-void    parser_error_handler_display_error(source_parser *parser, parse_error_type error, u64 sline);
-void    parser_error_handler_display_warning(source_parser *parser, parse_warning_type warning, u64 sline);
-
 // --- Print Traversal ---------------------------------------------------------
 //
 // The following print traversal is designed for viewing the raw output of the
@@ -459,5 +710,6 @@ void    parser_error_handler_display_warning(source_parser *parser, parse_warnin
 //
 
 void parser_print_tree(syntax_node *root_node);
+*/
 
 #endif

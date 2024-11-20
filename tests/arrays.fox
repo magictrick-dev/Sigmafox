@@ -1,0 +1,41 @@
+begin;
+
+    variable primes 4 10;
+
+    primes(1)   :=  2;
+    primes(2)   :=  3;
+    primes(3)   :=  5;
+    primes(4)   :=  7;
+    primes(5)   := 11;
+    primes(6)   := 13;
+    primes(7)   := 17;
+    primes(8)   := 19;
+    primes(9)   := 23;
+    primes(10)  := 29;
+
+    variable primes_sum 4 := 0;
+    loop index 1 10;
+        primes_sum := primes_sum + primes(index);
+    endloop;
+
+    variable test 4 := 2 * 2;
+
+    variable pixel_buffer 4 (2 * 2) 4;
+    pixel_buffer(1, 1) := 0;
+    pixel_buffer(1, 2) := 0;
+    pixel_buffer(1, 3) := 0;
+    pixel_buffer(1, 4) := 0;
+    pixel_buffer(2, 1) := 0;
+    pixel_buffer(2, 2) := 0;
+    pixel_buffer(2, 3) := 0;
+    pixel_buffer(2, 4) := 0;
+    pixel_buffer(3, 1) := 0;
+    pixel_buffer(3, 2) := 0;
+    pixel_buffer(3, 3) := 0;
+    pixel_buffer(3, 4) := 0;
+    pixel_buffer(4, 1) := 0;
+    pixel_buffer(4, 2) := 0;
+    pixel_buffer(4, 3) := 0;
+    pixel_buffer(4, 4) := 0;
+
+end;
