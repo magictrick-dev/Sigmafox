@@ -49,6 +49,12 @@ add_executable(Sigmafox
     "source/compiler/tokenizer.cpp"
     "source/compiler/parser.hpp"
     "source/compiler/parser.cpp"
+    "source/compiler/dependencygraph.hpp"
+    "source/compiler/dependencygraph.cpp"
+    "source/compiler/dependencyresolver.hpp"
+    "source/compiler/dependencyresolver.cpp"
+    "source/compiler/errorhandler.hpp"
+    "source/compiler/errorhandler.cpp"
 
     ${PLATFORM_FILES}
 )

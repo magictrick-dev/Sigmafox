@@ -1,12 +1,24 @@
-// --- Parser ------------------------------------------------------------------
+// --- Syntax Parser -----------------------------------------------------------
 //
-// Apologies to the next poor soul that has to read this. The parser is a very
-// dense, very complicated setup that I honestly don't know where to begin for
-// a cohesive organized design. The best you can hope for is stepping through
-// the debugger and testing trivial cases... because that's how I do it.
+// Apologies to the next poor soul that has to read my code. Firstly, you're
+// probably asking yourself why there's >3000 lines of commented out C code at
+// the bottom of this document. The short answer is that its a reference implementation
+// that I wrote over the Summer of 2024. The implementation in C is significantly
+// faster, albeit not quite as fleshed out as what you see before you now. Perhaps
+// it will provide some insight into future optimizations should the need arise.
+//
+// The actual implementation of the parser is a bit convoluted to say the least.
+// It's the nature of recursive descent parsers. There's absolutely no way you're
+// going to be able to tell what's going on without looking at the CFG specification
+// outlined in the header or the (at the time of writing this doc box, non-existent)
+// documentation file to accompany this compiler. If you absolutely must understand
+// each nook and cranny of this monstrocity, then I suggest a well-performing
+// debugger like (and I hate to say this) Visual Studio and step through the
+// programmer to see how everything interconnects.
 //
 // -----------------------------------------------------------------------------
 #include <compiler/parser.hpp>
+#include <compiler/errorhandler.hpp>
 
 // --- Parser Constructor/Destructors ------------------------------------------
 
