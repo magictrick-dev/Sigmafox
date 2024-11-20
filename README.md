@@ -9,11 +9,10 @@ cluster computation environments.
 ### Project Status
 
 The current state of the project is a work in-progress. As such, it is not in a state
-for use development. Currently, Sigmafox is being refactored in C++ for better clarity
-and scaleability in the long term, which can be tracked in the `SFRefactor/` subfolder.
-There, you will find the current working project. The existing project in the root directory
-is working and compileable on Windows, however it lacks many of the necessary functionalities
-that is typically desired of a complete programming language library.
+for use in development. Currently, Sigmafox is currently being refactored in C++ for better clarity
+and scaleability. This can be tracked in the `SFRefactor/` subfolder. If you are interested
+to see the current state of the project, visit the `version-alpha` branch where the commits
+are being pushed to.
 
 # Documentation
 
