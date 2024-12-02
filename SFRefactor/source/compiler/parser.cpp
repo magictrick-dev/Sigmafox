@@ -27,17 +27,7 @@ SyntaxParser::
 SyntaxParser(Filepath filepath) : tokenizer(filepath)
 {
 
-    this->entry_path = filepath;
-    this->parent_parser = nullptr;
-
-}
-
-SyntaxParser::
-SyntaxParser(Filepath filepath, SyntaxParser *parent) : tokenizer(filepath)
-{
-
-    this->entry_path = filepath;
-    this->parent_parser = nullptr;
+    this->path = filepath;
 
 }
 
@@ -51,119 +41,27 @@ Filepath SyntaxParser::
 get_source_path() const
 {
 
-    return this->entry_path;
+    return this->path;
 
 }
 
+void SyntaxParser::
+visit_base_node(ISyntaxNodeVisitor *visitor)
+{
+    SF_ENSURE_PTR(visitor);
+    SF_ENSURE_PTR(this->base_node);
+    this->base_node->accept(visitor);
+}
+
 template <class T, typename... Params> std::shared_ptr<T> SyntaxParser::
-create_node(Params... args)
+generate_node(Params... args)
 {
 
     // Thanks C++, very cool.
     std::shared_ptr<T> result = std::make_shared<T>(args...);
-    std::shared_ptr<AbstractSyntaxNode*> cast_back = dynamic_cast<AbstractSyntaxNode*>(result);
-    this->internal_nodes.push_back(cast_back);
+    std::shared_ptr<ISyntaxNode> cast_back = dynamic_cast<ISyntaxNode>(result);
+    this->nodes.push_back(cast_back);
     return result;
-
-}
-
-// --- Grammar Parsing Methods -------------------------------------------------
-
-AbstractSyntaxNode* SyntaxParser::
-match_include()
-{
-
-
-    // Grammar Specification:
-    //      include_statement : "include" TOKEN_STRING ;
-
-    // If the token isn't an include token, then we don't parse it.
-    if (!this->tokenizer.current_token_is(TokenType::TOKEN_KEYWORD_INCLUDE))
-        return nullptr;
-
-    // Shift, we expect a string token.
-    this->tokenizer.shift();
-
-    // If the token isn't a string token, it's an error. Synchronize to semicolon.
-    if (!this->tokenizer.current_token_is(TokenType::TOKEN_STRING))
-    {
-        printf("ERROR: Expected a string in include statement.\n");
-        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
-        return nullptr;
-    }
-
-    // We have the path.
-    std::string filepath = this->tokenizer.get_current_token().to_string();
-    this->tokenizer.shift();
-
-    // If the token isn't a semicolon, it's an error. Synchronize to the next semicolon.
-    if (!this->tokenizer.current_token_is(TokenType::TOKEN_SEMICOLON))
-    {
-        printf("ERROR: Expected a semicolon at the of the include statement.\n");
-        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
-        return nullptr;
-    }
-
-    // Clear the semicolon token.
-    this->tokenizer.shift();
-
-    // Canonicalize the new path.
-    Filepath current_path = this->entry_path;
-    current_path = current_path.root_directory();
-    current_path += "./";
-    current_path += filepath;
-    current_path.canonicalize();
-
-    IncludeSyntaxNode *include_node = new IncludeSyntaxNode(current_path);
-    return include_node;
-
-}
-
-std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
-match_main()
-{
-
-    return nullptr;
-}
-
-std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
-match_global()
-{
-
-    return nullptr;
-}
-
-std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
-match_root()
-{
-
-    return nullptr;
-}
-
-std::shared_ptr<AbstractSyntaxNode*> SyntaxParser::
-construct_ast()
-{
-
-    std::shared_ptr<AbstractSyntaxNode*> root_node = this->match_root();
-    return root_node;
-
-}
-
-std::vector<std::string> SyntaxParser::
-get_includes()
-{
-
-    std::vector<std::string> file_paths;
-    AbstractSyntaxNode *current_node = this->match_include();
-    while (current_node != nullptr)
-    {
-        IncludeSyntaxNode *include_node = current_node->cast_to<IncludeSyntaxNode*>();
-        file_paths.push_back(include_node->file_path_as_string());
-        delete current_node; // The parser doesn't actually need this, we can discard.
-        current_node = this->match_include();
-    }
-
-    return file_paths;
 
 }
 
@@ -185,174 +83,6 @@ synchronize_to(TokenType type)
     }
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-// --- Abstract Syntax Node Base Class Implementation --------------------------
-
-AbstractSyntaxNode::
-AbstractSyntaxNode()
-{
-
-    this->type = type;
-
-}
-
-AbstractSyntaxNode::
-~AbstractSyntaxNode()
-{
-
-}
-
-bool AbstractSyntaxNode::
-is_void() const
-{
-
-    bool result = (this->type == SyntaxNodeType::SyntaxNodeVoid);
-    return result;
-
-}
-
-SyntaxNodeType AbstractSyntaxNode::
-get_type() const
-{
-
-    return this->type;
-
-}
-
-template <class T> T AbstractSyntaxNode::
-cast_to()
-{
-    
-    T result = dynamic_cast<T>(this);
-    return result;
-
-}
-
-// --- Void Syntax Node Implementation -----------------------------------------
-
-VoidSyntaxNode::
-VoidSyntaxNode()
-{
-
-    this->type = SyntaxNodeType::SyntaxNodeVoid;
-
-}
-
-VoidSyntaxNode::
-~VoidSyntaxNode()
-{
-
-}
-
-void VoidSyntaxNode::
-accept(ISyntaxNodeVisitor *visitor)
-{
-
-    visitor->visit_void_syntax_node(this);
-
-}
-
-// --- Include Syntax Node Implementation --------------------------------------
-
-IncludeSyntaxNode::
-IncludeSyntaxNode(Filepath path)
-{
-
-    this->type = SyntaxNodeType::SyntaxNodeInclude;
-    this->path = path;
-
-}
-
-IncludeSyntaxNode::
-~IncludeSyntaxNode()
-{
-
-}
-
-Filepath IncludeSyntaxNode::
-file_path() const
-{
-    
-    return this->path;
-
-}
-
-std::string IncludeSyntaxNode::
-file_path_as_string() const
-{
-    
-    return this->path.c_str();
-
-}
-
-void IncludeSyntaxNode::
-accept(ISyntaxNodeVisitor *visitor) 
-{
-
-    visitor->visit_include_syntax_node(this);
-
-}
-
-// --- Main Syntax Node --------------------------------------------------------
-
-MainSyntaxNode::
-MainSyntaxNode(std::vector<AbstractSyntaxNode*> children)
-{
-
-    this->type      = SyntaxNodeType::SyntaxNodeMain;
-    this->children  = children;
-
-}
-
-MainSyntaxNode::
-~MainSyntaxNode()
-{
-
-}
-
-void MainSyntaxNode::
-accept(ISyntaxNodeVisitor *visitor) 
-{
-
-    visitor->visit_main_syntax_node(this);
-
-}
-
-// --- Root Syntax Node --------------------------------------------------------
-
-RootSyntaxNode::
-RootSyntaxNode(std::vector<AbstractSyntaxNode*> children)
-{
-
-    this->type = SyntaxNodeType::SyntaxNodeRoot;
-
-}
-
-RootSyntaxNode::
-~RootSyntaxNode()
-{
-
-}
-
-void RootSyntaxNode::
-accept(ISyntaxNodeVisitor *visitor) 
-{
-
-    visitor->visit_root_syntax_node(this);
-
-}
-
 
 
 

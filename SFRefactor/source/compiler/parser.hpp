@@ -3,34 +3,14 @@
 // Written by Chris DeJong Nov. 2024 / Northern Illinois University
 //
 //      Constructs an AST based on a given entry-source file. The grammar for
-//      the language is described in detail below. A program consists of n-include
-//      statements, followed by n-global statements. From there, "begin" marks the
-//      start of the runtime code, followed by n-body statements, an "end", semicolon,
-//      and some amount of whitespace until EOF. This means that include statements
-//      must occur at the top of every file.
-//
-//      Global statements are defined at the global level; all include files scope
-//      to this level. The main entry file is the only file which contains a "begin"
-//      and "end" block, which push the scope up as normal. Behavior beyond this
-//      point is pretty typical of most programs.
+//      the language is described in detail below.
 //
 // --- Language Grammar --------------------------------------------------------
 //
 //      program                     :   (include_statement)* (global_statement)* main; EOF
 //      main                        :   "begin" (body_statement)* "end" ;
-//      include_statement           :   "include" TOKEN_STRING ;
-//
-// --- Creating AST Traversals -------------------------------------------------
-//
-//      The parser constructs a set of AST nodes with a visitor interface that
-//      allows you to create custom traversals using a neat little interface.
-//      The ISyntaxNodeVisitor basically provides the base class which allows you
-//      to run along the entire tree (or parts, if you see fit) and perform operations
-//      that otherwise requires a custom recursive traversal routine.
-//
-//      The cost of such a procedure is kind of expensive in the grand scheme of
-//      things, but generally we aren't stingy with compute power when it comes to
-//      performing an operation once.
+//      include_statement           :   "include" TOKEN_STRING ; module [import]
+//      module                      :   (include_statement)* (global_statement)* EOF [import]
 //
 // -----------------------------------------------------------------------------
 
@@ -48,31 +28,34 @@
 // abstract syntax tree that the parser produces.
 //
 
-class AbstractSyntaxNode;
-class VoidSyntaxNode;
-class RootSyntaxNode;
-class MainSyntaxNode;
-class IncludeSyntaxNode;
+class ISyntaxNode;
+class SyntaxNodeRoot;
+class SyntaxNodeModule;
+class SyntaxNodeInclude;
+class SyntaxNodeMain;
 
 // Provides an easy way to traverse the AST in a uniform fashion without having to
 // extend any internal behaviors on the nodes themselves. They automatically recurse
 // on their child nodes.
 class ISyntaxNodeVisitor
 {
+
     public:
-        virtual void visit_void_syntax_node(VoidSyntaxNode *node)               = 0;
-        virtual void visit_root_syntax_node(RootSyntaxNode *node)               = 0;
-        virtual void visit_main_syntax_node(MainSyntaxNode *node)               = 0;
-        virtual void visit_include_syntax_node(IncludeSyntaxNode *node)         = 0;
+        virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node) = 0;
+        virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node) = 0;
+        virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) = 0;
+        virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node) = 0;
+
 };
 
 // Provides a way of easily identifying which node was encountered.
 enum class SyntaxNodeType
 {
-    SyntaxNodeVoid,
-    SyntaxNodeRoot,
-    SyntaxNodeMain,
-    SyntaxNodeInclude,
+    NodeTypeVoid,
+    NodeTypeRoot,
+    NodeTypeModule,
+    NodeTypeInclude,
+    NodeTypeMain,
 };
 
 // --- Abstract Syntax Node Base Class -----------------------------------------
@@ -95,15 +78,14 @@ enum class SyntaxNodeType
 // over "cast_to" or "get_type" when checking for void nodes.
 //
 
-class AbstractSyntaxNode
+class ISyntaxNode 
 {
     public:
-                                        AbstractSyntaxNode();
-        virtual                        ~AbstractSyntaxNode();
+        inline          ISyntaxNode() { this->type = SyntaxNodeType::NodeTypeVoid; }
+        inline virtual ~ISyntaxNode() { }
 
-        bool                            is_void() const;
-        SyntaxNodeType                  get_type() const;
-        template <class T> T            cast_to();
+        inline SyntaxNodeType       get_type() const { return this->type; }
+        template <class T> inline T cast_to() { return dynamic_cast<T>(this); }
 
         virtual void accept(ISyntaxNodeVisitor *visitor) = 0;
 
@@ -112,47 +94,23 @@ class AbstractSyntaxNode
 
 };
 
-// --- Void Syntax Node --------------------------------------------------------
-//
-// The void syntax node is a node that is returned when node valid node can be
-// returned. We enforce that all nodes are returned as valid nodes, so we must
-// ensure that this exists and is inspectable.
-//
-
-class VoidSyntaxNode : public AbstractSyntaxNode
-{
-
-    public:
-                        VoidSyntaxNode();
-        virtual        ~VoidSyntaxNode();
-
-        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
-
-};
-
 // --- Include Syntax Node -----------------------------------------------------
 //
 // The include syntax node corresponds to the grammar specification for includes.
-// This node is somewhat special in that we typically don't see this in the root
-// syntax tree. The DependencyResolver is responsible for collecting these nodes
-// and ensures that sub-parsers are constructed and circular inclusions are
-// properly discovered.
+// Essentially, it stores the include path of the file.
 //
 
-class IncludeSyntaxNode : public AbstractSyntaxNode
+class SyntaxNodeInclude : public ISyntaxNode 
 {
 
     public:
-                        IncludeSyntaxNode(Filepath path);
-        virtual        ~IncludeSyntaxNode();
+        inline          SyntaxNodeInclude() { this->type = SyntaxNodeType::NodeTypeInclude; }
+        inline virtual ~SyntaxNodeInclude() { }
 
-        Filepath        file_path() const;
-        std::string     file_path_as_string() const;
+        virtual void    accept(ISyntaxNodeVisitor *visitor) override
+            { visitor->visit_SyntaxNodeInclude(this); }
 
-        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
-
-    protected:
-        Filepath path;
+        std::string path;
 
 };
 
@@ -164,17 +122,37 @@ class IncludeSyntaxNode : public AbstractSyntaxNode
 // runtime specific.
 //
 
-class MainSyntaxNode : public AbstractSyntaxNode
+class SyntaxNodeMain : public ISyntaxNode 
 {
 
     public:
-                        MainSyntaxNode(std::vector<AbstractSyntaxNode*> children);
-        virtual        ~MainSyntaxNode();
+        inline          SyntaxNodeMain() { this->type = SyntaxNodeType::NodeTypeMain; }
+        inline virtual ~SyntaxNodeMain() { };
 
-        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+        inline virtual void accept(ISyntaxNodeVisitor *visitor) override
+            { visitor->visit_SyntaxNodeMain(this); }
 
-    protected:
-        std::vector<AbstractSyntaxNode*> children;
+        std::vector<shared_ptr<ISyntaxNode>> children;
+
+};
+
+// --- Module Syntax Node ------------------------------------------------------
+//
+// The module syntax node refers to non-entry-point includes which have a special
+// grammar associated with them.
+//
+
+class SyntaxNodeModule : public ISyntaxNode 
+{
+
+    public:
+        inline          SyntaxNodeModule() { this->type = SyntaxNodeType::NodeTypeModule; }
+        inline virtual ~SyntaxNodeModule() { };
+
+        inline virtual void accept(ISyntaxNodeVisitor *visitor) override
+            { visitor->visit_SyntaxNodeModule(this); }
+
+        std::vector<shared_ptr<ISyntaxNode>> globals;
 
 };
 
@@ -186,19 +164,18 @@ class MainSyntaxNode : public AbstractSyntaxNode
 // root node by the grammar specification as outlined above.
 //
 
-class RootSyntaxNode : public AbstractSyntaxNode
+class SyntaxNodeRoot : public ISyntaxNode 
 {
 
     public:
-                        RootSyntaxNode(std::vector<AbstractSyntaxNode*> children);
-        virtual        ~RootSyntaxNode();
+        inline          SyntaxNodeRoot() { this->type = SyntaxNodeType::NodeTypeRoot; }
+        inline virtual ~SyntaxNodeRoot() { };
 
-        virtual void    accept(ISyntaxNodeVisitor *visitor) override;
+        inline virtual void accept(ISyntaxNodeVisitor *visitor) override
+            { visitor->visit_SyntaxNodeRoot(this); }
 
-    protected:
-        std::vector<AbstractSyntaxNode*> upper_globals;
-        std::vector<AbstractSyntaxNode*> lower_globals; // This should probably be empty.
-        AbstractSyntaxNode *main;
+        std::vector<shared_ptr<ISyntaxNode>> globals;
+        shared_ptr<ISyntaxNode> main;
 
 };
 
@@ -223,38 +200,33 @@ class SyntaxParser
 
     public:
                         SyntaxParser(Filepath filepath);
-                        SyntaxParser(Filepath filepath, SyntaxParser *parent);
         virtual        ~SyntaxParser();
 
-        AbstractSyntaxNode*             construct_ast();           
+        bool            construct_as_root();           
+        bool            construct_as_module();
 
-        Filepath                        get_source_path() const;
-        std::vector<std::string>        get_includes();
+        void            visit_base_node(ISyntaxNodeVisitor *visitor);
 
-    protected:
-        void                            synchronize_to(TokenType type);
-        template <class T> T*           generate_node();
-
-        AbstractSyntaxNode*             match_main();
-        AbstractSyntaxNode*             match_global();
-        AbstractSyntaxNode*             match_include();
-        AbstractSyntaxNode*             match_root();
-
-        // It's as bad as you think it is.
-        template <class T, typename ...Params> std::shared_ptr<T> create_node(Params... args);
+        Filepath        get_source_path() const;
 
     protected:
-        Filepath        entry_path;
-        Tokenizer       tokenizer;
-        SyntaxParser   *parent_parser;
+        void synchronize_to(TokenType type);
+        template <class T, typename ...Params> std::shared_ptr<T> generate_node(Params... args);
 
-        DependencyGraph dependency_graph;
-        std::shared_ptr<DependencyNode> dependency_node;
+        shared_ptr<ISyntaxNode>         match_root();
+        shared_ptr<ISyntaxNode>         match_module();
+        shared_ptr<ISyntaxNode>         match_include();
+        shared_ptr<ISyntaxNode>         match_main();
 
-        std::vector<SyntaxParser*> children_parsers;
-        std::vector<std::shared_ptr<AbstractSyntaxNode*>> internal_nodes;
+    protected:
+        std::vector<shared_ptr<ISyntaxNode>> nodes;
+        shared_ptr<ISyntaxNode> base_node;
+        Tokenizer               tokenizer;
+        Filepath                path;
 
 };
+
+
 
 /*
 #ifndef SOURCE_COMPILER_RPARSER_H
