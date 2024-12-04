@@ -17,7 +17,7 @@ class SyntaxTree
 
     protected:
         shared_ptr<ISyntaxNode> root;
-        DependencyGraph dependency_graph;
+        DependencyGraph graph;
 
 };
 

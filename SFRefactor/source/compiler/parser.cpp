@@ -24,10 +24,11 @@
 // --- Parser Constructor/Destructors ------------------------------------------
 
 SyntaxParser::
-SyntaxParser(Filepath filepath) : tokenizer(filepath)
+SyntaxParser(Filepath filepath, DependencyGraph *graph) : tokenizer(filepath)
 {
 
     this->path = filepath;
+    this->graph = graph;
 
 }
 
@@ -59,7 +60,7 @@ generate_node(Params... args)
 
     // Thanks C++, very cool.
     std::shared_ptr<T> result = std::make_shared<T>(args...);
-    std::shared_ptr<ISyntaxNode> cast_back = dynamic_cast<ISyntaxNode>(result);
+    std::shared_ptr<ISyntaxNode> cast_back = dynamic_pointer_cast<ISyntaxNode>(result);
     this->nodes.push_back(cast_back);
     return result;
 
@@ -84,12 +85,167 @@ synchronize_to(TokenType type)
 
 }
 
+bool SyntaxParser::
+construct_as_root()
+{
+
+    auto root_node = this->match_root();
+    if (root_node == nullptr) return false;
+
+    this->base_node = root_node;
+    return true;
+
+}
+
+bool SyntaxParser::
+construct_as_module()
+{
+
+    auto module_node = this->match_module();
+    if (module_node == nullptr) return false;
+
+    this->base_node = module_node;
+    return true;
+
+}
+
+bool SyntaxParser::
+expect_previous_token_as(TokenType type) const
+{
+
+    bool result = this->tokenizer.get_previous_token().type == type;
+    return result;
+
+}
+
+bool SyntaxParser::
+expect_current_token_as(TokenType type) const
+{
+
+    bool result = this->tokenizer.get_current_token().type == type;
+    return result;
+
+}
+
+bool SyntaxParser::
+expect_next_token_as(TokenType type) const
+{
+
+    bool result = this->tokenizer.get_next_token().type == type;
+    return result;
+
+}
+
+// --- Parser Implementations --------------------------------------------------
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_root()
+{
+
+    // Match all global statements.
+    std::vector<shared_ptr<ISyntaxNode>> global_nodes;
+    shared_ptr<ISyntaxNode> current_node = nullptr;
+    while (true)
+    {
+
+        current_node = this->match_global_statement();
+        if (current_node == nullptr) break;
+        global_nodes.push_back(current_node);
+
+    }
+
+    // Match main.
+    shared_ptr<ISyntaxNode> main_node = this->match_main();
+    if (main_node == nullptr) return nullptr;
+
+    // Match EOF. We don't have to shift at EOF.
+    if (!this->expect_current_token_as(TokenType::TOKEN_EOF))
+    {
+        std::cout << "Expected end-of-file." << std::endl;
+        return nullptr;
+    }
+
+    // Create the root node.
+    auto root_node = this->generate_node<SyntaxNodeRoot>();
+    root_node->globals = global_nodes;
+    root_node->main = main_node;
+
+    return root_node;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_module()
+{
+
+    // Match all global statements.
+    std::vector<shared_ptr<ISyntaxNode>> global_nodes;
+    shared_ptr<ISyntaxNode> current_node = nullptr;
+    while (true)
+    {
+
+        current_node = this->match_global_statement();
+        if (current_node == nullptr) break;
+        global_nodes.push_back(current_node);
+
+    }
+
+    if (!this->expect_current_token_as(TokenType::TOKEN_EOF))
+    {
+        std::cout << "Expected EOF!" << std::endl;
+    }
+
+    return nullptr;
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_global_statement()
+{
+
+    Token current_token = this->tokenizer.get_current_token();
+    switch (current_token.type)
+    {
+
+        case TokenType::TOKEN_KEYWORD_INCLUDE: return this->match_include();
+
+    }
+
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_include()
+{
 
 
 
+    return nullptr;
 
+}
 
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_main()
+{
 
+    if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_BEGIN))
+    {
+        std::cout << "Expected keyword begin." << std::endl;
+        return nullptr;
+    }
+
+    this->tokenizer.shift();
+
+    if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_END))
+    {
+        std::cout << "Expected keyword end." << std::endl;
+        return nullptr;
+    }
+
+    auto main_node = this->generate_node<SyntaxNodeMain>();
+    return main_node;
+
+}
 
 
 

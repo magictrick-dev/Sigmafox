@@ -7,13 +7,13 @@
 //
 // --- Language Grammar --------------------------------------------------------
 //
-//      program                     :   (include_statement)* (global_statement)* main; EOF
+//      program                     :   (global_statement)* main; EOF
 //      main                        :   "begin" (body_statement)* "end" ;
-//      include_statement           :   "include" TOKEN_STRING ; module [import]
-//      module                      :   (include_statement)* (global_statement)* EOF [import]
+//      global_statement            :   include_statement
+//      include_statement           :   "include" TOKEN_STRING ; module
+//      module                      :   (global_statement)* EOF
 //
 // -----------------------------------------------------------------------------
-
 #ifndef SIGMAFOX_COMPILER_PARSER_H 
 #define SIGMAFOX_COMPILER_PARSER_H 
 #include <vector>
@@ -199,13 +199,15 @@ class SyntaxParser
 {
 
     public:
-                        SyntaxParser(Filepath filepath);
+                        SyntaxParser(Filepath filepath, DependencyGraph* graph);
         virtual        ~SyntaxParser();
 
-        bool            construct_as_root();           
+        bool            construct_as_root();
         bool            construct_as_module();
 
         void            visit_base_node(ISyntaxNodeVisitor *visitor);
+
+        inline shared_ptr<ISyntaxNode> get_base_node() const { return this->base_node; }
 
         Filepath        get_source_path() const;
 
@@ -215,14 +217,20 @@ class SyntaxParser
 
         shared_ptr<ISyntaxNode>         match_root();
         shared_ptr<ISyntaxNode>         match_module();
+        shared_ptr<ISyntaxNode>         match_global_statement();
         shared_ptr<ISyntaxNode>         match_include();
         shared_ptr<ISyntaxNode>         match_main();
+
+        bool expect_previous_token_as(TokenType type) const;
+        bool expect_current_token_as(TokenType type) const;
+        bool expect_next_token_as(TokenType type) const;
 
     protected:
         std::vector<shared_ptr<ISyntaxNode>> nodes;
         shared_ptr<ISyntaxNode> base_node;
-        Tokenizer               tokenizer;
-        Filepath                path;
+        DependencyGraph* graph;
+        Tokenizer tokenizer;
+        Filepath path;
 
 };
 

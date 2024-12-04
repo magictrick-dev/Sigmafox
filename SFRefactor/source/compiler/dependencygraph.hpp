@@ -18,6 +18,8 @@
 
 // Forward declare so we can feed this to the nodes.
 class SyntaxParser;
+class DependencyNode;
+class DependencyGraph;
 
 // --- Dependency Node ---------------------------------------------------------
 //
@@ -29,8 +31,21 @@ class DependencyNode
 {
 
     public:
-                    DependencyNode();
+                    DependencyNode(shared_ptr<DependencyNode> parent, 
+                            Filepath path, DependencyGraph* graph);
         virtual    ~DependencyNode();
+
+        bool        add_child(shared_ptr<DependencyNode> child);
+
+        Filepath                    get_path() const;
+        shared_ptr<SyntaxParser>    get_parser() const;
+        shared_ptr<DependencyNode>  get_parent_node() const;
+
+    protected:
+        Filepath path;
+        shared_ptr<SyntaxParser> parser;
+        shared_ptr<DependencyNode> parent;
+        std::vector<shared_ptr<DependencyNode>> children;
 
 };
 
@@ -46,6 +61,11 @@ class DependencyGraph
     public:
                     DependencyGraph();
         virtual    ~DependencyGraph();
+
+        bool        set_entry(Filepath entry);
+        bool        insert_dependency(Filepath parent, Filepath child);
+
+        shared_ptr<SyntaxParser> get_parser_for(Filepath path);
 
     protected:
         shared_ptr<DependencyNode> entry_node;
