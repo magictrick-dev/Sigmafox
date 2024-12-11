@@ -9,6 +9,7 @@ DependencyNode::
 DependencyNode(shared_ptr<DependencyNode> parent, Filepath path, DependencyGraph* graph)
 {
 
+    this->path = path;
     this->parent = parent;
     this->parser = std::make_shared<SyntaxParser>(path, graph);
 

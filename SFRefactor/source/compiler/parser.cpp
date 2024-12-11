@@ -89,6 +89,8 @@ bool SyntaxParser::
 construct_as_root()
 {
 
+    SF_ASSERT(this->base_node == nullptr &&
+            "The 'construct_as_root()' function should only ever be called once.");
     auto root_node = this->match_root();
     if (root_node == nullptr) return false;
 
@@ -101,10 +103,15 @@ bool SyntaxParser::
 construct_as_module()
 {
 
-    auto module_node = this->match_module();
-    if (module_node == nullptr) return false;
+    if (this->base_node == nullptr)
+    {
 
-    this->base_node = module_node;
+        auto module_node = this->match_module();
+        if (module_node == nullptr) return false;
+        this->base_node = module_node;
+
+    }
+
     return true;
 
 }
@@ -194,8 +201,12 @@ match_module()
     {
         std::cout << "Expected EOF!" << std::endl;
     }
+    
+    // Create the root node.
+    auto module_node = this->generate_node<SyntaxNodeModule>();
+    module_node->globals = global_nodes;
+    return module_node;
 
-    return nullptr;
 }
 
 shared_ptr<ISyntaxNode> SyntaxParser::
@@ -218,9 +229,61 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_include()
 {
 
+    if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_INCLUDE))
+    {
+        std::cout << "Expected keyword include." << std::endl;
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
 
+    this->tokenizer.shift();
 
-    return nullptr;
+    if (!this->expect_current_token_as(TokenType::TOKEN_STRING))
+    {
+        std::cout << "Expected type string." << std::endl;
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+
+    Token include_path_token = this->tokenizer.get_current_token();
+    this->tokenizer.shift();
+    Filepath include_path = this->path.root_directory();
+    include_path += "./";
+    std::string path = include_path_token.to_string();
+    include_path += path;
+    include_path.canonicalize();
+
+    if (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+    {
+        std::cout << "Expected semicolon." << std::endl;
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+    
+    this->tokenizer.shift();
+
+    // Before we generate the node, we need to add it to the dependency graph.
+    if (!this->graph->insert_dependency(this->path, include_path))
+    {
+        return nullptr;
+    }
+
+    // Attempt to parse the new include.
+    shared_ptr<SyntaxParser> include_parser = this->graph->get_parser_for(include_path);
+    SF_ENSURE_PTR(include_parser);
+    if (!include_parser->construct_as_module())
+    {
+        std::cout << "Unable to parser include " << include_path << std::endl;
+        return nullptr;
+    }
+
+    // NOTE(Chris): At this point, we take the symbol table dependencies and merge
+    //              it here, but since we haven't done that yet, we don't need to.
+
+    // Generate the node.
+    auto include_node = this->generate_node<SyntaxNodeInclude>();
+    include_node->path = include_path.c_str();
+    return include_node;
 
 }
 

@@ -158,27 +158,16 @@ to_string() const
     ResourceManager& resmanager = ApplicationParameters::get().get_resource_manager();
     SF_ASSERT(resmanager.is_loaded(this->resource));
 
-    std::string result;
     cptr modifiable_source = (cptr)resmanager.get_resource(this->resource);
 
-    char hold = modifiable_source[this->offset + this->length];
-    modifiable_source[this->offset + this->length] = '\0'; // What da dog doen?
-    //result = modifiable_source + this->offset;
-
-    // We will probably just escape our new line sequences.
-    ccptr source_string = modifiable_source + this->offset;
-    i32 index = 0;
-    while (source_string[index] != '\0')
+    std::string result;
+    cptr offset_string = modifiable_source + this->offset;
+    for (i32 i = 0; i < this->length; ++i)
     {
-        char c = source_string[index++];
-        if (c == '\n')
-        {
-            result += "\\n";
-            continue;
-        }
-        result += c;
+        char c = offset_string[i];
+        if (c == '\n') result += "\\n";
+        else result += c;
     }
-    modifiable_source[this->offset + this->length] = hold;
 
     return result;
 
