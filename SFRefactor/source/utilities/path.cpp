@@ -4,7 +4,15 @@
 Filepath::
 Filepath()
 {
+
     this->zero_initialize();
+    u64 string_length = 8;
+    u64 required_size = this->find_best_fit(string_length + 1);
+    this->buffer_ptr        = (char*)SF_MEMORY_ALLOC(required_size);
+    this->buffer_capacity   = required_size;
+    this->buffer_length     = 8;
+    memset(this->buffer_ptr, '\0', this->buffer_capacity);
+
 }
 
 Filepath::

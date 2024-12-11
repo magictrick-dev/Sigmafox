@@ -22,7 +22,6 @@
 #define SIGAMFOX_COMPILER_DEPENDENCYRESOLVER_HPP
 #include <definitions.hpp>
 #include <utilities/path.hpp>
-#include <utilities/resourcemanager.hpp>
 #include <compiler/parser.hpp>
 #include <compiler/dependencygraph.hpp>
 
@@ -30,6 +29,7 @@ class DependencyResolver
 {
 
     public:
+                    DependencyResolver(Filepath entry);
                     DependencyResolver(SyntaxParser *entry);
         virtual    ~DependencyResolver();
 

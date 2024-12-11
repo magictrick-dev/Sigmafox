@@ -28,6 +28,7 @@ resolve_recurse(std::shared_ptr<DependencyNode> current, SyntaxParser *parser,
         std::vector<SyntaxParser*> &parsers)
 {
 
+    /*
     std::vector<std::string> paths = parser->get_includes();   
     for (const auto path : paths)
     {
@@ -91,6 +92,7 @@ resolve_recurse(std::shared_ptr<DependencyNode> current, SyntaxParser *parser,
         if (!result) return false; // If the recursion is broken, then we break.
 
     }
+    */
 
     return true;
 

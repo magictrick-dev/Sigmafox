@@ -2,6 +2,7 @@
 #define SIGMAFOX_DEFINITIONS_H
 #include <cstdint>
 #include <cassert>
+#include <memory>
 
 typedef uint8_t     u8;
 typedef uint16_t    u16;
@@ -33,5 +34,7 @@ typedef void*       vptr;
 
 #define SF_MEMORY_ALLOC(sz) (::malloc(sz))
 #define SF_MEMORY_FREE(ptr) (::free(ptr))
+
+using std::shared_ptr;
 
 #endif

@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <environment.hpp>
 #include <compiler/tokenizer.hpp>
+#include <platform/filesystem.hpp>
 
 // NOTE(Chris): The keyword map is case-insensitive, we enforce upper-case here.
 //              We are statically lazy-initializing this since we only need to
@@ -125,105 +126,6 @@ get_token_map()
 
 }
 
-// --- Token Implementation ----------------------------------------------------
-// 
-// The token class is pretty basic, but we want to have a few helpers to inspect
-// them during tokenization and error-handling.
-//
-
-Token::
-Token()
-{
-
-    this->type      = TokenType::TOKEN_UNDEFINED;
-    this->resource  = -1;
-    this->offset    = 0;
-    this->length    = 0;
-
-}
-
-Token::
-~Token()
-{
-
-}
-
-std::string Token::
-to_string() const
-{
-
-    // NOTE(Chris): This is a naughty function that does naughty things. We may
-    //              want to do something differently to handle this procedure to
-    //              make it less explosive.
-    ResourceManager& resmanager = ApplicationParameters::get().get_resource_manager();
-    SF_ASSERT(resmanager.is_loaded(this->resource));
-
-    std::string result;
-    cptr modifiable_source = (cptr)resmanager.get_resource(this->resource);
-
-    char hold = modifiable_source[this->offset + this->length];
-    modifiable_source[this->offset + this->length] = '\0'; // What da dog doen?
-    //result = modifiable_source + this->offset;
-
-    // We will probably just escape our new line sequences.
-    ccptr source_string = modifiable_source + this->offset;
-    i32 index = 0;
-    while (source_string[index] != '\0')
-    {
-        char c = source_string[index++];
-        if (c == '\n')
-        {
-            result += "\\n";
-            continue;
-        }
-        result += c;
-    }
-    modifiable_source[this->offset + this->length] = hold;
-
-    return result;
-
-}
-
-std::string Token::
-type_to_string() const
-{
-
-    const std::unordered_map<TokenType, std::string> &map = get_token_map();
-    auto iter = map.find(this->type);
-    SF_ASSERT(iter != map.end()); // This should never occur since all types must be defined.
-    return iter->second;
-
-}
-
-std::pair<i32, i32> Token::
-position() const
-{
-
-    std::pair<i32, i32> result;
-
-    ResourceManager& resmanager = ApplicationParameters::get().get_resource_manager();
-    SF_ASSERT(resmanager.is_loaded(this->resource));
-    
-    // Count lines & column position.
-    ccptr source = resmanager.get_resource_as_text(this->resource);
-    int line_count = 1;
-    int offset = 0;
-    for (i32 i = 0; i < this->offset; ++i)
-    {
-        offset++;
-        if (source[i] == '\n')
-        {
-            line_count++;
-            offset = 0;
-        }
-    }
-
-    result.first    = line_count;
-    result.second   = offset;
-    return result;
-
-}
-
 // --- Tokenizer Implementation ------------------------------------------------
 //
 // The implementation of the tokenizer is pretty straight forward, but it does
@@ -234,16 +136,16 @@ Tokenizer::
 Tokenizer(const Filepath& path)
 {
 
+    SF_ASSERT(path.is_valid_file());
+
     // Set the path.
     this->path = path;
 
-    // Ensures the file is loaded through the global resource manager.
-    ResourceManager& resmanager = ApplicationParameters::get().get_resource_manager();
-    ResourceHandle handle = resmanager.create_resource_handle(path);
-    SF_ASSERT(resmanager.resource_handle_is_valid(handle));
-    resmanager.load_synchronously(handle);
-    this->resource = handle;
-    this->source = resmanager.get_resource_as_text(this->resource);
+    // Read the file into the tokenizer.
+    u64 size = file_size(path.c_str());
+    this->source.resize(size+1);
+    u64 read_size = file_read_all(path.c_str(), this->source.data(), size);
+    SF_ASSERT(size == read_size);
 
     // Set our token buffers.
     this->previous_token    = &token_buffer[0];
@@ -254,9 +156,9 @@ Tokenizer(const Filepath& path)
     for (i32 i = 0; i < 3; ++i)
     {
         this->token_buffer[i].type      = TokenType::TOKEN_EOF;
-        this->token_buffer[i].resource  = this->resource;
-        this->token_buffer[i].offset    = 0;
-        this->token_buffer[i].length    = 0;
+        this->token_buffer[i].reference = "";
+        this->token_buffer[i].row       = 0;
+        this->token_buffer[i].column    = 0;
     }
 
     // This will prime the current and next tokens automatically for us.
@@ -269,7 +171,20 @@ Tokenizer::
 ~Tokenizer()
 {
 
+}
 
+void Tokenizer::
+set_token(Token *token, TokenType type)
+{
+
+    token->reference.clear();
+    ccptr offset_string = this->source.c_str() + this->offset;
+    i32 length = this->step - this->offset;
+    for (i32 i = 0; i < length; ++i) token->reference += offset_string[i];
+
+    token->type     = type;
+    token->row      = row;
+    token->column   = column;
 
 }
 
@@ -277,9 +192,20 @@ char Tokenizer::
 consume(u32 count)
 {
 
-    char result = this->source[this->step + count - 1];
-    this->step += count;
-    return result;
+    char current = this->source[this->step];
+    for (u32 i = 0; i < count; ++i)
+    {
+        current = this->source[this->step];
+        if (current == '\n')
+        {
+            this->row += 1;
+            this->column = 0;
+        }
+        this->step += 1;
+        this->column += 1;
+    }
+
+    return current;
 
 }
 
@@ -326,7 +252,7 @@ check_identifier() const
 {
 
     const std::unordered_map<std::string, TokenType>& keyword_map = get_keyword_map();
-    std::string identifier = this->next_token->to_string();
+    std::string identifier = this->next_token->reference;
     for (auto &c : identifier) c = toupper(c); // Simpler this way, keywords are case insensitive.
 
     TokenType result = TokenType::TOKEN_IDENTIFIER;
@@ -354,17 +280,17 @@ consume_whitespace()
     {
 
         // Consumes everything after the '{'.
-        while (this->peek(0) != '}' && !this->is_eof()) this->consume(1);
+        while (this->peek(0) != '}' && !this->is_eof())
+        {
+            this->consume(1);
+        }
 
         // The comment could reach EOF, so account for that case and
         // generate the appropriate error token.
         if (this->is_eof())
         {
 
-            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOF;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOF);
 
         }
 
@@ -414,10 +340,7 @@ match_newline()
     if (current == '\n')
     {
         this->consume(1);
-        this->next_token->type      = TokenType::TOKEN_NEW_LINE;
-        this->next_token->resource  = this->resource;
-        this->next_token->offset    = this->offset;
-        this->next_token->length    = this->step - this->offset;
+        this->set_token(this->next_token, TokenType::TOKEN_NEW_LINE);
         this->synchronize();
         return true;
     }
@@ -442,20 +365,14 @@ match_comments()
         if (this->is_eof())
         {
 
-            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOF;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOF);
 
         }
         else
         {
 
             this->consume(1); // Consume trailing '}', this isn't in the next token.
-            this->next_token->type      = TokenType::TOKEN_COMMENT_BLOCK;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_COMMENT_BLOCK);
 
         }
 
@@ -477,10 +394,7 @@ match_symbols()
         case '(':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_LEFT_PARENTHESIS;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_LEFT_PARENTHESIS);
             this->synchronize();
             return true;
         } break;
@@ -488,10 +402,7 @@ match_symbols()
         case ')':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_RIGHT_PARENTHESIS;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_RIGHT_PARENTHESIS);
             this->synchronize();
             return true;
         } break;
@@ -499,10 +410,7 @@ match_symbols()
         case ',':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_COMMA;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_COMMA);
             this->synchronize();
             return true;
         } break;
@@ -510,10 +418,7 @@ match_symbols()
         case ';':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_SEMICOLON;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_SEMICOLON);
             this->synchronize();
             return true;
         } break;
@@ -521,10 +426,7 @@ match_symbols()
         case '+':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_PLUS;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_PLUS);
             this->synchronize();
             return true;
         } break;
@@ -532,10 +434,7 @@ match_symbols()
         case '-':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_MINUS;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_MINUS);
             this->synchronize();
             return true;
         } break;
@@ -543,10 +442,7 @@ match_symbols()
         case '*':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_STAR;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_STAR);
             this->synchronize();
             return true;
         } break;
@@ -554,10 +450,7 @@ match_symbols()
         case '/':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_FORWARD_SLASH;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_FORWARD_SLASH);
             this->synchronize();
             return true;
         } break;
@@ -565,10 +458,7 @@ match_symbols()
         case '^':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_CARROT;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_CARROT);
             this->synchronize();
             return true;
         } break;
@@ -576,10 +466,7 @@ match_symbols()
         case '=':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_EQUALS;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_EQUALS);
             this->synchronize();
             return true;
         } break;
@@ -587,10 +474,7 @@ match_symbols()
         case '#':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_HASH;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_HASH);
             this->synchronize();
             return true;
         } break;
@@ -598,10 +482,7 @@ match_symbols()
         case '&':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_AMPERSAND;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_AMPERSAND);
             this->synchronize();
             return true;
         } break;
@@ -609,10 +490,7 @@ match_symbols()
         case '|':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_PIPE;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_PIPE);
             this->synchronize();
             return true;
         } break;
@@ -620,10 +498,7 @@ match_symbols()
         case '%':
         {
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_PERCENT;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_PERCENT);
             this->synchronize();
             return true;
         } break;
@@ -635,19 +510,13 @@ match_symbols()
             if (follower == '=')
             {
                 this->consume(2);
-                this->next_token->type      = TokenType::TOKEN_LESS_THAN_EQUALS;
-                this->next_token->resource  = this->resource;
-                this->next_token->offset    = this->offset;
-                this->next_token->length    = this->step - this->offset;
+                this->set_token(this->next_token, TokenType::TOKEN_LESS_THAN_EQUALS);
                 this->synchronize();
                 return true;
             }
             
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_LESS_THAN;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_LESS_THAN);
             this->synchronize();
             return true;
 
@@ -660,19 +529,13 @@ match_symbols()
             if (follower == '=')
             {
                 this->consume(2);
-                this->next_token->type      = TokenType::TOKEN_GREATER_THAN_EQUALS;
-                this->next_token->resource  = this->resource;
-                this->next_token->offset    = this->offset;
-                this->next_token->length    = this->step - this->offset;
+                this->set_token(this->next_token, TokenType::TOKEN_GREATER_THAN_EQUALS);
                 this->synchronize();
                 return true;
             }
             
             this->consume(1);
-            this->next_token->type      = TokenType::TOKEN_GREATER_THAN;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_GREATER_THAN);
             this->synchronize();
             return true;
 
@@ -685,10 +548,7 @@ match_symbols()
             if (follower == '=')
             {
                 this->consume(2);
-                this->next_token->type      = TokenType::TOKEN_COLON_EQUALS;
-                this->next_token->resource  = this->resource;
-                this->next_token->offset    = this->offset;
-                this->next_token->length    = this->step - this->offset;
+                this->set_token(this->next_token, TokenType::TOKEN_COLON_EQUALS);
                 this->synchronize();
                 return true;
             }
@@ -752,10 +612,7 @@ match_numbers()
 
         }
 
-        this->next_token->type      = type;
-        this->next_token->resource  = this->resource;
-        this->next_token->offset    = this->offset;
-        this->next_token->length    = this->step - this->offset;
+        this->set_token(this->next_token, type);
         this->synchronize();
         return true;
 
@@ -783,27 +640,18 @@ match_strings()
         // Strings potentially terminate at EOF or EOL, so we check both cases.
         if (this->is_eof())
         {
-            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOF;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOF);
         }
 
         else if (this->is_eol())
         {
-            this->next_token->type      = TokenType::TOKEN_UNDEFINED_EOL;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOL);
         }
 
         else
         {
 
-            this->next_token->type      = TokenType::TOKEN_STRING;
-            this->next_token->resource  = this->resource;
-            this->next_token->offset    = this->offset;
-            this->next_token->length    = this->step - this->offset;
+            this->set_token(this->next_token, TokenType::TOKEN_STRING);
             this->consume(1);
 
         }
@@ -841,14 +689,10 @@ match_identifiers()
             }
         }
 
-        this->next_token->type      = TokenType::TOKEN_IDENTIFIER;
-        this->next_token->resource  = this->resource;
-        this->next_token->offset    = this->offset;
-        this->next_token->length    = this->step - this->offset;
+        this->set_token(this->next_token, TokenType::TOKEN_IDENTIFIER);
 
         // Convert identifiers to keywords if they're keywords.
-        this->next_token->type      = this->check_identifier();
-
+        this->next_token->type = this->check_identifier();
         this->synchronize();
         return true;
 
@@ -874,10 +718,7 @@ shift()
     // Check if we're at the end of file and if we are, set the token to EOF.
     if (this->is_eof())
     {
-        this->next_token->type      = TokenType::TOKEN_EOF;
-        this->next_token->resource  = this->resource;
-        this->next_token->offset    = this->offset;
-        this->next_token->length    = 0;
+        this->set_token(this->next_token, TokenType::TOKEN_EOF);
         return;
     }
 
@@ -889,10 +730,7 @@ shift()
     
     // If we're here, we didn't match to specification, the token is undefined.
     this->consume(1);
-    this->next_token->type      = TokenType::TOKEN_UNDEFINED;
-    this->next_token->resource  = this->resource;
-    this->next_token->offset    = this->offset;
-    this->next_token->length    = this->step - this->offset;
+    this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED);
     this->synchronize(); // Synchronize.
     return;
 

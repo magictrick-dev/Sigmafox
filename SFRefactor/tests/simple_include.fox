@@ -2,3 +2,7 @@ include "dependents/file_c.fox";
 include "dependents/file_d.fox";
 
 { This is a comment that will get ignored. }
+
+begin;
+
+end;

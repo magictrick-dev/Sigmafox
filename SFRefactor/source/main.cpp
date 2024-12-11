@@ -6,10 +6,9 @@
 #include <platform/system.hpp>
 #include <utilities/path.hpp>
 #include <utilities/cli.hpp>
-#include <utilities/resourcemanager.hpp>
 #include <compiler/tokenizer.hpp>
 #include <compiler/parser.hpp>
-#include <compiler/dependencyresolver.hpp>
+#include <compiler/syntaxtree.hpp>
 
 int
 main(int argc, char ** argv)
@@ -51,13 +50,16 @@ main(int argc, char ** argv)
     }
 
     std::cout << "User Provided Source: " << user_source_file << std::endl;
-
-    // Create the root parser.
-    SyntaxParser root_parser(user_source_file);
-
-    // Resolve the dependencies.
-    DependencyResolver resolver(&root_parser);
-    bool resolution = resolver.resolve();
+    
+    SyntaxTree syntax_tree;
+    if (!syntax_tree.construct_ast(user_source_file))
+    {
+        std::cout << "Unable to construct AST." << std::endl;
+    }
+    else
+    {
+        std::cout << "Successfully construct AST." << std::endl;
+    }
 
 #if 0
     Tokenizer entry_tokenizer(user_source_file);

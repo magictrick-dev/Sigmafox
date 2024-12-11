@@ -14,7 +14,6 @@
 #include <utility>
 #include <definitions.hpp>
 #include <utilities/path.hpp>
-#include <utilities/resourcemanager.hpp>
 
 // --- TokenType -----------------------------------------------------------
 //
@@ -95,22 +94,13 @@ enum class TokenType
 // Tokens should exist independently and easily copied without data-coupling.
 //
 
-class Token
+struct Token
 {
 
-    public:
-                        Token();
-        virtual        ~Token();
-
-        std::string             to_string() const;
-        std::string             type_to_string() const;
-        std::pair<i32, i32>     position() const;
-
-    public:
-        TokenType       type;
-        ResourceHandle  resource;
-        u64             offset;
-        u64             length;
+    std::string     reference;
+    TokenType       type;
+    i32             row;
+    i32             column;
         
 };
 
@@ -157,18 +147,22 @@ class Tokenizer
         b32             match_strings();
         b32             match_identifiers();
 
+        void            set_token(Token *token, TokenType type);
+
     protected:
         Filepath        path;
-        ccptr           source;
+        std::string     source;
 
         Token           token_buffer[3];
         Token*          previous_token  = nullptr;
         Token*          current_token   = nullptr;
         Token*          next_token      = nullptr;
 
+        u64             row         =  1;
+        u64             column      =  1;
         u64             offset      =  0;
         u64             step        =  0;
-        ResourceHandle  resource    = -1;
+
 };
 
 /*
