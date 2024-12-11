@@ -20,6 +20,7 @@
 #ifndef SIGMAFOX_COMPILER_ERROR_HANDLER_HPP
 #define SIGMAFOX_COMPILER_ERROR_HANDLER_HPP
 #include <definitions.hpp>
+#include <vector>
 #include <platform/system.hpp>
 #include <compiler/tokenizer.hpp>
 

@@ -115,7 +115,7 @@ insert_dependency(Filepath parent, Filepath child)
             return false;
         }
 
-        search = parent_node->get_parent_node();
+        search = search->get_parent_node();
 
     }
 

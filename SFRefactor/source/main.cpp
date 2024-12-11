@@ -6,7 +6,6 @@
 #include <platform/system.hpp>
 #include <utilities/path.hpp>
 #include <utilities/cli.hpp>
-#include <utilities/resourcemanager.hpp>
 #include <compiler/tokenizer.hpp>
 #include <compiler/parser.hpp>
 #include <compiler/syntaxtree.hpp>
@@ -61,13 +60,6 @@ main(int argc, char ** argv)
     {
         std::cout << "Successfully construct AST." << std::endl;
     }
-
-    // Create the root parser.
-    //SyntaxParser root_parser(user_source_file);
-
-    // Resolve the dependencies.
-    //DependencyResolver resolver(&root_parser);
-    //bool resolution = resolver.resolve();
 
 #if 0
     Tokenizer entry_tokenizer(user_source_file);

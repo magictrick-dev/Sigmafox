@@ -249,7 +249,7 @@ match_include()
     this->tokenizer.shift();
     Filepath include_path = this->path.root_directory();
     include_path += "./";
-    std::string path = include_path_token.to_string();
+    std::string path = include_path_token.reference;
     include_path += path;
     include_path.canonicalize();
 
@@ -299,9 +299,35 @@ match_main()
 
     this->tokenizer.shift();
 
+    if (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+    {
+        std::cout << "Expected semicolon." << std::endl;
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+    
+    this->tokenizer.shift();
+
     if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_END))
     {
         std::cout << "Expected keyword end." << std::endl;
+        return nullptr;
+    }
+
+    this->tokenizer.shift();
+
+    if (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+    {
+        std::cout << "Expected semicolon." << std::endl;
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        return nullptr;
+    }
+    
+    this->tokenizer.shift();
+
+    if (!this->expect_current_token_as(TokenType::TOKEN_EOF))
+    {
+        std::cout << "Expected end-of-file." << std::endl;
         return nullptr;
     }
 

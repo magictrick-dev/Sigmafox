@@ -42,8 +42,6 @@ add_executable(Sigmafox
     "source/utilities/path.cpp"
     "source/utilities/cli.hpp"
     "source/utilities/cli.cpp"
-    "source/utilities/resourcemanager.hpp"
-    "source/utilities/resourcemanager.cpp"
 
     "source/compiler/tokenizer.hpp"
     "source/compiler/tokenizer.cpp"
