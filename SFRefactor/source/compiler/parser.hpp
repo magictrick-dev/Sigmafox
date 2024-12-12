@@ -24,7 +24,6 @@
 #include <compiler/tokenizer.hpp>
 #include <compiler/dependencygraph.hpp>
 #include <compiler/errorhandler.hpp>
-
 #include <compiler/syntaxnode.hpp>
 #include <compiler/nodes/include.hpp>
 #include <compiler/nodes/main.hpp>
@@ -71,21 +70,6 @@ class SyntaxParser
         Tokenizer tokenizer;
         Filepath path;
         i32 error_count;
-
-};
-
-class SyntaxNodeDebugOutputVisitor : public ISyntaxNodeVisitor
-{
-
-    public:
-        virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node) override;
-        virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node) override;
-        virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) override;
-        virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node) override;
-
-    protected:
-        i32 tabs = 0;
-        i32 tab_increment = 4;
 
 };
 

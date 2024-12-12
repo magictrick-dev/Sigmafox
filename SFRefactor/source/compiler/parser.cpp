@@ -370,62 +370,6 @@ match_main()
 //
 
 
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeRoot(SyntaxNodeRoot *node)
-{
-
-    std::cout << "ROOT" << std::endl;
-    for (auto global_node : node->globals) global_node->accept(this);
-    node->main->accept(this);
-
-}
-
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeModule(SyntaxNodeModule *node)
-{
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> MODULEBEGIN" << std::endl;
-
-    this->tabs += this->tab_increment;
-    for (auto global_node : node->globals) global_node->accept(this);
-    this->tabs -= this->tab_increment;
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> MODULEEND" << std::endl;
-
-}
-
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
-{
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> INCLUDE " << node->path << std::endl;
-
-    this->tabs += this->tab_increment;
-    node->module->accept(this);
-    this->tabs -= this->tab_increment;
-
-}
-
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeMain(SyntaxNodeMain *node)
-{
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> BEGIN" << std::endl;
-
-    this->tabs += this->tab_increment;
-    for (auto child_node : node->children) child_node->accept(this);
-    this->tabs -= this->tab_increment;
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> END" << std::endl;
-
-}
-
-
 
 
 

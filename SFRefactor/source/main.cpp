@@ -9,6 +9,7 @@
 #include <compiler/tokenizer.hpp>
 #include <compiler/parser.hpp>
 #include <compiler/syntaxtree.hpp>
+#include <compiler/visitors/reference.hpp>
 
 int
 main(int argc, char ** argv)
@@ -52,13 +53,13 @@ main(int argc, char ** argv)
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))
     {
-        std::cout << "Unable to parse." << std::endl;
+        //std::cout << "Unable to parse." << std::endl;
         return -1;
     }
     else
     {
-        SyntaxNodeDebugOutputVisitor debug_visitor;
-        syntax_tree.visit_root(&debug_visitor);
+        ReferenceVisitor reference_visitor(2);
+        syntax_tree.visit_root(&reference_visitor);
     }
 
 
