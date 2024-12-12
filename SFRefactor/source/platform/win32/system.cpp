@@ -6,7 +6,9 @@ vptr
 system_virtual_alloc(vptr offset, u64 size)
 {
 
-    vptr buffer = VirtualAlloc(offset, size, MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
+    u64 nearest_boundary = system_resize_to_nearest_page_boundary(size);
+    vptr buffer = VirtualAlloc(offset, nearest_boundary, 
+            MEM_COMMIT|MEM_RESERVE, PAGE_READWRITE);
     SF_ASSERT(buffer != NULL);
 
     return buffer;
