@@ -12,9 +12,59 @@
 #define SIGMAFOX_COMPILER_ERROR_HANDLER_HPP
 #include <vector>
 #include <string>
+#include <exception>
 #include <definitions.hpp>
 #include <platform/system.hpp>
 #include <compiler/tokenizer.hpp>
+
+class SyntaxError : public std::exception
+{
+    public:
+                        SyntaxError();
+        virtual        ~SyntaxError();
+        template <class... Args> SyntaxError(const Filepath& location,
+                const Token& reference, std::string format, Args... args);
+
+        const char*     what() const override;
+
+    public:
+        bool handled = false;
+
+    protected:
+        std::string message;
+};
+
+template <class... Args> SyntaxError::
+SyntaxError(const Filepath& location, const Token& reference,
+        std::string format, Args... args)
+{
+
+    // Probably a cleaner way to do this.
+    this->message += location.c_str();
+    this->message += "(";
+    this->message += std::to_string(reference.row);
+    this->message += ",";
+    this->message += std::to_string(reference.column);
+    this->message += ")(error): ";
+
+    // A little bit easier to work with than snprintf and malloc, I guess.
+    i32 size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
+    std::string formatted_message(size_s, ' ');
+    std::snprintf(formatted_message.data(), size_s, format.c_str(), args...);
+    formatted_message.pop_back();
+    this->message += formatted_message;
+
+}
+
+
+
+
+
+
+
+
+
+
 
 struct ErrorMessageFormat 
 {

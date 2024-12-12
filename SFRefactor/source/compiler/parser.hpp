@@ -224,11 +224,12 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_include();
         shared_ptr<ISyntaxNode>         match_main();
 
-        template<TokenType expect, TokenType sync = expect> bool
-            validate_grammar_token(bool synchronize);
+        template<TokenType expect> void validate_grammar_token();
         bool expect_previous_token_as(TokenType type) const;
         bool expect_current_token_as(TokenType type) const;
         bool expect_next_token_as(TokenType type) const;
+
+        void process_error(i32 where, SyntaxError& error, bool just_handled);
 
     protected:
         std::vector<shared_ptr<ISyntaxNode>> nodes;
@@ -236,6 +237,7 @@ class SyntaxParser
         DependencyGraph* graph;
         Tokenizer tokenizer;
         Filepath path;
+        i32 error_count;
 
 };
 

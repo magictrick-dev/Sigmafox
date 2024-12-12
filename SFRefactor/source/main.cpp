@@ -48,9 +48,7 @@ main(int argc, char ** argv)
         }
 
     }
-
-    std::cout << "User Provided Source: " << user_source_file << std::endl;
-    
+ 
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))
     {
