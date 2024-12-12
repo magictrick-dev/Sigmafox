@@ -19,7 +19,6 @@
 // -----------------------------------------------------------------------------
 #include <compiler/parser.hpp>
 #include <compiler/errorhandler.hpp>
-#include <compiler/dependencyresolver.hpp>
 
 // --- Parser Constructor/Destructors ------------------------------------------
 
@@ -85,6 +84,25 @@ synchronize_to(TokenType type)
 
 }
 
+template <TokenType expect, TokenType sync> bool SyntaxParser::
+validate_grammar_token(bool synchronize)
+{
+
+    if (this->expect_current_token_as(expect))
+    {
+        this->tokenizer.shift();
+        return true;
+    }
+
+    Token error_token = this->tokenizer.get_current_token();
+    ErrorHandler::parse_error(this->path, error_token, "expected %s, encountered '%s'.",
+            Token::type_to_string(expect).c_str(), error_token.reference.c_str());
+
+    if (synchronize) this->synchronize_to(sync);
+    return false;
+
+}
+
 bool SyntaxParser::
 construct_as_root()
 {
@@ -144,6 +162,11 @@ expect_next_token_as(TokenType type) const
 }
 
 // --- Parser Implementations --------------------------------------------------
+//
+// Here is the grammar implementations of the parser. There's a lot going on here
+// that is probably difficult to trace just by looking at it. Take a reference file
+// with minimal functionality and step through the code to follow what's going.
+//
 
 shared_ptr<ISyntaxNode> SyntaxParser::
 match_root()
@@ -155,9 +178,17 @@ match_root()
     while (true)
     {
 
-        current_node = this->match_global_statement();
-        if (current_node == nullptr) break;
-        global_nodes.push_back(current_node);
+        // Conceptually what we want to do here, I think. Damn, I can't believe
+        // I'm about to do this.
+        try {
+            current_node = this->match_global_statement();
+            if (current_node == nullptr) break;
+            global_nodes.push_back(current_node);
+        }
+        catch (SyntaxException& error)
+        {
+            std::cout << error.what() << std::endl;
+        }
 
     }
 
@@ -165,12 +196,8 @@ match_root()
     shared_ptr<ISyntaxNode> main_node = this->match_main();
     if (main_node == nullptr) return nullptr;
 
-    // Match EOF. We don't have to shift at EOF.
-    if (!this->expect_current_token_as(TokenType::TOKEN_EOF))
-    {
-        std::cout << "Expected end-of-file." << std::endl;
-        return nullptr;
-    }
+    // Match EOF.
+    if (!this->validate_grammar_token<TokenType::TOKEN_EOF>(false)) return nullptr;
 
     // Create the root node.
     auto root_node = this->generate_node<SyntaxNodeRoot>();
@@ -197,10 +224,8 @@ match_module()
 
     }
 
-    if (!this->expect_current_token_as(TokenType::TOKEN_EOF))
-    {
-        std::cout << "Expected EOF!" << std::endl;
-    }
+    // Match EOF.
+    if (!this->validate_grammar_token<TokenType::TOKEN_EOF>(false)) return nullptr;
     
     // Create the root node.
     auto module_node = this->generate_node<SyntaxNodeModule>();
@@ -229,39 +254,22 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_include()
 {
 
-    if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_INCLUDE))
-    {
-        std::cout << "Expected keyword include." << std::endl;
-        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
-        return nullptr;
-    }
-
-    this->tokenizer.shift();
-
-    if (!this->expect_current_token_as(TokenType::TOKEN_STRING))
-    {
-        std::cout << "Expected type string." << std::endl;
-        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
-        return nullptr;
-    }
+    if (!this->validate_grammar_token<TokenType::TOKEN_KEYWORD_INCLUDE,
+            TokenType::TOKEN_SEMICOLON>(true)) return nullptr;
 
     Token include_path_token = this->tokenizer.get_current_token();
-    this->tokenizer.shift();
+    if (!this->validate_grammar_token<TokenType::TOKEN_STRING,
+            TokenType::TOKEN_SEMICOLON>(true)) return nullptr;
+
     Filepath include_path = this->path.root_directory();
     include_path += "./";
     std::string path = include_path_token.reference;
     include_path += path;
     include_path.canonicalize();
 
-    if (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
-    {
-        std::cout << "Expected semicolon." << std::endl;
-        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
-        return nullptr;
-    }
+    if (!this->validate_grammar_token<TokenType::TOKEN_SEMICOLON,
+            TokenType::TOKEN_SEMICOLON>(true)) return nullptr;
     
-    this->tokenizer.shift();
-
     // Before we generate the node, we need to add it to the dependency graph.
     if (!this->graph->insert_dependency(this->path, include_path))
     {
@@ -283,6 +291,7 @@ match_include()
     // Generate the node.
     auto include_node = this->generate_node<SyntaxNodeInclude>();
     include_node->path = include_path.c_str();
+    include_node->module = include_parser->get_base_node();
     return include_node;
 
 }
@@ -291,52 +300,72 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_main()
 {
 
-    if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_BEGIN))
-    {
-        std::cout << "Expected keyword begin." << std::endl;
-        return nullptr;
-    }
-
-    this->tokenizer.shift();
-
-    if (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
-    {
-        std::cout << "Expected semicolon." << std::endl;
-        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
-        return nullptr;
-    }
-    
-    this->tokenizer.shift();
-
-    if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_END))
-    {
-        std::cout << "Expected keyword end." << std::endl;
-        return nullptr;
-    }
-
-    this->tokenizer.shift();
-
-    if (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
-    {
-        std::cout << "Expected semicolon." << std::endl;
-        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
-        return nullptr;
-    }
-    
-    this->tokenizer.shift();
-
-    if (!this->expect_current_token_as(TokenType::TOKEN_EOF))
-    {
-        std::cout << "Expected end-of-file." << std::endl;
-        return nullptr;
-    }
+    if (!this->validate_grammar_token<TokenType::TOKEN_KEYWORD_BEGIN,
+            TokenType::TOKEN_SEMICOLON>(true)) return nullptr;
+    if (!this->validate_grammar_token<TokenType::TOKEN_SEMICOLON,
+            TokenType::TOKEN_SEMICOLON>(true)) return nullptr;
+    if (!this->validate_grammar_token<TokenType::TOKEN_KEYWORD_END,
+            TokenType::TOKEN_SEMICOLON>(true)) return nullptr;
+    if (!this->validate_grammar_token<TokenType::TOKEN_SEMICOLON,
+            TokenType::TOKEN_SEMICOLON>(true)) return nullptr;
 
     auto main_node = this->generate_node<SyntaxNodeMain>();
     return main_node;
 
 }
 
+// --- Debug Output Visitor ----------------------------------------------------
+//
+// A quick and dirty way of getting some output of the AST without looking at
+// a debugger.
+//
 
+
+void SyntaxNodeDebugOutputVisitor::
+visit_SyntaxNodeRoot(SyntaxNodeRoot *node)
+{
+
+    for (auto global_node : node->globals) global_node->accept(this);
+    node->main->accept(this);
+
+}
+
+void SyntaxNodeDebugOutputVisitor::
+visit_SyntaxNodeModule(SyntaxNodeModule *node)
+{
+
+    for (auto global_node : node->globals) global_node->accept(this);
+
+}
+
+void SyntaxNodeDebugOutputVisitor::
+visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "INCLUDE " << node->path << std::endl;
+
+    this->tabs += 4;
+    node->module->accept(this);
+    this->tabs -= 4;
+
+}
+
+void SyntaxNodeDebugOutputVisitor::
+visit_SyntaxNodeMain(SyntaxNodeMain *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "BEGIN" << std::endl;
+
+    this->tabs += 4;
+    for (auto child_node : node->children) child_node->accept(this);
+    this->tabs -= 4;
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "END" << std::endl;
+
+}
 
 
 

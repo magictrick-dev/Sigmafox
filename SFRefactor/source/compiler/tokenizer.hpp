@@ -27,6 +27,8 @@
 
 enum class TokenType
 {
+    TOKEN_VOID,
+
     TOKEN_COMMENT_BLOCK,
     TOKEN_LEFT_PARENTHESIS,
     TOKEN_RIGHT_PARENTHESIS,
@@ -101,6 +103,8 @@ struct Token
     TokenType       type;
     i32             row;
     i32             column;
+
+    static std::string type_to_string(TokenType type);
         
 };
 

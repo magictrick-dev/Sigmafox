@@ -6,3 +6,4 @@ include "dependents/file_d.fox";
 begin;
 
 end;
+

@@ -54,25 +54,15 @@ main(int argc, char ** argv)
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))
     {
-        std::cout << "Unable to construct AST." << std::endl;
+        std::cout << "Unable to parse." << std::endl;
+        return -1;
     }
     else
     {
-        std::cout << "Successfully construct AST." << std::endl;
+        SyntaxNodeDebugOutputVisitor debug_visitor;
+        syntax_tree.visit_root(&debug_visitor);
     }
 
-#if 0
-    Tokenizer entry_tokenizer(user_source_file);
-    Token current_token = entry_tokenizer.get_current_token();
-    while (current_token.type != TokenType::TOKEN_EOF)
-    {
-        std::cout   << std::setw(32) << current_token.type_to_string() << " : "
-                    << current_token.to_string() << std::endl;
-        
-        entry_tokenizer.shift();
-        current_token = entry_tokenizer.get_current_token();
-    }
-#endif
 
     return 0;
 

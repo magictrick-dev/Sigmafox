@@ -1,1 +1,1 @@
-./bin/Debug/Sigmafox ./tests/simple_include.fox
+./bin/Debug/Sigmafox ./tests/dependencies.fox

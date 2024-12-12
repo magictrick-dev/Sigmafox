@@ -63,66 +63,75 @@ get_token_map()
     if (initialized_map == false)
     {
 
-        map[TokenType::TOKEN_COMMENT_BLOCK]         = "token_comment_block";
-        map[TokenType::TOKEN_LEFT_PARENTHESIS]      = "token_left_parenthesis";
-        map[TokenType::TOKEN_RIGHT_PARENTHESIS]     = "token_right_parenthesis";
-        map[TokenType::TOKEN_COMMA]                 = "token_comma";
-        map[TokenType::TOKEN_SEMICOLON]             = "token_semicolon";
-        map[TokenType::TOKEN_COLON_EQUALS]          = "token_colon_equals";
-        map[TokenType::TOKEN_PLUS]                  = "token_plus";
-        map[TokenType::TOKEN_MINUS]                 = "token_minus";
-        map[TokenType::TOKEN_STAR]                  = "token_star";
-        map[TokenType::TOKEN_FORWARD_SLASH]         = "token_forward_slash";
-        map[TokenType::TOKEN_CARROT]                = "token_carrot";
-        map[TokenType::TOKEN_EQUALS]                = "token_equals";
-        map[TokenType::TOKEN_LESS_THAN]             = "token_less_than";
-        map[TokenType::TOKEN_LESS_THAN_EQUALS]      = "token_less_than_equals";
-        map[TokenType::TOKEN_GREATER_THAN]          = "token_greater_than";
-        map[TokenType::TOKEN_GREATER_THAN_EQUALS]   = "token_greater_than_equals";
-        map[TokenType::TOKEN_HASH]                  = "token_hash";
-        map[TokenType::TOKEN_AMPERSAND]             = "token_ampersand";
-        map[TokenType::TOKEN_PIPE]                  = "token_pipe";
-        map[TokenType::TOKEN_PERCENT]               = "token_percent";
+        map[TokenType::TOKEN_COMMENT_BLOCK]         = "comment block";
+        map[TokenType::TOKEN_LEFT_PARENTHESIS]      = "left parenthesis";
+        map[TokenType::TOKEN_RIGHT_PARENTHESIS]     = "right parenthesis";
+        map[TokenType::TOKEN_COMMA]                 = "comma";
+        map[TokenType::TOKEN_SEMICOLON]             = "semicolon";
+        map[TokenType::TOKEN_COLON_EQUALS]          = "colon equals";
+        map[TokenType::TOKEN_PLUS]                  = "plus";
+        map[TokenType::TOKEN_MINUS]                 = "minus";
+        map[TokenType::TOKEN_STAR]                  = "star";
+        map[TokenType::TOKEN_FORWARD_SLASH]         = "forward_slash";
+        map[TokenType::TOKEN_CARROT]                = "carrot";
+        map[TokenType::TOKEN_EQUALS]                = "equals";
+        map[TokenType::TOKEN_LESS_THAN]             = "less_than";
+        map[TokenType::TOKEN_LESS_THAN_EQUALS]      = "less_than_equals";
+        map[TokenType::TOKEN_GREATER_THAN]          = "greater_than";
+        map[TokenType::TOKEN_GREATER_THAN_EQUALS]   = "greater_than_equals";
+        map[TokenType::TOKEN_HASH]                  = "hash";
+        map[TokenType::TOKEN_AMPERSAND]             = "ampersand";
+        map[TokenType::TOKEN_PIPE]                  = "pipe";
+        map[TokenType::TOKEN_PERCENT]               = "percent";
 
-        map[TokenType::TOKEN_INTEGER]               = "token_integer";
-        map[TokenType::TOKEN_REAL]                  = "token_real";
-        map[TokenType::TOKEN_STRING]                = "token_string";
-        map[TokenType::TOKEN_IDENTIFIER]            = "token_identifier";
+        map[TokenType::TOKEN_INTEGER]               = "integer";
+        map[TokenType::TOKEN_REAL]                  = "real";
+        map[TokenType::TOKEN_STRING]                = "string";
+        map[TokenType::TOKEN_IDENTIFIER]            = "identifier";
 
-        map[TokenType::TOKEN_KEYWORD_BEGIN]         = "token_keyword_begin";
-        map[TokenType::TOKEN_KEYWORD_ELSEIF]        = "token_keyword_elseif";
-        map[TokenType::TOKEN_KEYWORD_END]           = "token_keyword_end";
-        map[TokenType::TOKEN_KEYWORD_ENDFIT]        = "token_keyword_endfit";
-        map[TokenType::TOKEN_KEYWORD_ENDIF]         = "token_keyword_endif";
-        map[TokenType::TOKEN_KEYWORD_ENDFUNCTION]   = "token_keyword_endfunction";
-        map[TokenType::TOKEN_KEYWORD_ENDLOOP]       = "token_keyword_endloop";
-        map[TokenType::TOKEN_KEYWORD_ENDPLOOP]      = "token_keyword_endploop";
-        map[TokenType::TOKEN_KEYWORD_ENDPROCEDURE]  = "token_keyword_endprocedure";
-        map[TokenType::TOKEN_KEYWORD_ENDSCOPE]      = "token_keyword_endscope";
-        map[TokenType::TOKEN_KEYWORD_ENDWHILE]      = "token_keyword_endwhile";
-        map[TokenType::TOKEN_KEYWORD_FIT]           = "token_keyword_fit";
-        map[TokenType::TOKEN_KEYWORD_FUNCTION]      = "token_keyword_function";
-        map[TokenType::TOKEN_KEYWORD_IF]            = "token_keyword_if";
-        map[TokenType::TOKEN_KEYWORD_INCLUDE]       = "token_keyword_include";
-        map[TokenType::TOKEN_KEYWORD_LOOP]          = "token_keyword_loop";
-        map[TokenType::TOKEN_KEYWORD_PLOOP]         = "token_keyword_ploop";
-        map[TokenType::TOKEN_KEYWORD_PROCEDURE]     = "token_keyword_procedure";
-        map[TokenType::TOKEN_KEYWORD_READ]          = "token_keyword_read";
-        map[TokenType::TOKEN_KEYWORD_SAVE]          = "token_keyword_save";
-        map[TokenType::TOKEN_KEYWORD_SCOPE]         = "token_keyword_scope";
-        map[TokenType::TOKEN_KEYWORD_VARIABLE]      = "token_keyword_variable";
-        map[TokenType::TOKEN_KEYWORD_WHILE]         = "token_keyword_while";
-        map[TokenType::TOKEN_KEYWORD_WRITE]         = "token_keyword_write";
-        map[TokenType::TOKEN_NEW_LINE]              = "token_new_line";
+        map[TokenType::TOKEN_KEYWORD_BEGIN]         = "keyword begin";
+        map[TokenType::TOKEN_KEYWORD_ELSEIF]        = "keyword elseif";
+        map[TokenType::TOKEN_KEYWORD_END]           = "keyword end";
+        map[TokenType::TOKEN_KEYWORD_ENDFIT]        = "keyword endfit";
+        map[TokenType::TOKEN_KEYWORD_ENDIF]         = "keyword endif";
+        map[TokenType::TOKEN_KEYWORD_ENDFUNCTION]   = "keyword endfunction";
+        map[TokenType::TOKEN_KEYWORD_ENDLOOP]       = "keyword endloop";
+        map[TokenType::TOKEN_KEYWORD_ENDPLOOP]      = "keyword endploop";
+        map[TokenType::TOKEN_KEYWORD_ENDPROCEDURE]  = "keyword endprocedure";
+        map[TokenType::TOKEN_KEYWORD_ENDSCOPE]      = "keyword endscope";
+        map[TokenType::TOKEN_KEYWORD_ENDWHILE]      = "keyword endwhile";
+        map[TokenType::TOKEN_KEYWORD_FIT]           = "keyword fit";
+        map[TokenType::TOKEN_KEYWORD_FUNCTION]      = "keyword function";
+        map[TokenType::TOKEN_KEYWORD_IF]            = "keyword if";
+        map[TokenType::TOKEN_KEYWORD_INCLUDE]       = "keyword include";
+        map[TokenType::TOKEN_KEYWORD_LOOP]          = "keyword loop";
+        map[TokenType::TOKEN_KEYWORD_PLOOP]         = "keyword ploop";
+        map[TokenType::TOKEN_KEYWORD_PROCEDURE]     = "keyword procedure";
+        map[TokenType::TOKEN_KEYWORD_READ]          = "keyword read";
+        map[TokenType::TOKEN_KEYWORD_SAVE]          = "keyword save";
+        map[TokenType::TOKEN_KEYWORD_SCOPE]         = "keyword scope";
+        map[TokenType::TOKEN_KEYWORD_VARIABLE]      = "keyword variable";
+        map[TokenType::TOKEN_KEYWORD_WHILE]         = "keyword while";
+        map[TokenType::TOKEN_KEYWORD_WRITE]         = "keyword write";
+        map[TokenType::TOKEN_NEW_LINE]              = "new line";
 
-        map[TokenType::TOKEN_EOF]                   = "token_eof";
-        map[TokenType::TOKEN_UNDEFINED]             = "token_undefined";
-        map[TokenType::TOKEN_UNDEFINED_EOF]         = "token_undefined_eof";
-        map[TokenType::TOKEN_UNDEFINED_EOL]         = "token_undefined_eol";
+        map[TokenType::TOKEN_EOF]                   = "end-of-file";
+        map[TokenType::TOKEN_UNDEFINED]             = "undefined";
+        map[TokenType::TOKEN_UNDEFINED_EOF]         = "undefined end-of-file";
+        map[TokenType::TOKEN_UNDEFINED_EOL]         = "undefined end-of-line";
 
     }
 
     return map;
+
+}
+
+std::string Token::
+type_to_string(TokenType type)
+{
+
+    auto map = get_token_map();
+    return map[type];
 
 }
 
@@ -184,7 +193,7 @@ set_token(Token *token, TokenType type)
 
     token->type     = type;
     token->row      = row;
-    token->column   = column;
+    token->column   = column - length;
 
 }
 
