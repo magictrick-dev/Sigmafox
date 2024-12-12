@@ -227,7 +227,7 @@ match_root()
     catch (SyntaxError& syntax_error)
     {
         this->process_error(__LINE__, syntax_error, true);
-        throw;
+        return nullptr;
     }
 
 }
@@ -270,7 +270,7 @@ match_module()
     catch (SyntaxError& syntax_error)
     {
         this->process_error(__LINE__, syntax_error, true);
-        throw;
+        return nullptr;
     }
 
 }
@@ -374,6 +374,7 @@ void SyntaxNodeDebugOutputVisitor::
 visit_SyntaxNodeRoot(SyntaxNodeRoot *node)
 {
 
+    std::cout << "ROOT" << std::endl;
     for (auto global_node : node->globals) global_node->accept(this);
     node->main->accept(this);
 
@@ -383,7 +384,15 @@ void SyntaxNodeDebugOutputVisitor::
 visit_SyntaxNodeModule(SyntaxNodeModule *node)
 {
 
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << " └─> MODULEBEGIN" << std::endl;
+
+    this->tabs += this->tab_increment;
     for (auto global_node : node->globals) global_node->accept(this);
+    this->tabs -= this->tab_increment;
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << " └─> MODULEEND" << std::endl;
 
 }
 
@@ -392,11 +401,11 @@ visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
 {
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << "INCLUDE " << node->path << std::endl;
+    std::cout << " └─> INCLUDE " << node->path << std::endl;
 
-    this->tabs += 4;
+    this->tabs += this->tab_increment;
     node->module->accept(this);
-    this->tabs -= 4;
+    this->tabs -= this->tab_increment;
 
 }
 
@@ -405,14 +414,14 @@ visit_SyntaxNodeMain(SyntaxNodeMain *node)
 {
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << "BEGIN" << std::endl;
+    std::cout << " └─> BEGIN" << std::endl;
 
-    this->tabs += 4;
+    this->tabs += this->tab_increment;
     for (auto child_node : node->children) child_node->accept(this);
-    this->tabs -= 4;
+    this->tabs -= this->tab_increment;
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << "END" << std::endl;
+    std::cout << " └─> END" << std::endl;
 
 }
 
