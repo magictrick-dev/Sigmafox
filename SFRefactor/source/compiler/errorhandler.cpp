@@ -21,30 +21,27 @@ self()
 
 }
 
-void ErrorHandler::
-general_error_message(const Filepath& location, std::string message)
-{
+// --- Syntax Error Exception --------------------------------------------------
+//
+// 
+//
 
-    return;
+SyntaxError::
+SyntaxError()
+{
+    this->message = "Undefined syntax error exception.";
 }
 
-void ErrorHandler::
-general_warning_message(const Filepath& location, std::string message)
+SyntaxError::
+~SyntaxError()
 {
 
-    return;
 }
 
-void ErrorHandler::
-parser_error_message(Token error_location, std::string message)
+const char* SyntaxError::
+what() const
 {
 
-    return;
-}
+    return this->message.c_str();
 
-void ErrorHandler::
-parser_warning_message(Token error_location, std::string message)
-{
-
-    return;
 }

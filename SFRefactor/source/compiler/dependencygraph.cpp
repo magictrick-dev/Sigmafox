@@ -110,8 +110,6 @@ insert_dependency(Filepath parent, Filepath child)
         std::string parent_path = search->get_path().c_str();
         if (parent_path == proposed_path)
         {
-            std::cout   << "Circular inclusion found in " << parent_path << " for "
-                        << child << "." << std::endl;
             return false;
         }
 

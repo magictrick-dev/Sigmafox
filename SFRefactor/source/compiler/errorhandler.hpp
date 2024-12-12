@@ -7,30 +7,64 @@
 //      should provide a where and how, as well as a potential suggestion for
 //      fixing the issue.
 //
-//      The error handler is a static interface. It stores errors messages
-//      interally in a buffer so that it can potential dump it to a log file.
-//      Eventually, if we want to use multithreading, the error handler will
-//      need some synchronization primitives so that there isn't any write
-//      contentions between threads.
-//
-//      The error messages contain additional meta data that can be used for
-//      further analysis if the user chooses to dump it to a file.
-//
 // -----------------------------------------------------------------------------
 #ifndef SIGMAFOX_COMPILER_ERROR_HANDLER_HPP
 #define SIGMAFOX_COMPILER_ERROR_HANDLER_HPP
-#include <definitions.hpp>
 #include <vector>
+#include <string>
+#include <exception>
+#include <definitions.hpp>
 #include <platform/system.hpp>
 #include <compiler/tokenizer.hpp>
 
-enum class ErrorType
+class SyntaxError : public std::exception
 {
-    ErrorTypeGeneralError,
-    ErrorTypeGeneralWarning,
-    ErrorTypeParserError,
-    ErrorTypeParserWarning,
+    public:
+                        SyntaxError();
+        virtual        ~SyntaxError();
+        template <class... Args> SyntaxError(const Filepath& location,
+                const Token& reference, std::string format, Args... args);
+
+        const char*     what() const override;
+
+    public:
+        bool handled = false;
+
+    protected:
+        std::string message;
 };
+
+template <class... Args> SyntaxError::
+SyntaxError(const Filepath& location, const Token& reference,
+        std::string format, Args... args)
+{
+
+    // Probably a cleaner way to do this.
+    this->message += location.c_str();
+    this->message += "(";
+    this->message += std::to_string(reference.row);
+    this->message += ",";
+    this->message += std::to_string(reference.column);
+    this->message += ")(error): ";
+
+    // A little bit easier to work with than snprintf and malloc, I guess.
+    i32 size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
+    std::string formatted_message(size_s, ' ');
+    std::snprintf(formatted_message.data(), size_s, format.c_str(), args...);
+    formatted_message.pop_back();
+    this->message += formatted_message;
+
+}
+
+
+
+
+
+
+
+
+
+
 
 struct ErrorMessageFormat 
 {
@@ -45,12 +79,8 @@ struct ErrorMessageFormat
 class ErrorHandler
 {
     public:
-        static void general_error_message(const Filepath& location, std::string message);
-        static void general_warning_message(const Filepath& location, std::string message);
-        static void parser_error_message(Token error_location, std::string message);
-        static void parser_warning_message(Token error_location, std::string message);
-
-        static bool dump(Filepath path_to_dump);
+        template <class... Args> static void parse_error(const Filepath& location, const Token& reference, 
+                std::string format, Args... args);
 
     protected:
         static ErrorHandler& self();
@@ -61,5 +91,39 @@ class ErrorHandler
                         ErrorHandler();
         virtual        ~ErrorHandler();
 };
+
+template <class... Args> void ErrorHandler::
+parse_error(const Filepath& location, const Token& reference, 
+        std::string format, Args... args)
+{
+
+    // Probably a cleaner way to do this.
+    std::string output_message;
+    output_message += location.c_str();
+    output_message += "(";
+    output_message += std::to_string(reference.row);
+    output_message += ",";
+    output_message += std::to_string(reference.column);
+    output_message += ")(error): ";
+
+    // A little bit easier to work with than snprintf and malloc, I guess.
+    i32 size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
+    std::string formatted_message(size_s, ' ');
+    std::snprintf(formatted_message.data(), size_s, format.c_str(), args...);
+    formatted_message.pop_back();
+    output_message += formatted_message;
+
+    ErrorHandler::self().error_messages.push_back({
+        .filepath = location.c_str(),
+        .message = formatted_message,
+        .offender = reference.reference,
+        .column_location = reference.column,
+        .line_location = reference.row,
+        .timestamp = 0,
+    });
+
+    std::cout << output_message << std::endl;
+
+}
 
 #endif

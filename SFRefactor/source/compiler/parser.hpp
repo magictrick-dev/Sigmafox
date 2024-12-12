@@ -17,10 +17,12 @@
 #ifndef SIGMAFOX_COMPILER_PARSER_H 
 #define SIGMAFOX_COMPILER_PARSER_H 
 #include <vector>
+#include <exception>
 #include <definitions.hpp>
 #include <utilities/path.hpp>
 #include <compiler/tokenizer.hpp>
 #include <compiler/dependencygraph.hpp>
+#include <compiler/errorhandler.hpp>
 
 // --- Abstract Syntax Tree Nodes ----------------------------------------------
 //
@@ -111,6 +113,7 @@ class SyntaxNodeInclude : public ISyntaxNode
             { visitor->visit_SyntaxNodeInclude(this); }
 
         std::string path;
+        shared_ptr<ISyntaxNode> module;
 
 };
 
@@ -221,9 +224,12 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_include();
         shared_ptr<ISyntaxNode>         match_main();
 
+        template<TokenType expect> void validate_grammar_token();
         bool expect_previous_token_as(TokenType type) const;
         bool expect_current_token_as(TokenType type) const;
         bool expect_next_token_as(TokenType type) const;
+
+        void process_error(i32 where, SyntaxError& error, bool just_handled);
 
     protected:
         std::vector<shared_ptr<ISyntaxNode>> nodes;
@@ -231,10 +237,23 @@ class SyntaxParser
         DependencyGraph* graph;
         Tokenizer tokenizer;
         Filepath path;
+        i32 error_count;
 
 };
 
+class SyntaxNodeDebugOutputVisitor : public ISyntaxNodeVisitor
+{
 
+    public:
+        virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node) override;
+        virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node) override;
+        virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) override;
+        virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node) override;
+
+    protected:
+        i32 tabs = 0;
+
+};
 
 /*
 #ifndef SOURCE_COMPILER_RPARSER_H
