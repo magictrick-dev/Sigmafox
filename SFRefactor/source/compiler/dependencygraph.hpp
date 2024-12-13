@@ -40,6 +40,7 @@ class DependencyNode
         Filepath                    get_path() const;
         shared_ptr<SyntaxParser>    get_parser() const;
         shared_ptr<DependencyNode>  get_parent_node() const;
+        std::vector<Filepath>       get_dependent_paths() const;
 
     protected:
         Filepath path;
@@ -65,7 +66,9 @@ class DependencyGraph
         bool        set_entry(Filepath entry);
         bool        insert_dependency(Filepath parent, Filepath child);
 
-        shared_ptr<SyntaxParser> get_parser_for(Filepath path);
+        shared_ptr<SyntaxParser>    get_parser_for(Filepath path);
+        std::vector<Filepath>       get_dependencies_list_for(Filepath path);
+        std::vector<Filepath>       get_dependencies_list_recursively_for(Filepath path);
 
     protected:
         shared_ptr<DependencyNode> entry_node;

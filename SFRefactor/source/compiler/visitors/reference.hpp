@@ -20,6 +20,10 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)              override;
 
     protected:
+        void    push_tabs();
+        void    pop_tabs();
+
+    protected:
         i32 tabs = 0;
         i32 tab_size = 4;
 
@@ -44,12 +48,29 @@ ReferenceVisitor::
 }
 
 void ReferenceVisitor::
+push_tabs()
+{
+    this->tabs += this->tab_size;
+}
+
+void ReferenceVisitor::
+pop_tabs()
+{
+    this->tabs -= this->tab_size;
+}
+
+void ReferenceVisitor::
 visit_SyntaxNodeRoot(SyntaxNodeRoot *node)
 {
 
-    std::cout << "ROOT" << std::endl;
+    std::cout << "BEGIN ROOT" << std::endl;
+
+    this->push_tabs();
     for (auto global_node : node->globals) global_node->accept(this);
     node->main->accept(this);
+    this->pop_tabs();
+
+    std::cout << "END ROOT" << std::endl;
 
 }
 
@@ -58,14 +79,14 @@ visit_SyntaxNodeModule(SyntaxNodeModule *node)
 {
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> MODULEBEGIN" << std::endl;
+    std::cout << "BEGIN MODULE" << std::endl;
 
-    this->tabs += this->tab_size;
+    this->push_tabs();
     for (auto global_node : node->globals) global_node->accept(this);
-    this->tabs -= this->tab_size;
+    this->pop_tabs();
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> MODULEEND" << std::endl;
+    std::cout << "END MODULE" << std::endl;
 
 }
 
@@ -74,11 +95,11 @@ visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
 {
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> INCLUDE " << node->path << std::endl;
+    std::cout << "INCLUDE " << node->path << std::endl;
 
-    this->tabs += this->tab_size;
+    this->push_tabs();
     node->module->accept(this);
-    this->tabs -= this->tab_size;
+    this->pop_tabs();
 
 }
 
@@ -87,14 +108,14 @@ visit_SyntaxNodeMain(SyntaxNodeMain *node)
 {
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> BEGIN" << std::endl;
+    std::cout << "BEGIN MAIN" << std::endl;
 
-    this->tabs += this->tab_size;
+    this->push_tabs();
     for (auto child_node : node->children) child_node->accept(this);
-    this->tabs -= this->tab_size;
+    this->pop_tabs();
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << " └─> END" << std::endl;
+    std::cout << "END MAIN" << std::endl;
 
 }
 

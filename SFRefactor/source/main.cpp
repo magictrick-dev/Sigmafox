@@ -53,13 +53,13 @@ main(int argc, char ** argv)
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))
     {
-        //std::cout << "Unable to parse." << std::endl;
-        return -1;
+       return -1;
     }
     else
     {
-        ReferenceVisitor reference_visitor(2);
+        ReferenceVisitor reference_visitor(4);
         syntax_tree.visit_root(&reference_visitor);
+        syntax_tree.dump_dependency_graph();
     }
 
 
