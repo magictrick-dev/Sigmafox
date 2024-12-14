@@ -227,7 +227,7 @@ match_root()
     catch (SyntaxError& syntax_error)
     {
         this->process_error(__LINE__, syntax_error, true);
-        throw;
+        return nullptr;
     }
 
 }
@@ -270,7 +270,7 @@ match_module()
     catch (SyntaxError& syntax_error)
     {
         this->process_error(__LINE__, syntax_error, true);
-        throw;
+        return nullptr;
     }
 
 }
@@ -368,53 +368,6 @@ match_main()
 // A quick and dirty way of getting some output of the AST without looking at
 // a debugger.
 //
-
-
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeRoot(SyntaxNodeRoot *node)
-{
-
-    for (auto global_node : node->globals) global_node->accept(this);
-    node->main->accept(this);
-
-}
-
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeModule(SyntaxNodeModule *node)
-{
-
-    for (auto global_node : node->globals) global_node->accept(this);
-
-}
-
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
-{
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << "INCLUDE " << node->path << std::endl;
-
-    this->tabs += 4;
-    node->module->accept(this);
-    this->tabs -= 4;
-
-}
-
-void SyntaxNodeDebugOutputVisitor::
-visit_SyntaxNodeMain(SyntaxNodeMain *node)
-{
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << "BEGIN" << std::endl;
-
-    this->tabs += 4;
-    for (auto child_node : node->children) child_node->accept(this);
-    this->tabs -= 4;
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << "END" << std::endl;
-
-}
 
 
 

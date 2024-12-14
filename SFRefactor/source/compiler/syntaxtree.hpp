@@ -14,10 +14,12 @@ class SyntaxTree
 
         bool            construct_ast(Filepath entry_file);
         void            visit_root(ISyntaxNodeVisitor *visitor);
+        void            dump_dependency_graph();
 
     protected:
+        Filepath                entry_file;
+        DependencyGraph         graph;
         shared_ptr<ISyntaxNode> root;
-        DependencyGraph graph;
 
 };
 

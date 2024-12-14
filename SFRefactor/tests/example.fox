@@ -1,0 +1,6 @@
+include "dependents/file_c.fox";
+include "dependents/file_d.fox";
+
+begin;
+
+end;

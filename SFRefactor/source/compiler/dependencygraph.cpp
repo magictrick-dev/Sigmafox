@@ -65,6 +65,20 @@ add_child(shared_ptr<DependencyNode> child)
 
 }
 
+std::vector<Filepath> DependencyNode::
+get_dependent_paths() const
+{
+
+    std::vector<Filepath> paths;
+    for (auto child_node : this->children)
+    {
+        paths.push_back(child_node->path);
+    }
+
+    return paths;
+
+}
+
 // --- Dependency Graph --------------------------------------------------------
 
 DependencyGraph::
@@ -151,3 +165,41 @@ get_parser_for(Filepath path)
     return search->second->get_parser();
 
 }
+
+std::vector<Filepath> DependencyGraph::
+get_dependencies_list_for(Filepath path)
+{
+
+    // If it doesn't exist, there are no dependencies.
+    auto parent_listing = this->node_map.find(path.c_str());
+    SF_ASSERT(parent_listing != this->node_map.end());
+
+    // It was found, so we need to get the dependencies.
+    std::vector<Filepath> dependencies = this->node_map[path.c_str()]->get_dependent_paths();
+    return dependencies;
+
+}
+
+std::vector<Filepath> DependencyGraph::
+get_dependencies_list_recursively_for(Filepath path)
+{
+
+    std::vector<Filepath> path_list = get_dependencies_list_for(path);
+    std::vector<Filepath> full_path_list;
+
+    while (!path_list.empty())
+    {
+
+        Filepath current_child_path = path_list.back();
+        path_list.pop_back();
+
+        std::vector<Filepath> children = get_dependencies_list_for(current_child_path);
+        path_list.insert(path_list.end(), children.begin(), children.end());
+
+        full_path_list.push_back(current_child_path);
+
+    }
+
+    return full_path_list;
+}
+
