@@ -3,6 +3,13 @@
 #include <definitions.hpp>
 #include <string>
 
+// --- Symbol Definition -------------------------------------------------------
+//
+// You can freely modify the symbol to your liking without having to modify the
+// symbol table setup since it has been abstracted enough to automatically default
+// to do as you need.
+//
+
 enum class SymType
 {
     SYMBOL_TYPE_UNDEFINED,
@@ -22,7 +29,7 @@ struct Symbol
 // --- FNV1A32 Hash ------------------------------------------------------------
 //
 // A 32-bit hashing algorithm. It's not the fastest hashing algorithm in existence,
-// but it is pretty fast for our purposes.
+// but it is pretty fast for what we need.
 //
 
 struct FNV1A32Hash
@@ -49,6 +56,107 @@ struct FNV1A32Hash
     inline u32 operator()(const char* string) const
     {
         return FNV1A32Hash::hash(string);
+    }
+
+};
+
+// --- FNV1A64 Hash ------------------------------------------------------------
+//
+// A 64-bit version of the previous version. They are generally roughly the
+// same in performance, the 64-bit version provides slightly better avalanche
+// characteristics over the 32-bit version at the cost of a couple extra cycles
+// to process the 64-bit operations.
+//
+
+struct FNV1A64Hash
+{
+
+    static inline u64 hash(const char* string)
+    {
+
+        u64 length = strlen(string);
+        u64 hash = 0xCBF29CE484222325; // offset basis
+
+        for (u64 byte_index = 0; byte_index < length; ++byte_index)
+        {
+
+            hash ^= string[byte_index];
+            hash *= 0xCBF29CE484222325; // prime
+
+        }
+
+        return hash;
+
+    }
+
+    inline u64 operator()(const char* string) const
+    {
+        return FNV1A64Hash::hash(string);
+    }
+
+};
+
+// --- MurmurHash64A Hash ------------------------------------------------------
+//
+// The sort of industry-standard all arounder that provides excellent avalanche
+// characteristics with minimal hit to performance.
+//
+
+template <u64 S = 0xFFFF'FFFF'FFFF'FFFF>
+struct MurmurHash64A 
+{
+
+    static inline u64 hash(const char* string)
+    {
+
+        u64 len = strlen(string);
+
+        const u64 m = 0xC6A4A7935BD1E995;
+        const i32 r = 47;
+
+        u64 h = S ^ (len * m);
+
+        const u64* data = (const u64*)string;
+        const u64* end = data + (len/8);
+
+        while(data != end)
+        {
+
+            u64 k = *data++;
+
+            k *= m;
+            k ^= k >> r;
+            k *= m;
+
+            h ^= k;
+            h *= m;
+
+        }
+
+        const u8* data2 = (const u8*)data;
+
+        switch(len & 7) {
+            case 7: h ^= (uint64_t)((uint64_t)data2[6] << (uint64_t)48);
+            case 6: h ^= (uint64_t)((uint64_t)data2[5] << (uint64_t)40);
+            case 5: h ^= (uint64_t)((uint64_t)data2[4] << (uint64_t)32);
+            case 4: h ^= (uint64_t)((uint64_t)data2[3] << (uint64_t)24);
+            case 3: h ^= (uint64_t)((uint64_t)data2[2] << (uint64_t)16);
+            case 2: h ^= (uint64_t)((uint64_t)data2[1] << (uint64_t)8 );
+            case 1: h ^= (uint64_t)((uint64_t)data2[0]                );
+            h *= m;
+        };
+
+        h ^= h >> r;
+        h *= m;
+        h ^= h >> r;
+
+        return h;
+
+    }
+
+    inline u64 operator()(const char* string) const
+    {
+        return MurmurHash64A::hash(string);
     }
 
 };
@@ -180,6 +288,11 @@ get_value()
 // whenever it reaches a given load capacity. The defaults are an FNV1A hashing
 // schema and 75% load factor.
 //
+// The inner-workings are slightly more complicated than the average hash map in
+// order to accomodate some extensibility concerns, but ultimately the inner-workings
+// are pretty much the same as a standard hash map. It's not entirely space efficient,
+// but its relatively good at what it needs to do.
+//
 
 template <typename Symboltype = Symbol, typename Hashfunction = FNV1A32Hash, float LF = 0.75f>
 class Symboltable
@@ -189,6 +302,9 @@ class Symboltable
         inline              Symboltable();
         inline virtual     ~Symboltable();
 
+        inline u64          size() const;
+        inline u64          commit() const;
+        inline u64          overlaps() const;
         inline void         resize(u64 size);
         inline void         insert(const std::string &str, const Symboltype& val);
         inline bool         contains(const std::string &str) const;
@@ -204,12 +320,14 @@ class Symboltable
         SymboltableEntry<Symboltype> *symbols_buffer;
         u64 capacity;
         u64 load;
+        u64 misses;
 
 };
 
 template <typename Symboltype, typename Hashfunction, float LF>
 Symboltable<Symboltype, Hashfunction, LF>::
-Symboltable() : hash_function(Hashfunction()), symbols_buffer(nullptr), capacity(0), load(0)
+Symboltable() : hash_function(Hashfunction()), symbols_buffer(nullptr), 
+    capacity(0), load(0), misses(0)
 {
     
     this->resize(8);
@@ -252,6 +370,7 @@ resize(u64 size)
     }
 
     // Now the fun part, copying the entries over.
+    this->misses = 0;
     for (u64 i = 0; i < this->capacity; ++i)
     {
         if (this->symbols_buffer[i].is_active())
@@ -279,10 +398,43 @@ hash(const std::string& str) const
 }
 
 template <typename Symboltype, typename Hashfunction, float LF>
+u64 Symboltable<Symboltype, Hashfunction, LF>::
+size() const
+{
+
+    return this->capacity;
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+u64 Symboltable<Symboltype, Hashfunction, LF>::
+overlaps() const
+{
+
+    return this->misses;
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+u64 Symboltable<Symboltype, Hashfunction, LF>::
+commit() const
+{
+
+    return this->load;
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
 void Symboltable<Symboltype, Hashfunction, LF>::
 insert(const std::string &str, const Symboltype& val)
 {
 
+    // Calculate the current load factor and resize if needed.
+    r32 current_load = (r32)this->load / (r32)this->capacity;
+    if (current_load >= std::min(LF, 1.0f)) 
+        this->resize(this->capacity * 2);
+
+    // Insert the new entry.
     u64 hash = this->hash(str);
     u64 offset = hash % this->capacity;
 
@@ -291,9 +443,11 @@ insert(const std::string &str, const Symboltype& val)
 
         if (this->symbols_buffer[offset].get_key() == str) break;
         offset = (offset + 1) % this->capacity;
+        misses += 1;
 
     }
 
+    this->load++;
     this->symbols_buffer[offset].set(val, str, hash);
 
 }
@@ -332,6 +486,7 @@ insert_and_copy_into(SymboltableEntry<Symboltype> *buffer,
 
         if (buffer[offset].get_key() == reference.get_key()) break;
         offset = (offset + 1) % capacity;
+        this->misses++;
 
     }
 

@@ -51,22 +51,85 @@ main(int argc, char ** argv)
 
     }
 
-    Symboltable<Symbol, FNV1A32Hash, 0.80f> hash_table;
+    // Set the table up.
+    Symboltable<Symbol, MurmurHash64A<0x1>, 0.50f> hash_table;
+
+    // Test the table.
     hash_table.insert("Hello", {
         .identifier = "Hello",
         .type       = SymType::SYMBOL_TYPE_VARIABLE,
         .arity      = 0,
     });
 
-    if (hash_table.contains("Hello"))
-    {
-        std::cout << "Does (and should) contain 'Hello'." << std::endl;
-    }
+    hash_table.insert("World", {
+        .identifier = "World",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 1,
+    });
 
-    if (!hash_table.contains("Hello World"))
-    {
-        std::cout << "Doesn't (and shouldn't) contain 'Hello World'." << std::endl;
-    }
+    hash_table.insert("Foo", {
+        .identifier = "Foo",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 2,
+    });
+
+    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
+                << hash_table.size() << std::endl;
+    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
+
+    hash_table.insert("Bar", {
+        .identifier = "Bar",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 3,
+    });
+
+    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
+                << hash_table.size() << std::endl;
+    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
+
+    hash_table.insert("Baz", {
+        .identifier = "Baz",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 3,
+    });
+
+    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
+                << hash_table.size() << std::endl;
+    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
+
+    if (hash_table.contains("Hello")) std::cout << "Contains 'Hello'." << std::endl;
+    if (hash_table.contains("World")) std::cout << "Contains 'World'." << std::endl;
+    if (hash_table.contains("Foo")) std::cout << "Contains 'Foo'." << std::endl;
+    if (hash_table.contains("Bar")) std::cout << "Contains 'Bar'." << std::endl;
+    if (hash_table.contains("Baz")) std::cout << "Contains 'Baz'." << std::endl;
+
+    hash_table.insert("Baq", {
+        .identifier = "Baq",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 4,
+    });
+
+    hash_table.insert("Bac", {
+        .identifier = "Bac",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 5,
+    });
+
+    hash_table.insert("Ban", {
+        .identifier = "Ban",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 6,
+    });
+
+    hash_table.insert("Bap", {
+        .identifier = "Bap",
+        .type       = SymType::SYMBOL_TYPE_VARIABLE,
+        .arity      = 7,
+    });
+
+    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
+                << hash_table.size() << std::endl;
+    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
  
     /*
     SyntaxTree syntax_tree;
