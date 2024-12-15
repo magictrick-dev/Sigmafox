@@ -51,86 +51,78 @@ main(int argc, char ** argv)
 
     }
 
-    // Set the table up.
-    Symboltable<Symbol, MurmurHash64A<0x1>, 0.50f> hash_table;
+    // Set the table up. The following are some hashing options available to use.
+    // Standard hash is what unordered_map uses by default, while FNV1A32/64 and Murmur
+    // are some of the popular hashing algorithms. Murmur<> defaults the seed to
+    // 0xFFFF'FFFF'FFFF'FFFF, however 0x1 seems to perform pretty good.
+    //Symboltable<Symbol, std::hash<std::string>, 0.50f> hash_table;
+    //Symboltable<Symbol, FNV1A32, 0.50f> hash_table;
+    //Symboltable<Symbol, FNV1A64, 0.50f> hash_table;
+    //Symboltable<Symbol, Murmur64A<>, 0.50f> hash_table;
+    Symboltable<Symbol, Murmur64A<0x1>, 0.80f> table_a;
+    Symboltable<Symbol, Murmur64A<0x1>, 0.80f> table_b;
 
-    // Test the table.
-    hash_table.insert("Hello", {
-        .identifier = "Hello",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 0,
-    });
+    table_a.insert("hello",     { .identifier = "hello"     });
+    table_a.insert("bar",       { .identifier = "bar"       });
+    table_b.insert("world",     { .identifier = "world"     });
+    table_b.insert("foo",       { .identifier = "foo"       });
 
-    hash_table.insert("World", {
-        .identifier = "World",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 1,
-    });
+    if (table_a.contains("hello")) std::cout << "Table A: Contains 'hello'" << std::endl;
+    if (table_a.contains("world")) std::cout << "Table A: Contains 'world'" << std::endl;
+    if (table_a.contains("foo")) std::cout << "Table A: Contains 'foo'" << std::endl;
+    if (table_a.contains("bar")) std::cout << "Table A: Contains 'bar'" << std::endl;
+    std::cout << std::endl;
+    if (table_b.contains("hello")) std::cout << "Table B: Contains 'hello'" << std::endl;
+    if (table_b.contains("world")) std::cout << "Table B: Contains 'world'" << std::endl;
+    if (table_b.contains("foo")) std::cout << "Table B: Contains 'foo'" << std::endl;
+    if (table_b.contains("bar")) std::cout << "Table B: Contains 'bar'" << std::endl;
+    std::cout << std::endl;
 
-    hash_table.insert("Foo", {
-        .identifier = "Foo",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 2,
-    });
+    table_b.merge_from(table_a);
 
-    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
-                << hash_table.size() << std::endl;
-    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
+    if (table_b.contains("hello")) std::cout << "Table B: Contains 'hello'" << std::endl;
+    if (table_b.contains("world")) std::cout << "Table B: Contains 'world'" << std::endl;
+    if (table_b.contains("foo")) std::cout << "Table B: Contains 'foo'" << std::endl;
+    if (table_b.contains("bar")) std::cout << "Table B: Contains 'bar'" << std::endl;
+    table_b.get("hello");
+    std::cout << "Table B facts: " << table_b.commit() << "/" << table_b.size() << std::endl;
+    
+    table_b.remove("hello");
+    std::cout << std::endl;
+    if (table_b.contains("hello")) std::cout << "Table B: Contains 'hello'" << std::endl;
+    if (table_b.contains("world")) std::cout << "Table B: Contains 'world'" << std::endl;
+    if (table_b.contains("foo")) std::cout << "Table B: Contains 'foo'" << std::endl;
+    if (table_b.contains("bar")) std::cout << "Table B: Contains 'bar'" << std::endl;
+    std::cout << "Table B facts: " << table_b.commit() << "/" << table_b.size() << std::endl;
 
-    hash_table.insert("Bar", {
-        .identifier = "Bar",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 3,
-    });
+    table_b.insert("hello",     { .identifier = "hello"     });
+    std::cout << std::endl;
+    if (table_b.contains("hello")) std::cout << "Table B: Contains 'hello'" << std::endl;
+    if (table_b.contains("world")) std::cout << "Table B: Contains 'world'" << std::endl;
+    if (table_b.contains("foo")) std::cout << "Table B: Contains 'foo'" << std::endl;
+    if (table_b.contains("bar")) std::cout << "Table B: Contains 'bar'" << std::endl;
+    std::cout << "Table B facts: " << table_b.commit() << "/" << table_b.size() << std::endl;
 
-    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
-                << hash_table.size() << std::endl;
-    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
+    Symboltable<Symbol, Murmur64A<0x1>, 0.80f> table_c(table_b);
+    if (table_c.contains("hello")) std::cout << "Table C: Contains 'hello'" << std::endl;
+    if (table_c.contains("world")) std::cout << "Table C: Contains 'world'" << std::endl;
+    if (table_c.contains("foo")) std::cout << "Table C: Contains 'foo'" << std::endl;
+    if (table_c.contains("bar")) std::cout << "Table C: Contains 'bar'" << std::endl;
+    std::cout << "Table C facts: " << table_c.commit() << "/" << table_c.size() << std::endl;
 
-    hash_table.insert("Baz", {
-        .identifier = "Baz",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 3,
-    });
+    if (table_a.contains("hello")) std::cout << "Table A: Contains 'hello'" << std::endl;
+    if (table_a.contains("world")) std::cout << "Table A: Contains 'world'" << std::endl;
+    if (table_a.contains("foo")) std::cout << "Table A: Contains 'foo'" << std::endl;
+    if (table_a.contains("bar")) std::cout << "Table A: Contains 'bar'" << std::endl;
+    std::cout << std::endl;
+    table_a = table_c;
+    if (table_a.contains("hello")) std::cout << "Table A: Contains 'hello'" << std::endl;
+    if (table_a.contains("world")) std::cout << "Table A: Contains 'world'" << std::endl;
+    if (table_a.contains("foo")) std::cout << "Table A: Contains 'foo'" << std::endl;
+    if (table_a.contains("bar")) std::cout << "Table A: Contains 'bar'" << std::endl;
+    std::cout << std::endl;
+    
 
-    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
-                << hash_table.size() << std::endl;
-    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
-
-    if (hash_table.contains("Hello")) std::cout << "Contains 'Hello'." << std::endl;
-    if (hash_table.contains("World")) std::cout << "Contains 'World'." << std::endl;
-    if (hash_table.contains("Foo")) std::cout << "Contains 'Foo'." << std::endl;
-    if (hash_table.contains("Bar")) std::cout << "Contains 'Bar'." << std::endl;
-    if (hash_table.contains("Baz")) std::cout << "Contains 'Baz'." << std::endl;
-
-    hash_table.insert("Baq", {
-        .identifier = "Baq",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 4,
-    });
-
-    hash_table.insert("Bac", {
-        .identifier = "Bac",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 5,
-    });
-
-    hash_table.insert("Ban", {
-        .identifier = "Ban",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 6,
-    });
-
-    hash_table.insert("Bap", {
-        .identifier = "Bap",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 7,
-    });
-
-    std::cout   << "Symbol table is at: " << hash_table.commit() << "/" 
-                << hash_table.size() << std::endl;
-    std::cout   << "Total overlaps (insert misses): " << hash_table.overlaps() << std::endl;
- 
     /*
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))

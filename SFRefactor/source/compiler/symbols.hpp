@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_SYMBOLS_HPP
 #define SIGMAFOX_COMPILER_SYMBOLS_HPP
 #include <definitions.hpp>
+#include <iostream>
 #include <string>
 
 // --- Symbol Definition -------------------------------------------------------
@@ -10,7 +11,7 @@
 // to do as you need.
 //
 
-enum class SymType
+enum class Symboltype
 {
     SYMBOL_TYPE_UNDEFINED,
     SYMBOL_TYPE_VARIABLE,
@@ -21,10 +22,17 @@ enum class SymType
 
 struct Symbol
 {
+    Symboltype      type;
     std::string     identifier;
-    SymType         type;
     i32             arity;
 };
+
+std::ostream& 
+operator<<(std::ostream& os, const Symbol& rhs)
+{
+    os << rhs.identifier << " " << rhs.arity;
+    return os;
+}
 
 // --- FNV1A32 Hash ------------------------------------------------------------
 //
@@ -103,7 +111,7 @@ struct FNV1A64Hash
 //
 
 template <u64 S = 0xFFFF'FFFF'FFFF'FFFF>
-struct MurmurHash64A 
+struct Murmur64A 
 {
 
     static inline u64 hash(const char* string)
@@ -156,7 +164,7 @@ struct MurmurHash64A
 
     inline u64 operator()(const char* string) const
     {
-        return MurmurHash64A::hash(string);
+        return Murmur64A::hash(string);
     }
 
 };
@@ -221,6 +229,7 @@ set(Symboltype symbol, std::string key, u64 hash)
 
     this->key = key;
     this->hash = hash;
+    this->symbol = symbol;
     this->active = true;
 
 }
@@ -288,11 +297,6 @@ get_value()
 // whenever it reaches a given load capacity. The defaults are an FNV1A hashing
 // schema and 75% load factor.
 //
-// The inner-workings are slightly more complicated than the average hash map in
-// order to accomodate some extensibility concerns, but ultimately the inner-workings
-// are pretty much the same as a standard hash map. It's not entirely space efficient,
-// but its relatively good at what it needs to do.
-//
 
 template <typename Symboltype = Symbol, typename Hashfunction = FNV1A32Hash, float LF = 0.75f>
 class Symboltable
@@ -300,16 +304,28 @@ class Symboltable
 
     public:
         inline              Symboltable();
+        inline              Symboltable(u64 initialize_size);
+        inline              Symboltable(const Symboltable& rhs);
         inline virtual     ~Symboltable();
+
+        inline Symboltable<Symbol, Hashfunction, LF>& operator=(const Symboltable& rhs);
+
+        inline Symboltype&          operator[](std::string key);
+        inline const Symboltype&    operator[](std::string key) const;
+        inline Symboltype&          get(std::string key);
+        inline const Symboltype&    get(std::string key) const;
 
         inline u64          size() const;
         inline u64          commit() const;
         inline u64          overlaps() const;
         inline void         resize(u64 size);
         inline void         insert(const std::string &str, const Symboltype& val);
+        inline void         remove(const std::string &str);
         inline bool         contains(const std::string &str) const;
+        inline void         merge_from(const Symboltable<Symboltype, Hashfunction, LF>& other);
 
     protected:
+        inline void         release_buffer();
         inline u64          hash(const std::string& str) const;
         inline void         insert_and_copy_into(SymboltableEntry<Symboltype> *buffer,
                                 u64 capacity, SymboltableEntry<Symboltype> reference);
@@ -336,16 +352,47 @@ Symboltable() : hash_function(Hashfunction()), symbols_buffer(nullptr),
 
 template <typename Symboltype, typename Hashfunction, float LF>
 Symboltable<Symboltype, Hashfunction, LF>::
+Symboltable(u64 initial_size) : hash_function(Hashfunction()), symbols_buffer(nullptr), 
+    capacity(0), load(0), misses(0)
+{
+
+    // Round to the nearest power of 2, we could bit twiddle tho.
+    u64 k = 1;
+    while (k < initial_size) k *= 2;
+    this->resize(k);
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+Symboltable<Symboltype, Hashfunction, LF>::
+Symboltable(const Symboltable<Symboltype, Hashfunction, LF>& rhs) 
+    : hash_function(Hashfunction()), symbols_buffer(nullptr), 
+    capacity(0), load(0), misses(0)
+{
+    
+    this->resize(rhs.size());
+    this->merge_from(rhs);
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+Symboltable<Symboltype, Hashfunction, LF>::
 ~Symboltable()
 {
 
-    if (this->symbols_buffer != nullptr)
-    {
-        SF_MEMORY_FREE(this->symbols_buffer);
-        this->symbols_buffer    = nullptr;
-        this->capacity          = 0;
-        this->load              = 0;
-    }
+    this->release_buffer();
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+Symboltable<Symbol, Hashfunction, LF>& Symboltable<Symboltype, Hashfunction, LF>::
+operator=(const Symboltable& rhs)
+{
+
+    this->release_buffer();   
+    this->resize(rhs.capacity);
+    this->merge_from(rhs);
+    return *this;
 
 }
 
@@ -453,6 +500,28 @@ insert(const std::string &str, const Symboltype& val)
 }
 
 template <typename Symboltype, typename Hashfunction, float LF>
+void Symboltable<Symboltype, Hashfunction, LF>::
+remove(const std::string &str)
+{
+
+    // Insert the new entry.
+    u64 hash = this->hash(str);
+    u64 offset = hash % this->capacity;
+
+    while (this->symbols_buffer[offset].is_active())
+    {
+
+        if (this->symbols_buffer[offset].get_key() == str) break;
+        offset = (offset + 1) % this->capacity;
+
+    }
+
+    this->load--;
+    this->symbols_buffer[offset].unset();
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
 bool Symboltable<Symboltype, Hashfunction, LF>::
 contains(const std::string& str) const
 {
@@ -491,6 +560,111 @@ insert_and_copy_into(SymboltableEntry<Symboltype> *buffer,
     }
 
     buffer[offset].set(reference.get_value(), reference.get_key(), hash);
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+void Symboltable<Symboltype, Hashfunction, LF>::
+merge_from(const Symboltable<Symboltype, Hashfunction, LF>& other)
+{
+
+    u64 other_index = 0;
+    while (other_index < other.capacity)
+    {
+
+        SymboltableEntry<Symboltype> *current_entry = &other.symbols_buffer[other_index];
+        if (current_entry->is_active())
+            this->insert(current_entry->get_key(), current_entry->get_value());
+        other_index++;
+
+    }
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+Symboltype& Symboltable<Symboltype, Hashfunction, LF>::
+get(std::string key)
+{
+
+    u64 hash = this->hash(key);
+    u64 offset = hash % this->capacity;
+
+    while (this->symbols_buffer[offset].is_active())
+    {
+
+        if (this->symbols_buffer[offset].get_key() == key)
+        {
+            return this->symbols_buffer[offset].get_value();
+        }
+
+        offset = (offset + 1) % this->capacity;
+
+    }
+
+    SF_ASSERT(!"Attempting to fetch a non-existent symbol.");
+    return this->symbols_buffer[offset].get_value();
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+const Symboltype& Symboltable<Symboltype, Hashfunction, LF>::
+get(std::string key) const
+{
+
+    u64 hash = this->hash(key);
+    u64 offset = hash % this->capacity;
+
+    while (this->symbols_buffer[offset].is_active())
+    {
+
+        if (this->symbols_buffer[offset].get_key() == key)
+        {
+            return this->symbols_buffer[offset].get_value();
+        }
+
+        offset = (offset + 1) % this->capacity;
+
+    }
+
+    SF_ASSERT(!"Attempting to fetch a non-existent symbol.");
+    return this->symbols_buffer[offset].get_value();
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+Symboltype& Symboltable<Symboltype, Hashfunction, LF>::
+operator[](std::string key)
+{
+
+    return this->get(key);
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+const Symboltype& Symboltable<Symboltype, Hashfunction, LF>::
+operator[](std::string key) const
+{
+
+    return this->get(key);
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+void Symboltable<Symboltype, Hashfunction, LF>::
+release_buffer()
+{
+
+    if (this->symbols_buffer != nullptr)
+    {
+
+        for (u64 i = 0; i < this->capacity; ++i)
+            (this->symbols_buffer + i)->~SymboltableEntry();
+
+        SF_MEMORY_FREE(this->symbols_buffer);
+        this->symbols_buffer    = nullptr;
+        this->capacity          = 0;
+        this->load              = 0;
+    }
 
 }
 
