@@ -21,6 +21,7 @@
 #include <definitions.hpp>
 #include <utilities/path.hpp>
 
+#include <compiler/symbolstack.hpp>
 #include <compiler/tokenizer.hpp>
 #include <compiler/dependencygraph.hpp>
 #include <compiler/errorhandler.hpp>
@@ -66,6 +67,7 @@ class SyntaxParser
     protected:
         std::vector<shared_ptr<ISyntaxNode>> nodes;
         shared_ptr<ISyntaxNode> base_node;
+        SymboltableStack<Symbol> symbol_stack;
         DependencyGraph* graph;
         Tokenizer tokenizer;
         Filepath path;

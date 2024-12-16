@@ -27,7 +27,7 @@ struct Symbol
     i32             arity;
 };
 
-std::ostream& 
+inline std::ostream& 
 operator<<(std::ostream& os, const Symbol& rhs)
 {
     os << rhs.identifier << " " << rhs.arity;
