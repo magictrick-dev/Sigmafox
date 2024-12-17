@@ -469,8 +469,37 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_equality()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_comparison();
+        while (this->expect_current_token_as(TokenType::TOKEN_EQUALS) ||
+               this->expect_current_token_as(TokenType::TOKEN_HASH))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_comparison();
+
+            // Generate the equality node.
+            auto equality_node = this->generate_node<SyntaxNodeEquality>();
+            equality_node->left             = left_hand_side;
+            equality_node->right            = right_hand_side;
+            equality_node->operation_type   = operator_token.type;
+            left_hand_side                  = dynamic_pointer_cast<ISyntaxNode>(equality_node);
+
+        }
+
+        return left_hand_side;
+
+    }
+
+    catch(SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -478,8 +507,39 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_comparison()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_term();
+        while (this->expect_current_token_as(TokenType::TOKEN_LESS_THAN) ||
+               this->expect_current_token_as(TokenType::TOKEN_LESS_THAN_EQUALS) ||
+               this->expect_current_token_as(TokenType::TOKEN_GREATER_THAN) ||
+               this->expect_current_token_as(TokenType::TOKEN_GREATER_THAN_EQUALS))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_term();
+
+            // Generate the comparison node.
+            auto comparison_node = this->generate_node<SyntaxNodeComparison>();
+            comparison_node->left           = left_hand_side;
+            comparison_node->right          = right_hand_side;
+            comparison_node->operation_type = operator_token.type;
+            left_hand_side                  = dynamic_pointer_cast<ISyntaxNode>(comparison_node);
+
+        }
+
+        return left_hand_side;
+
+    }
+
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -487,8 +547,37 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_term()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_factor();
+        while (this->expect_current_token_as(TokenType::TOKEN_PLUS) ||
+               this->expect_current_token_as(TokenType::TOKEN_MINUS))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_factor();
+
+            // Generate the term node.
+            auto term_node = this->generate_node<SyntaxNodeTerm>();
+            term_node->left             = left_hand_side;
+            term_node->right            = right_hand_side;
+            term_node->operation_type   = operator_token.type;
+            left_hand_side              = dynamic_pointer_cast<ISyntaxNode>(term_node);
+
+        }
+
+        return left_hand_side;
+
+    }
+
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 

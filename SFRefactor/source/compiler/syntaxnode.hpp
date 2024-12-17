@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_SYNTAX_NODE_HPP
 #define SIGMAFOX_COMPILER_SYNTAX_NODE_HPP
 #include <definitions.hpp>
+#include <compiler/tokenizer.hpp>
 
 class SyntaxNodeRoot;
 class SyntaxNodeModule;

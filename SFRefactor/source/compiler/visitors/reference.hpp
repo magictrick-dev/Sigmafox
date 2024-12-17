@@ -8,16 +8,16 @@
 #include <compiler/nodes/expression_statement.hpp>
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
-class SyntaxNodeComparison;
-class SyntaxNodeTerm;
-class SyntaxNodeFactor;
-class SyntaxNodeMagnitude;
-class SyntaxNodeExtraction;
-class SyntaxNodeDerivation;
-class SyntaxNodeUnary;
-class SyntaxNodeFunctionCall;
-class SyntaxNodePrimary;
-class SyntaxNodeGrouping;
+#include <compiler/nodes/comparison.hpp>
+#include <compiler/nodes/term.hpp>
+#include <compiler/nodes/factor.hpp>
+#include <compiler/nodes/magnitude.hpp>
+#include <compiler/nodes/extraction.hpp>
+#include <compiler/nodes/derivation.hpp>
+#include <compiler/nodes/unary.hpp>
+#include <compiler/nodes/functioncall.hpp>
+#include <compiler/nodes/primary.hpp>
+#include <compiler/nodes/grouping.hpp>
 
 
 class ReferenceVisitor : public ISyntaxNodeVisitor
