@@ -11,7 +11,9 @@ class SyntaxNodeEquality : public ISyntaxNode
         inline virtual void     accept(ISyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<ISyntaxNode> expression;
+        TokenType               operation_type;
+        shared_ptr<ISyntaxNode> left;
+        shared_ptr<ISyntaxNode> right;
 
 };
 

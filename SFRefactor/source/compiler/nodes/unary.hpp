@@ -11,7 +11,8 @@ class SyntaxNodeUnary : public ISyntaxNode
         inline virtual void     accept(ISyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<ISyntaxNode> expression;
+        shared_ptr<ISyntaxNode> right;
+        TokenType               operation_type;
 
 };
 

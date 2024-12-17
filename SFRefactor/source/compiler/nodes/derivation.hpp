@@ -1,5 +1,5 @@
-#ifndef SIGMAFOX_COMPILER_NODES_EXTRACTION_HPP
-#define SIGMAFOX_COMPILER_NODES_EXTRACTION_HPP
+#ifndef SIGMAFOX_COMPILER_NODES_DERIVATION_HPP
+#define SIGMAFOX_COMPILER_NODES_DERIVATION_HPP
 #include <compiler/syntaxnode.hpp>
 
 class SyntaxNodeDerivation : public ISyntaxNode 
@@ -11,7 +11,9 @@ class SyntaxNodeDerivation : public ISyntaxNode
         inline virtual void     accept(ISyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<ISyntaxNode> expression;
+        shared_ptr<ISyntaxNode> left;
+        shared_ptr<ISyntaxNode> right;
+        TokenType               operation_type;
 
 };
 

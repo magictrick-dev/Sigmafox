@@ -1,5 +1,5 @@
-#ifndef SIGMAFOX_COMPILER_NODES_PRIMARY_HPP
-#define SIGMAFOX_COMPILER_NODES_PRIMARY_HPP
+#ifndef SIGMAFOX_COMPILER_NODES_GROUPING_HPP
+#define SIGMAFOX_COMPILER_NODES_GROUPING_HPP
 #include <compiler/syntaxnode.hpp>
 
 class SyntaxNodeGrouping : public ISyntaxNode 
@@ -11,7 +11,7 @@ class SyntaxNodeGrouping : public ISyntaxNode
         inline virtual void     accept(ISyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<ISyntaxNode> expression;
+        shared_ptr<ISyntaxNode> grouping;
 
 };
 

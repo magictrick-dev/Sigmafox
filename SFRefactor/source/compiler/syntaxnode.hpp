@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_SYNTAX_NODE_HPP
 #define SIGMAFOX_COMPILER_SYNTAX_NODE_HPP
 #include <definitions.hpp>
+#include <compiler/tokenizer.hpp>
 
 class SyntaxNodeRoot;
 class SyntaxNodeModule;
@@ -51,6 +52,7 @@ class ISyntaxNodeVisitor
         virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node)               = 0;
         virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node) = 0;
         virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node)           = 0;
+        virtual void visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)         = 0;
 
 };
 
@@ -75,6 +77,7 @@ enum class SyntaxNodeType
     NodeTypeUnary,
     NodeTypeFunctionCall,
     NodeTypePrimary,
+    NodeTypeGrouping,
 };
 
 // --- Abstract Syntax Node Base Class -----------------------------------------

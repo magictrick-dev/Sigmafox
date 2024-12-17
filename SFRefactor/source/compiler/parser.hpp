@@ -48,10 +48,28 @@
 #include <compiler/dependencygraph.hpp>
 #include <compiler/errorhandler.hpp>
 #include <compiler/syntaxnode.hpp>
-#include <compiler/nodes/include.hpp>
-#include <compiler/nodes/main.hpp>
+
 #include <compiler/nodes/module.hpp>
 #include <compiler/nodes/root.hpp>
+
+#include <compiler/nodes/include.hpp>
+
+#include <compiler/nodes/main.hpp>
+#include <compiler/nodes/expression_statement.hpp>
+
+#include <compiler/nodes/assignment.hpp>
+#include <compiler/nodes/equality.hpp>
+#include <compiler/nodes/comparison.hpp>
+#include <compiler/nodes/term.hpp>
+#include <compiler/nodes/factor.hpp>
+#include <compiler/nodes/magnitude.hpp>
+#include <compiler/nodes/extraction.hpp>
+#include <compiler/nodes/derivation.hpp>
+#include <compiler/nodes/unary.hpp>
+#include <compiler/nodes/functioncall.hpp>
+#include <compiler/nodes/primary.hpp>
+#include <compiler/nodes/grouping.hpp>
+
 
 class SyntaxParser
 {
