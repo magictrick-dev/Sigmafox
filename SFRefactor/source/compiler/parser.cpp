@@ -83,16 +83,19 @@ synchronize_to(TokenType type)
 
     }
 
+    // Shift the token we are synchronizing to.
+    this->tokenizer.shift();
+
 }
 
 void SyntaxParser::
-process_error(i32 where, SyntaxError &error, bool was_just_handled)
+process_error(i32 where, SyntaxException &error, bool was_just_handled)
 {
 
     this->error_count++;
     if (error.handled == false)
     {
-        //std::cout << "[" << where << "] ";
+        std::cout << "[" << where << "]:";
         std::cout << error.what() << std::endl;
     }
 
@@ -202,7 +205,7 @@ match_root()
                 if (current_node == nullptr) break;
                 global_nodes.push_back(current_node);
             }
-            catch (SyntaxError& syntax_error)
+            catch (SyntaxException& syntax_error)
             {
                 this->process_error(__LINE__, syntax_error, true);
             }
@@ -224,7 +227,7 @@ match_root()
         return root_node;
 
     }
-    catch (SyntaxError& syntax_error)
+    catch (SyntaxException& syntax_error)
     {
         this->process_error(__LINE__, syntax_error, true);
         return nullptr;
@@ -251,7 +254,7 @@ match_module()
                 if (current_node == nullptr) break;
                 global_nodes.push_back(current_node);
             }
-            catch (SyntaxError& syntax_error)
+            catch (SyntaxException& syntax_error)
             {
                 this->process_error(__LINE__, syntax_error, true);
             }
@@ -267,7 +270,7 @@ match_module()
         return module_node;
 
     }
-    catch (SyntaxError& syntax_error)
+    catch (SyntaxException& syntax_error)
     {
         this->process_error(__LINE__, syntax_error, true);
         return nullptr;
@@ -283,7 +286,7 @@ match_global_statement()
     switch (current_token.type)
     {
 
-        case TokenType::TOKEN_KEYWORD_INCLUDE: return this->match_include();
+        case TokenType::TOKEN_KEYWORD_INCLUDE: return this->match_include_statement();
 
     }
 
@@ -292,7 +295,7 @@ match_global_statement()
 }
 
 shared_ptr<ISyntaxNode> SyntaxParser::
-match_include()
+match_include_statement()
 {
 
     Token include_path_token;
@@ -308,7 +311,7 @@ match_include()
         this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
 
     }
-    catch (SyntaxError& syntax_error)
+    catch (SyntaxException& syntax_error)
     {
         this->synchronize_to(TokenType::TOKEN_SEMICOLON);
         this->process_error(__LINE__, syntax_error, true);
@@ -355,11 +358,81 @@ match_main()
 
     this->validate_grammar_token<TokenType::TOKEN_KEYWORD_BEGIN>();
     this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+    // Match all body statements.
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+    shared_ptr<ISyntaxNode> current_node = nullptr;
+    while (true)
+    {
+
+        try
+        {
+            current_node = this->match_body_statement();
+            if (current_node == nullptr) break;
+            body_statements.push_back(current_node);
+        }
+        catch (SyntaxException& syntax_error)
+        {
+            this->process_error(__LINE__, syntax_error, true);
+        }
+
+    }
+
     this->validate_grammar_token<TokenType::TOKEN_KEYWORD_END>();
     this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
 
     auto main_node = this->generate_node<SyntaxNodeMain>();
+    main_node->children = body_statements;
     return main_node;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_body_statement()
+{
+
+    Token current_token = this->tokenizer.get_current_token();
+    switch (current_token.type)
+    {
+
+        default: break;
+
+    }
+
+    shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
+    return expression_statement;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_expression_statement()
+{
+
+    try
+    {
+
+        shared_ptr<ISyntaxNode> expression = this->match_expression();
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
+
+    SF_NO_IMPL("Not yet implemented.");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_expression()
+{
+
+    SF_NO_IMPL("Not yet implemented.");
+    return nullptr;
 
 }
 

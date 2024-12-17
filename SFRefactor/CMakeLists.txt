@@ -52,7 +52,14 @@ add_executable(Sigmafox
     "source/compiler/dependencygraph.hpp"
     "source/compiler/dependencygraph.cpp"
     "source/compiler/errorhandler.hpp"
-    "source/compiler/errorhandler.cpp"
+    "source/compiler/symbols.hpp"
+    "source/compiler/symbolstack.hpp"
+
+    "source/compiler/syntaxnode.hpp"
+    "source/compiler/nodes/include.hpp"
+    "source/compiler/nodes/main.hpp"
+    "source/compiler/nodes/module.hpp"
+    "source/compiler/nodes/root.hpp"
 
     ${PLATFORM_FILES}
 )

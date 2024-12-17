@@ -7,11 +7,33 @@
 //
 // --- Language Grammar --------------------------------------------------------
 //
-//      program                     :   (global_statement)* main; EOF
-//      main                        :   "begin" (body_statement)* "end" ;
-//      global_statement            :   include_statement
-//      include_statement           :   "include" TOKEN_STRING ; module
+//      The language grammar is written below. The parser is a hand-written
+//      recursive descent parser, so be sure to study this grammar before diving
+//      into the parser itself.
+//
+//      root                        :   (global_statement)* main EOF
 //      module                      :   (global_statement)* EOF
+//
+//      main                        :   "begin" ";" (body_statement)* "end" ";"
+//
+//      global_statement            :   include_statement
+//      include_statement           :   "include" TOKEN_STRING ";" module
+//
+//      body_statement              :   (expression_statement)*
+//      expression_statement        :   expression ";"
+//
+//      expression                  :   assigment
+//      assigment                   :   IDENTIFIER ":=" assignment | equality
+//      equality                    :   comparison (("=" | "#") comparison)*
+//      comparison                  :   term (("<" | "<=" | ">" | ">=") term)*
+//      term                        :   factor (("+" | "-") factor)*
+//      factor                      :   magnitude (("*" | "/") magnitude)*
+//      magnitude                   :   extraction ("^" extraction)*
+//      extraction                  :   derivation ("|" derivation)*
+//      derivation                  :   unary ("%" unary)*
+//      unary                       :   ("-" unary) | call
+//      call                        :   primary ( "(" arguments? ")" )?
+//      primary                     :   NUMBER | STRING | identifier | "(" expression ")"
 //
 // -----------------------------------------------------------------------------
 #ifndef SIGMAFOX_COMPILER_PARSER_H 
@@ -53,16 +75,23 @@ class SyntaxParser
 
         shared_ptr<ISyntaxNode>         match_root();
         shared_ptr<ISyntaxNode>         match_module();
-        shared_ptr<ISyntaxNode>         match_global_statement();
-        shared_ptr<ISyntaxNode>         match_include();
+
         shared_ptr<ISyntaxNode>         match_main();
+
+        shared_ptr<ISyntaxNode>         match_global_statement();
+        shared_ptr<ISyntaxNode>         match_include_statement();
+
+        shared_ptr<ISyntaxNode>         match_body_statement();
+        shared_ptr<ISyntaxNode>         match_expression_statement();
+
+        shared_ptr<ISyntaxNode>         match_expression();
 
         template<TokenType expect> void validate_grammar_token();
         bool expect_previous_token_as(TokenType type) const;
         bool expect_current_token_as(TokenType type) const;
         bool expect_next_token_as(TokenType type) const;
 
-        void process_error(i32 where, SyntaxError& error, bool just_handled);
+        void process_error(i32 where, SyntaxException& error, bool just_handled);
 
     protected:
         std::vector<shared_ptr<ISyntaxNode>> nodes;
