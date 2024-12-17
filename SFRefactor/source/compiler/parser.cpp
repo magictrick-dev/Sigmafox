@@ -381,6 +381,8 @@ match_main()
     while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
     {
 
+        if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_END)) break;
+
         try
         {
             current_node = this->match_body_statement();
@@ -781,16 +783,55 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_primary()
 {
 
-    
+    try
+    {
+
+        if (this->expect_current_token_as(TokenType::TOKEN_REAL) ||
+            this->expect_current_token_as(TokenType::TOKEN_INTEGER) ||
+            this->expect_current_token_as(TokenType::TOKEN_STRING))
+        {
+
+            Token literal_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            // Generate the primary node.
+            auto primary_node = this->generate_node<SyntaxNodePrimary>();
+            primary_node->literal_reference     = literal_token.reference;
+            primary_node->literal_type          = literal_token.type;
+            return primary_node;
+
+        }
+
+        else if (this->expect_current_token_as(TokenType::TOKEN_LEFT_PARENTHESIS))
+        {
+
+            this->tokenizer.shift();
+            shared_ptr<ISyntaxNode> inside = this->match_expression();
+            this->validate_grammar_token<TokenType::TOKEN_RIGHT_PARENTHESIS>();
+
+            // Generate the grouping node.
+            auto grouping_node = this->generate_node<SyntaxNodeGrouping>();
+            grouping_node->grouping = inside;
+            return grouping_node;
+
+        }
+
+        Token current_token = this->tokenizer.get_current_token();
+        throw SyntaxError(this->path, current_token,
+                "Unexpect token encountered: '%s'.", current_token.reference.c_str());
+
+    }
+
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
+
 
 }
 
 
-// --- Debug Output Visitor ----------------------------------------------------
-//
-// A quick and dirty way of getting some output of the AST without looking at
-// a debugger.
-//
 
 
 

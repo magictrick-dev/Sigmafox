@@ -45,6 +45,7 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node)                override;               
         inline virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)  override; 
         inline virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node)            override;           
+        inline virtual void visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)          override;
 
     protected:
         void    push_tabs();
@@ -244,6 +245,14 @@ visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)
 
 void ReferenceVisitor::
 visit_SyntaxNodePrimary(SyntaxNodePrimary *node)           
+{
+
+    SF_NO_IMPL(!"Not yet.");
+    return;
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)           
 {
 
     SF_NO_IMPL(!"Not yet.");

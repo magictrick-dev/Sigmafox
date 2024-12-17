@@ -11,7 +11,8 @@ class SyntaxNodePrimary : public ISyntaxNode
         inline virtual void     accept(ISyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<ISyntaxNode> expression;
+        std::string     literal_reference;
+        TokenType       literal_type;
 
 };
 
