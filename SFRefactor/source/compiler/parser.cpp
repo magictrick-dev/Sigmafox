@@ -21,6 +21,9 @@
 #include <compiler/errorhandler.hpp>
 
 // --- Parser Constructor/Destructors ------------------------------------------
+// 
+// The usual setup code needed to initialize the parser. No real magic here.
+//
 
 SyntaxParser::
 SyntaxParser(Filepath filepath, DependencyGraph *graph) : tokenizer(filepath)
@@ -46,27 +49,11 @@ get_source_path() const
 
 }
 
-void SyntaxParser::
-visit_base_node(ISyntaxNodeVisitor *visitor)
-{
-    SF_ENSURE_PTR(visitor);
-    SF_ENSURE_PTR(this->base_node);
-    this->base_node->accept(visitor);
-}
-
-template <class T, typename... Params> std::shared_ptr<T> SyntaxParser::
-generate_node(Params... args)
-{
-
-    // Thanks C++, very cool.
-    std::shared_ptr<T> result = std::make_shared<T>(args...);
-    std::shared_ptr<ISyntaxNode> cast_back = dynamic_pointer_cast<ISyntaxNode>(result);
-    this->nodes.push_back(cast_back);
-    return result;
-
-}
-
 // --- Parser Helpers ----------------------------------------------------------
+//
+// Anything that doesn't directly pertain to constructing the AST is written here.
+// Most of the functions are just helpers to make parsing easier.
+//
 
 void SyntaxParser::
 synchronize_to(TokenType type)
@@ -180,11 +167,40 @@ expect_next_token_as(TokenType type) const
 
 }
 
+void SyntaxParser::
+visit_base_node(ISyntaxNodeVisitor *visitor)
+{
+    SF_ENSURE_PTR(visitor);
+    SF_ENSURE_PTR(this->base_node);
+    this->base_node->accept(visitor);
+}
+
+template <class T, typename... Params> std::shared_ptr<T> SyntaxParser::
+generate_node(Params... args)
+{
+
+    // Thanks C++, very cool.
+    std::shared_ptr<T> result = std::make_shared<T>(args...);
+    std::shared_ptr<ISyntaxNode> cast_back = dynamic_pointer_cast<ISyntaxNode>(result);
+    this->nodes.push_back(cast_back);
+    return result;
+
+}
+
 // --- Parser Implementations --------------------------------------------------
 //
 // Here is the grammar implementations of the parser. There's a lot going on here
 // that is probably difficult to trace just by looking at it. Take a reference file
 // with minimal functionality and step through the code to follow what's going.
+//
+// The actual descent code matches the grammar layout in the header file for this.
+// That's also a really good place to get your footing.
+//
+// The last thing to note here is that I use exception handling to catch errors.
+// Before you fetch a bucket to puke in, it's actually really handy considering
+// we have different recovery methods throughout the parser that exception handling
+// works quite well for. We use custom exceptions which we use to specifically throw
+// rather than standard exceptions.
 //
 
 shared_ptr<ISyntaxNode> SyntaxParser::
@@ -391,6 +407,8 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_body_statement()
 {
 
+    // Body statements can match to several types, but the fall-through case
+    // will just be expression statements.
     Token current_token = this->tokenizer.get_current_token();
     switch (current_token.type)
     {
@@ -399,6 +417,7 @@ match_body_statement()
 
     }
 
+    // Expression statement.
     shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
     return expression_statement;
 
@@ -422,7 +441,6 @@ match_expression_statement()
         throw;
     }
 
-    SF_NO_IMPL("Not yet implemented.");
     return nullptr;
 
 }
@@ -431,10 +449,112 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_expression()
 {
 
-    SF_NO_IMPL("Not yet implemented.");
+    shared_ptr<ISyntaxNode> expression = this->match_assignment();
+    return expression;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_assignment()
+{
+
+    shared_ptr<ISyntaxNode> left_hand_side = this->match_equality();
+    return left_hand_side;
+
+    // TODO(Chris): Complete this.
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_equality()
+{
+
+    SF_NO_IMPL(!"Not yet!");
     return nullptr;
 
 }
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_comparison()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_term()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_factor()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_magnitude()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_extraction()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_derivation()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_unary()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_function_call()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_primary()
+{
+
+    SF_NO_IMPL(!"Not yet!");
+    return nullptr;
+
+}
+
 
 // --- Debug Output Visitor ----------------------------------------------------
 //

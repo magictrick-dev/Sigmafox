@@ -32,7 +32,7 @@
 //      extraction                  :   derivation ("|" derivation)*
 //      derivation                  :   unary ("%" unary)*
 //      unary                       :   ("-" unary) | call
-//      call                        :   primary ( "(" arguments? ")" )?
+//      function_call               :   primary ( "(" arguments? ")" )?
 //      primary                     :   NUMBER | STRING | identifier | "(" expression ")"
 //
 // -----------------------------------------------------------------------------
@@ -85,6 +85,17 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_expression_statement();
 
         shared_ptr<ISyntaxNode>         match_expression();
+        shared_ptr<ISyntaxNode>         match_assignment();
+        shared_ptr<ISyntaxNode>         match_equality();
+        shared_ptr<ISyntaxNode>         match_comparison();
+        shared_ptr<ISyntaxNode>         match_term();
+        shared_ptr<ISyntaxNode>         match_factor();
+        shared_ptr<ISyntaxNode>         match_magnitude();
+        shared_ptr<ISyntaxNode>         match_extraction();
+        shared_ptr<ISyntaxNode>         match_derivation();
+        shared_ptr<ISyntaxNode>         match_unary();
+        shared_ptr<ISyntaxNode>         match_function_call();
+        shared_ptr<ISyntaxNode>         match_primary();
 
         template<TokenType expect> void validate_grammar_token();
         bool expect_previous_token_as(TokenType type) const;
