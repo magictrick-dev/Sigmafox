@@ -378,7 +378,7 @@ match_main()
     // Match all body statements.
     std::vector<shared_ptr<ISyntaxNode>> body_statements;
     shared_ptr<ISyntaxNode> current_node = nullptr;
-    while (true)
+    while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
     {
 
         try
@@ -392,6 +392,12 @@ match_main()
             this->process_error(__LINE__, syntax_error, true);
         }
 
+    }
+
+    if (this->expect_current_token_as(TokenType::TOKEN_EOF))
+    {
+        throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                "Unexpected end-of-file encountered.");
     }
 
     this->validate_grammar_token<TokenType::TOKEN_KEYWORD_END>();
@@ -585,8 +591,37 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_factor()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_unary();
+        while (this->expect_current_token_as(TokenType::TOKEN_STAR) ||
+               this->expect_current_token_as(TokenType::TOKEN_FORWARD_SLASH))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_unary();
+
+            // Generate the factor node.
+            auto factor_node = this->generate_node<SyntaxNodeFactor>();
+            factor_node->left               = left_hand_side;
+            factor_node->right              = right_hand_side;
+            factor_node->operation_type     = operator_token.type;
+            left_hand_side                  = dynamic_pointer_cast<ISyntaxNode>(factor_node);
+
+        }
+
+        return left_hand_side;
+
+    }
+
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -594,8 +629,36 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_magnitude()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_extraction();
+        while (this->expect_current_token_as(TokenType::TOKEN_CARROT))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_extraction();
+
+            // Generate the magnitude node.
+            auto magnitude_node = this->generate_node<SyntaxNodeMagnitude>();
+            magnitude_node->left            = left_hand_side;
+            magnitude_node->right           = right_hand_side;
+            magnitude_node->operation_type  = operator_token.type;
+            left_hand_side                  = dynamic_pointer_cast<ISyntaxNode>(magnitude_node);
+
+        }
+
+        return left_hand_side;
+
+    }
+
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -603,8 +666,36 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_extraction()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_derivation();
+        while (this->expect_current_token_as(TokenType::TOKEN_PIPE))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_extraction();
+
+            // Generate the extraction node.
+            auto extraction_node = this->generate_node<SyntaxNodeExtraction>();
+            extraction_node->left           = left_hand_side;
+            extraction_node->right          = right_hand_side;
+            extraction_node->operation_type = operator_token.type;
+            left_hand_side                  = dynamic_pointer_cast<ISyntaxNode>(extraction_node);
+
+        }
+
+        return left_hand_side;
+
+    }
+
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -612,8 +703,33 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_derivation()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_unary();
+        while (this->expect_current_token_as(TokenType::TOKEN_PERCENT))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_unary();
+
+            // Generate the derivation node.
+            auto derivation_node = this->generate_node<SyntaxNodeDerivation>();
+            derivation_node->left           = left_hand_side;
+            derivation_node->right          = right_hand_side;
+            derivation_node->operation_type = operator_token.type;
+            left_hand_side                  = dynamic_pointer_cast<ISyntaxNode>(derivation_node);
+
+        }
+
+        return left_hand_side;
+    }
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -621,8 +737,35 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_unary()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    try
+    {
+
+        if (this->expect_current_token_as(TokenType::TOKEN_MINUS))
+        {
+
+            Token operator_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_unary();
+
+            // Generate the unary node.
+            auto unary_node = this->generate_node<SyntaxNodeUnary>();
+            unary_node->right           = right_hand_side;
+            unary_node->operation_type  = operator_token.type;
+            return unary_node;
+
+        }
+
+        shared_ptr<ISyntaxNode> right = this->match_function_call();
+        return right;
+        
+    }
+
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -630,8 +773,7 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_function_call()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    return this->match_primary();
 
 }
 
@@ -639,8 +781,7 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_primary()
 {
 
-    SF_NO_IMPL(!"Not yet!");
-    return nullptr;
+    
 
 }
 
