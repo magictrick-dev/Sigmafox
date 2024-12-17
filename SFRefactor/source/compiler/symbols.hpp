@@ -20,12 +20,44 @@ enum class Symboltype
     SYMBOL_TYPE_FUNCTION,
 };
 
-struct Symbol
+class Symbol
 {
-    Symboltype      type;
-    std::string     identifier;
-    i32             arity;
+    
+    public:
+        inline              Symbol();
+        inline              Symbol(const std::string& identifier, Symboltype type, i32 arity);
+        inline virtual     ~Symbol();
+
+    public:
+        std::string     identifier;
+        Symboltype      type;
+        i32             arity;
+
 };
+
+Symbol::
+Symbol()
+{
+    this->type = Symboltype::SYMBOL_TYPE_UNDEFINED;
+    this->arity = 0;
+    this->identifier = "UNSET SYMBOL IDENTIFIER NAME!";
+}
+
+Symbol::
+Symbol(const std::string &identifier, Symboltype type, i32 arity)
+{
+
+    this->identifier = identifier;
+    this->type = type;
+    this->arity = arity;
+
+}
+
+Symbol::
+~Symbol()
+{
+
+}
 
 inline std::ostream& 
 operator<<(std::ostream& os, const Symbol& rhs)
@@ -319,10 +351,12 @@ class Symboltable
         inline u64          commit() const;
         inline u64          overlaps() const;
         inline void         resize(u64 size);
-        inline void         insert(const std::string &str, const Symboltype& val);
         inline void         remove(const std::string &str);
         inline bool         contains(const std::string &str) const;
         inline void         merge_from(const Symboltable<Symboltype, Hashfunction, LF>& other);
+
+        inline void                             insert(const std::string &str, const Symboltype& val);
+        template <class... Args> inline void    emplace(const std::string &str, Args... args);
 
     protected:
         inline void         release_buffer();
@@ -496,6 +530,34 @@ insert(const std::string &str, const Symboltype& val)
 
     this->load++;
     this->symbols_buffer[offset].set(val, str, hash);
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF> template <class... Args>
+void Symboltable<Symboltype, Hashfunction, LF>::
+emplace(const std::string &str, Args... args)
+{
+
+    // Calculate the current load factor and resize if needed.
+    r32 current_load = (r32)this->load / (r32)this->capacity;
+    if (current_load >= std::min(LF, 1.0f)) 
+        this->resize(this->capacity * 2);
+
+    // Insert the new entry.
+    u64 hash = this->hash(str);
+    u64 offset = hash % this->capacity;
+
+    while (this->symbols_buffer[offset].is_active())
+    {
+
+        if (this->symbols_buffer[offset].get_key() == str) break;
+        offset = (offset + 1) % this->capacity;
+        misses += 1;
+
+    }
+
+    this->load++;
+    this->symbols_buffer[offset].set(Symboltype(args...), str, hash);
 
 }
 

@@ -63,7 +63,6 @@ main(int argc, char ** argv)
         syntax_tree.dump_dependency_graph();
     }
 
-
     return 0;
 
 }
