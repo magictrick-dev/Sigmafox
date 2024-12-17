@@ -17,22 +17,115 @@
 #include <platform/system.hpp>
 #include <compiler/tokenizer.hpp>
 
-class SyntaxError : public std::exception
-{
-    public:
-                        SyntaxError();
-        virtual        ~SyntaxError();
-        template <class... Args> SyntaxError(const Filepath& location,
-                const Token& reference, std::string format, Args... args);
+// --- Syntax Exceptions -------------------------------------------------------
 
-        const char*     what() const override;
+class SyntaxException : public std::exception
+{
+
+    public:
+        ccptr what() const = 0;
 
     public:
         bool handled = false;
 
+};
+
+// --- Syntax Warnings ---------------------------------------------------------
+//
+// The syntax warnings operate in the same capacity as errors.
+//
+
+class SyntaxWarning : public SyntaxException 
+{
+    public:
+        inline          SyntaxWarning();
+        inline virtual ~SyntaxWarning();
+        template <class... Args> inline SyntaxWarning(const Filepath& location,
+                const Token& reference, std::string format, Args... args);
+
+        inline ccptr    what() const override;
+
     protected:
         std::string message;
+
 };
+
+SyntaxWarning::
+SyntaxWarning()
+{
+
+}
+
+SyntaxWarning::
+~SyntaxWarning()
+{
+
+}
+
+template <class... Args> SyntaxWarning::
+SyntaxWarning(const Filepath& location, const Token& reference,
+        std::string format, Args... args)
+{
+
+    // Probably a cleaner way to do this.
+    this->message += location.c_str();
+    this->message += "(";
+    this->message += std::to_string(reference.row);
+    this->message += ",";
+    this->message += std::to_string(reference.column);
+    this->message += ")(warning): ";
+
+    // A little bit easier to work with than snprintf and malloc, I guess.
+    i32 size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
+    std::string formatted_message(size_s, ' ');
+    std::snprintf(formatted_message.data(), size_s, format.c_str(), args...);
+    formatted_message.pop_back();
+    this->message += formatted_message;
+
+}
+
+ccptr SyntaxWarning::
+what() const
+{
+
+    return this->message.c_str();
+
+}
+
+// --- Syntax Errors -----------------------------------------------------------
+//
+// Used for error handling in the parser and recovering from syntax errors. Most
+// errors are recoverable, but may propagate higher, thus the need for the handled
+// flag in the structure.
+//
+
+class SyntaxError : public SyntaxException 
+{
+    public:
+        inline          SyntaxError();
+        inline virtual ~SyntaxError();
+        template <class... Args> inline SyntaxError(const Filepath& location,
+                const Token& reference, std::string format, Args... args);
+
+        inline ccptr    what() const override;
+
+    protected:
+        std::string message;
+
+};
+
+SyntaxError::
+SyntaxError()
+{
+
+}
+
+SyntaxError::
+~SyntaxError()
+{
+
+}
+
 
 template <class... Args> SyntaxError::
 SyntaxError(const Filepath& location, const Token& reference,
@@ -56,73 +149,11 @@ SyntaxError(const Filepath& location, const Token& reference,
 
 }
 
-
-
-
-
-
-
-
-
-
-
-struct ErrorMessageFormat 
-{
-    std::string filepath;
-    std::string message;
-    std::string offender;
-    i32 column_location;
-    i32 line_location;
-    u64 timestamp;
-};
-
-class ErrorHandler
-{
-    public:
-        template <class... Args> static void parse_error(const Filepath& location, const Token& reference, 
-                std::string format, Args... args);
-
-    protected:
-        static ErrorHandler& self();
-
-    protected:
-        std::vector<ErrorMessageFormat> error_messages;
-
-                        ErrorHandler();
-        virtual        ~ErrorHandler();
-};
-
-template <class... Args> void ErrorHandler::
-parse_error(const Filepath& location, const Token& reference, 
-        std::string format, Args... args)
+ccptr SyntaxError::
+what() const
 {
 
-    // Probably a cleaner way to do this.
-    std::string output_message;
-    output_message += location.c_str();
-    output_message += "(";
-    output_message += std::to_string(reference.row);
-    output_message += ",";
-    output_message += std::to_string(reference.column);
-    output_message += ")(error): ";
-
-    // A little bit easier to work with than snprintf and malloc, I guess.
-    i32 size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
-    std::string formatted_message(size_s, ' ');
-    std::snprintf(formatted_message.data(), size_s, format.c_str(), args...);
-    formatted_message.pop_back();
-    output_message += formatted_message;
-
-    ErrorHandler::self().error_messages.push_back({
-        .filepath = location.c_str(),
-        .message = formatted_message,
-        .offender = reference.reference,
-        .column_location = reference.column,
-        .line_location = reference.row,
-        .timestamp = 0,
-    });
-
-    std::cout << output_message << std::endl;
+    return this->message.c_str();
 
 }
 

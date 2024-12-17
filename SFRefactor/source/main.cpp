@@ -49,26 +49,8 @@ main(int argc, char ** argv)
             return -1;
         }
 
-    }
+    } 
 
-    Symboltable<Symbol, FNV1A32Hash, 0.80f> hash_table;
-    hash_table.insert("Hello", {
-        .identifier = "Hello",
-        .type       = SymType::SYMBOL_TYPE_VARIABLE,
-        .arity      = 0,
-    });
-
-    if (hash_table.contains("Hello"))
-    {
-        std::cout << "Does (and should) contain 'Hello'." << std::endl;
-    }
-
-    if (!hash_table.contains("Hello World"))
-    {
-        std::cout << "Doesn't (and shouldn't) contain 'Hello World'." << std::endl;
-    }
- 
-    /*
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))
     {
@@ -80,8 +62,6 @@ main(int argc, char ** argv)
         syntax_tree.visit_root(&reference_visitor);
         syntax_tree.dump_dependency_graph();
     }
-    */
-
 
     return 0;
 

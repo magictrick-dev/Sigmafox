@@ -4,8 +4,25 @@
 
 class SyntaxNodeRoot;
 class SyntaxNodeModule;
+
 class SyntaxNodeInclude;
+
 class SyntaxNodeMain;
+class SyntaxNodeExpressionStatement;
+
+class SyntaxNodeExpression;
+class SyntaxNodeAssignment;
+class SyntaxNodeEquality;
+class SyntaxNodeComparison;
+class SyntaxNodeTerm;
+class SyntaxNodeFactor;
+class SyntaxNodeMagnitude;
+class SyntaxNodeExtraction;
+class SyntaxNodeDerivation;
+class SyntaxNodeUnary;
+class SyntaxNodeFunctionCall;
+class SyntaxNodePrimary;
+class SyntaxNodeGrouping;
 
 // Provides an easy way to traverse the AST in a uniform fashion without having to
 // extend any internal behaviors on the nodes themselves. They automatically recurse
@@ -14,10 +31,26 @@ class ISyntaxNodeVisitor
 {
 
     public:
-        virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node)                 = 0;
-        virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node)             = 0;
-        virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node)           = 0;
-        virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)                 = 0;
+        virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node)     = 0;
+        virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node) = 0;
+
+        virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)     = 0;
+
+        virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) = 0;
+        virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) = 0;
+
+        virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)     = 0;
+        virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)     = 0;
+        virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node)         = 0;
+        virtual void visit_SyntaxNodeComparison(SyntaxNodeComparison *node)     = 0;
+        virtual void visit_SyntaxNodeTerm(SyntaxNodeTerm *node)                 = 0;
+        virtual void visit_SyntaxNodeFactor(SyntaxNodeFactor *node)             = 0;
+        virtual void visit_SyntaxNodeMagnitude(SyntaxNodeMagnitude *node)       = 0;
+        virtual void visit_SyntaxNodeExtraction(SyntaxNodeExtraction *node)     = 0;
+        virtual void visit_SyntaxNodeDerivation(SyntaxNodeDerivation *node)     = 0;
+        virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node)               = 0;
+        virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node) = 0;
+        virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node)           = 0;
 
 };
 
@@ -27,8 +60,21 @@ enum class SyntaxNodeType
     NodeTypeVoid,
     NodeTypeRoot,
     NodeTypeModule,
-    NodeTypeInclude,
     NodeTypeMain,
+    NodeTypeInclude,
+    NodeTypeExpressionStatement,
+    NodeTypeExpression,
+    NodeTypeAssignment,
+    NodeTypeEquality,
+    NodeTypeComparison,
+    NodeTypeTerm,
+    NodeTypeFactor,
+    NodeTypeMagnitude,
+    NodeTypeExtraction,
+    NodeTypeDerivation,
+    NodeTypeUnary,
+    NodeTypeFunctionCall,
+    NodeTypePrimary,
 };
 
 // --- Abstract Syntax Node Base Class -----------------------------------------
