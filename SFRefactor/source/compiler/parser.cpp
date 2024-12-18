@@ -375,6 +375,9 @@ match_main()
     this->validate_grammar_token<TokenType::TOKEN_KEYWORD_BEGIN>();
     this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
 
+    // Push the scope.
+    this->symbol_stack.push_table();
+
     // Match all body statements.
     std::vector<shared_ptr<ISyntaxNode>> body_statements;
     shared_ptr<ISyntaxNode> current_node = nullptr;
@@ -395,6 +398,9 @@ match_main()
         }
 
     }
+
+    // Pop the scope.
+    this->symbol_stack.pop_table();
 
     if (this->expect_current_token_as(TokenType::TOKEN_EOF))
     {
@@ -421,6 +427,7 @@ match_body_statement()
     switch (current_token.type)
     {
 
+        case TokenType::TOKEN_KEYWORD_VARIABLE: return this->match_variable_statement();
         default: break;
 
     }
@@ -428,6 +435,63 @@ match_body_statement()
     // Expression statement.
     shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
     return expression_statement;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_variable_statement()
+{
+
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_VARIABLE>();
+
+        // Get the identifier.
+        Token identifier_token = this->tokenizer.get_current_token();
+        this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+
+        // Get the expression.
+        shared_ptr<ISyntaxNode> expression = this->match_expression();
+
+        // Get the optional expressions.
+        std::vector<shared_ptr<ISyntaxNode>> optional_expressions;
+        while (this->expect_current_token_as(TokenType::TOKEN_COMMA))
+        {
+
+            this->tokenizer.shift();
+            shared_ptr<ISyntaxNode> optional_expression = this->match_expression();
+            optional_expressions.push_back(optional_expression);
+
+        }
+
+        // Get the optional definition statement.
+        shared_ptr<ISyntaxNode> definition_statement = nullptr;
+        if (this->expect_current_token_as(TokenType::TOKEN_COLON_EQUALS))
+        {
+            this->tokenizer.shift();
+            definition_statement = this->match_expression();
+        }
+
+        // Validate the semicolon.
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Insert the symbol into the symbol table.
+        this->symbol_stack.insert_symbol_locally(identifier_token.reference,
+                identifier_token.reference, Symboltype::SYMBOL_TYPE_VARIABLE, 0);
+
+        // Generate the variable node.
+        auto variable_node = this->generate_node<SyntaxNodeVariableStatement>();
+        // TODO(Chris): Finish this.
+        return variable_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -453,8 +517,6 @@ match_expression_statement()
         throw;
     }
 
-    return nullptr;
-
 }
 
 shared_ptr<ISyntaxNode> SyntaxParser::
@@ -470,10 +532,53 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_assignment()
 {
 
-    shared_ptr<ISyntaxNode> left_hand_side = this->match_equality();
-    return left_hand_side;
+    try
+    {
 
-    // TODO(Chris): Complete this.
+        // Fetch the right hand side.
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_equality();
+
+        // If it's not a primary node, then we can forward.
+        if (left_hand_side->get_type() != SyntaxNodeType::NodeTypePrimary)
+            return left_hand_side;
+
+        // If the next token is not an assignment operator, then we can forward.
+        if (!this->expect_current_token_as(TokenType::TOKEN_COLON_EQUALS))
+            return left_hand_side;
+
+        // Validate the colon equals.
+        this->validate_grammar_token<TokenType::TOKEN_COLON_EQUALS>();
+
+        // Ensure that the left hand side primary node is an identifier.
+        shared_ptr<SyntaxNodePrimary> primary_node = 
+            dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
+
+        if (primary_node->literal_type != TokenType::TOKEN_IDENTIFIER)
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Expected identifier, encountered '%s'.",
+                    primary_node->literal_reference.c_str());
+        }
+
+        // Now get the right hand side.
+        shared_ptr<ISyntaxNode> right_hand_side = this->match_expression();
+
+        // Update the symbol table.
+        this->symbol_stack.insert_symbol_locally(primary_node->literal_reference,
+                primary_node->literal_reference, Symboltype::SYMBOL_TYPE_VARIABLE, 0);
+
+        // Generate the assignment node.
+        auto assignment_node = this->generate_node<SyntaxNodeAssignment>();
+        assignment_node->left = left_hand_side;
+        assignment_node->right = right_hand_side;
+        return dynamic_pointer_cast<ISyntaxNode>(assignment_node);
+
+    }
+    catch(SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -806,6 +911,22 @@ match_primary()
 
         }
 
+        else if (this->expect_current_token_as(TokenType::TOKEN_IDENTIFIER))
+        {
+
+            Token literal_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+
+
+
+            // Generate the primary node.
+            auto primary_node = this->generate_node<SyntaxNodePrimary>();
+            primary_node->literal_reference     = literal_token.reference;
+            primary_node->literal_type          = literal_token.type;
+            return primary_node;
+
+        }
+        
         else if (this->expect_current_token_as(TokenType::TOKEN_LEFT_PARENTHESIS))
         {
 

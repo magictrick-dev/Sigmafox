@@ -19,7 +19,9 @@
 //      global_statement            :   include_statement
 //      include_statement           :   "include" TOKEN_STRING ";" module
 //
-//      body_statement              :   (expression_statement)*
+//      body_statement              :   (expression_statement | variable_statement)*
+//      variable_statement          :   "variable" IDENTIFIER expression expression* 
+//                                      (":=" expression)? ";"
 //      expression_statement        :   expression ";"
 //
 //      expression                  :   assigment
@@ -56,6 +58,7 @@
 
 #include <compiler/nodes/main.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/variable_statement.hpp>
 
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
@@ -100,6 +103,7 @@ class SyntaxParser
 
         shared_ptr<ISyntaxNode>         match_body_statement();
         shared_ptr<ISyntaxNode>         match_expression_statement();
+        shared_ptr<ISyntaxNode>         match_variable_statement();
 
         shared_ptr<ISyntaxNode>         match_expression();
         shared_ptr<ISyntaxNode>         match_assignment();

@@ -34,6 +34,7 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node)            override;
         inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)                  override;
         inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
+        inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)      override;     
         inline virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)      override;     
         inline virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node)          override;         
@@ -160,6 +161,15 @@ visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
 }
 
 void ReferenceVisitor::
+visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)
+{
+
+    SF_NO_IMPL("Not yet.");
+    return;
+}
+
+
+void ReferenceVisitor::
 visit_SyntaxNodeExpression(SyntaxNodeExpression *node)     
 {
 
@@ -172,7 +182,10 @@ void ReferenceVisitor::
 visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)     
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+    std::cout << " = ";
+    node->right->accept(this);
+
     return;
 }
 
@@ -184,7 +197,7 @@ visit_SyntaxNodeEquality(SyntaxNodeEquality *node)
     
     switch (node->operation_type)
     {
-        case TokenType::TOKEN_EQUALS:   std::cout << " = ";     break;
+        case TokenType::TOKEN_EQUALS:   std::cout << " == ";     break;
         case TokenType::TOKEN_HASH:     std::cout << " != ";    break;
         default:
         {
