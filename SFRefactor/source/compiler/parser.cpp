@@ -441,6 +441,10 @@ match_expression_statement()
         shared_ptr<ISyntaxNode> expression = this->match_expression();
         this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
 
+        auto expression_statement = this->generate_node<SyntaxNodeExpressionStatement>();
+        expression_statement->expression = expression;
+        return expression_statement;
+
     }
     catch (SyntaxException& error)
     {
@@ -596,7 +600,7 @@ match_factor()
     try
     {
 
-        shared_ptr<ISyntaxNode> left_hand_side = this->match_unary();
+        shared_ptr<ISyntaxNode> left_hand_side = this->match_magnitude();
         while (this->expect_current_token_as(TokenType::TOKEN_STAR) ||
                this->expect_current_token_as(TokenType::TOKEN_FORWARD_SLASH))
         {
@@ -604,7 +608,7 @@ match_factor()
             Token operator_token = this->tokenizer.get_current_token();
             this->tokenizer.shift();
 
-            shared_ptr<ISyntaxNode> right_hand_side = this->match_unary();
+            shared_ptr<ISyntaxNode> right_hand_side = this->match_magnitude();
 
             // Generate the factor node.
             auto factor_node = this->generate_node<SyntaxNodeFactor>();

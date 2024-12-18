@@ -6,6 +6,7 @@
 #include <compiler/nodes/module.hpp>
 #include <compiler/nodes/root.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/expression.hpp>
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
 #include <compiler/nodes/comparison.hpp>
@@ -151,7 +152,10 @@ void ReferenceVisitor::
 visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    node->expression->accept(this);
+    std::cout << ";" << std::endl;
+
     return;
 }
 
@@ -159,8 +163,9 @@ void ReferenceVisitor::
 visit_SyntaxNodeExpression(SyntaxNodeExpression *node)     
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->expression->accept(this);
     return;
+
 }
 
 void ReferenceVisitor::
@@ -175,7 +180,21 @@ void ReferenceVisitor::
 visit_SyntaxNodeEquality(SyntaxNodeEquality *node)         
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+    
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_EQUALS:   std::cout << " = ";     break;
+        case TokenType::TOKEN_HASH:     std::cout << " != ";    break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
     return;
 }
 
@@ -183,7 +202,23 @@ void ReferenceVisitor::
 visit_SyntaxNodeComparison(SyntaxNodeComparison *node)     
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_LESS_THAN:             std::cout << " < ";     break;
+        case TokenType::TOKEN_LESS_THAN_EQUALS:      std::cout << " <= ";    break;
+        case TokenType::TOKEN_GREATER_THAN:          std::cout << " > ";     break;
+        case TokenType::TOKEN_GREATER_THAN_EQUALS:   std::cout << " >= ";    break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
     return;
 }
 
@@ -191,7 +226,21 @@ void ReferenceVisitor::
 visit_SyntaxNodeTerm(SyntaxNodeTerm *node)                 
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_PLUS:     std::cout << " + ";     break;
+        case TokenType::TOKEN_MINUS:    std::cout << " - ";     break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
     return;
 }
 
@@ -199,31 +248,84 @@ void ReferenceVisitor::
 visit_SyntaxNodeFactor(SyntaxNodeFactor *node)             
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_STAR:             std::cout << " * ";     break;
+        case TokenType::TOKEN_FORWARD_SLASH:    std::cout << " / ";     break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
     return;
+
 }
 
 void ReferenceVisitor::
 visit_SyntaxNodeMagnitude(SyntaxNodeMagnitude *node)       
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_CARROT:   std::cout << " ^ ";     break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
     return;
+
 }
 
 void ReferenceVisitor::
 visit_SyntaxNodeExtraction(SyntaxNodeExtraction *node)     
 {
 
-    SF_NO_IMPL(!"Not yet.");
-    return;
+    node->left->accept(this);
+
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_PIPE:  std::cout << " | ";     break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
 }
 
 void ReferenceVisitor::
 visit_SyntaxNodeDerivation(SyntaxNodeDerivation *node)     
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_PERCENT: std::cout << " % ";     break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
     return;
 }
 
@@ -231,7 +333,18 @@ void ReferenceVisitor::
 visit_SyntaxNodeUnary(SyntaxNodeUnary *node)               
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_MINUS: std::cout << "-"; break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
     return;
 }
 
@@ -239,15 +352,16 @@ void ReferenceVisitor::
 visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node) 
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    SF_NO_IMPL("Not yet.");
     return;
+
 }
 
 void ReferenceVisitor::
 visit_SyntaxNodePrimary(SyntaxNodePrimary *node)           
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    std::cout << node->literal_reference;
     return;
 }
 
@@ -255,8 +369,12 @@ void ReferenceVisitor::
 visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)           
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    std::cout << "(";
+    node->grouping->accept(this);
+    std::cout << ")";
+
     return;
+
 }
 
 #endif
