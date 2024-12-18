@@ -6,6 +6,7 @@
 #include <platform/system.hpp>
 #include <utilities/path.hpp>
 #include <utilities/cli.hpp>
+#include <utilities/vector.hpp>
 #include <compiler/tokenizer.hpp>
 #include <compiler/parser.hpp>
 #include <compiler/syntaxtree.hpp>
@@ -50,6 +51,17 @@ main(int argc, char ** argv)
         }
 
     } 
+
+    Vector<int> test_vector;
+    for (i32 i = 0; i < 128; ++i)
+    {
+        test_vector.push_back(i);
+    }
+
+    for (i32 i = 0; i < 128; ++i)
+    {
+        std::cout << test_vector[i] << std::endl;
+    }
 
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))
