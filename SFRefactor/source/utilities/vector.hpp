@@ -77,9 +77,14 @@ template <typename T> Vector<T>::
 Vector(const Vector<T>& other)
 {
 
-    this->buffer = new T[other.capacity];
+    this->buffer = (T*)SF_MEMORY_ALLOC(other.commit * sizeof(T));
+    for (i32 i = 0; i < other.commit; ++i)
+    {
+        new (this->buffer + i) T();
+    }
+
     this->count = other.count;
-    this->commit = other.capacity;
+    this->commit = other.commit;
     this->growth_factor = other.growth_factor;
 
     for (i32 i = 0; i < this->count; i++)
@@ -93,12 +98,12 @@ Vector(Vector<T>&& other)
 {
     this->buffer = other.buffer;
     this->count = other.count;
-    this->commit = other.capacity;
+    this->commit = other.commit;
     this->growth_factor = other.growth_factor;
 
     other.buffer = nullptr;
     other.count = 0;
-    other.capacity = 0;
+    other.commit = 0;
     other.growth_factor = 2;
 }
 
@@ -204,12 +209,12 @@ swap(Vector<T>& other)
 
     this->buffer = other.buffer;
     this->count = other.count;
-    this->commit = other.capacity;
+    this->commit = other.commit;
     this->growth_factor = other.growth_factor;
 
     other.buffer = buffer;
     other.count = count;
-    other.capacity = capacity;
+    other.commit = capacity;
     other.growth_factor = growth_factor;
 }
 
@@ -265,7 +270,11 @@ grow()
 template <typename T> void Vector<T>::
 grow(i32 capacity)
 {
-    T* buffer = new T[capacity];
+    T* buffer = (T*)SF_MEMORY_ALLOC(capacity * sizeof(T));
+    for (i32 i = 0; i < capacity; ++i)
+    {
+        new (buffer + i) T();
+    }
 
     for (i32 i = 0; i < this->count; i++)
     {
@@ -274,7 +283,7 @@ grow(i32 capacity)
 
     if (this->buffer != nullptr)
     {
-        delete[] this->buffer;
+        SF_MEMORY_FREE(this->buffer);
     }
 
     this->buffer = buffer;
@@ -284,8 +293,13 @@ grow(i32 capacity)
 template <typename T> void Vector<T>::
 shrink()
 {
+
     i32 new_capacity = this->commit / 2;
-    T* buffer = new T[new_capacity];
+    T* buffer = (T*)SF_MEMORY_ALLOC(new_capacity * sizeof(T));
+    for (i32 i = 0; i < capacity; ++i)
+    {
+        new (buffer + i) T();
+    }
 
     for (i32 i = 0; i < this->count; i++)
     {
@@ -294,7 +308,7 @@ shrink()
 
     if (this->buffer != nullptr)
     {
-        delete[] this->buffer;
+        SF_MEMORY_FREE(this->buffer);
     }
 
     this->buffer = buffer;
@@ -304,7 +318,12 @@ shrink()
 template <typename T> void Vector<T>::
 shrink(i32 capacity)
 {
-    T* buffer = new T[capacity];
+
+    T* buffer = (T*)SF_MEMORY_ALLOC(capacity * sizeof(T));
+    for (i32 i = 0; i < capacity; ++i)
+    {
+        new (buffer + i) T();
+    }
 
     for (i32 i = 0; i < this->count; i++)
     {
@@ -313,7 +332,7 @@ shrink(i32 capacity)
 
     if (this->buffer != nullptr)
     {
-        delete[] this->buffer;
+        SF_MEMORY_FREE(this->buffer);
     }
 
     this->buffer = buffer;

@@ -14,6 +14,24 @@
 #include <compiler/visitors/reference.hpp>
 #include <compiler/symbols.hpp>
 
+class Shape
+{
+    public:
+        virtual u64 area() = 0;
+};
+
+class Square : public Shape
+{
+    public:
+        inline Square() { this->width = 1; this->height = 1; }
+        inline Square(i32 width, i32 height) { this->width = width; this->height = height; }
+        inline virtual u64 area() override { return this->width * this->height; }
+
+    protected:
+        i32 width;
+        i32 height;
+};
+
 int
 main(int argc, char ** argv)
 {
