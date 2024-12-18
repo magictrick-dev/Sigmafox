@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_UTILITIES_STRING_HPP
 #define SIGMAFOX_UTILITIES_STRING_HPP
 #include <definitions.hpp>
+#include <environment.hpp>
 
 // --- String ------------------------------------------------------------------
 //

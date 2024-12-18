@@ -14,27 +14,14 @@
 #include <compiler/visitors/reference.hpp>
 #include <compiler/symbols.hpp>
 
-class Shape
-{
-    public:
-        virtual u64 area() = 0;
-};
-
-class Square : public Shape
-{
-    public:
-        inline Square() { this->width = 1; this->height = 1; }
-        inline Square(i32 width, i32 height) { this->width = width; this->height = height; }
-        inline virtual u64 area() override { return this->width * this->height; }
-
-    protected:
-        i32 width;
-        i32 height;
-};
-
 int
 main(int argc, char ** argv)
 {
+
+    // --- Command Line Parsing ------------------------------------------------
+    //
+    // Validates and establishes the environment context based on CLI parameters.
+    //
 
     Filepath user_source_file = Filepath::cwd();
     if (!CLI::parse(argc, argv) || argc <= 1)
@@ -71,17 +58,43 @@ main(int argc, char ** argv)
 
     } 
 
+    // --- Syntax Tree Construction --------------------------------------------
+    //
+    // Constructs the AST.
+    //
+
     SyntaxTree syntax_tree;
     if (!syntax_tree.construct_ast(user_source_file))
     {
-       return -1;
+       return -1; // The AST wasn't able to be created.
     }
     else
     {
+        std::cout << "---------------------------------------------------" << std::endl;
+        std::cout << "              AST Reference Output" << std::endl;
+        std::cout << "---------------------------------------------------" << std::endl;
         ReferenceVisitor reference_visitor(4);
         syntax_tree.visit_root(&reference_visitor);
-        syntax_tree.dump_dependency_graph();
     }
+
+    // --- Runtime Statistics --------------------------------------------------
+    //
+    // Displays the runtime statistics.
+    //
+
+    u64 total_allocated     = ApplicationParameters::Allocator.get_total_allocated();
+    u64 total_released      = ApplicationParameters::Allocator.get_total_released();
+    u64 current_allocated   = ApplicationParameters::Allocator.get_current_allocated();
+    u64 peak_allocated      = ApplicationParameters::Allocator.get_peak_allocated();
+
+    std::cout << "---------------------------------------------------" << std::endl;
+    std::cout << "              Runtime Statistics" << std::endl;
+    std::cout << "---------------------------------------------------" << std::endl;
+    std::cout << "  Memory" << std::endl;
+    std::cout << "      Total Allocated:    " << total_allocated << " bytes." << std::endl;
+    std::cout << "      Total Released:     " << total_released << " bytes." << std::endl;
+    std::cout << "      Current Allocated:  " << current_allocated << " bytes." << std::endl;
+    std::cout << "      Peak Allocated:     " << peak_allocated << " bytes." << std::endl;
 
     return 0;
 

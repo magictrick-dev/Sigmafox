@@ -1,6 +1,10 @@
 #ifndef SIGMAFOX_ENVIRONMENT_H
 #define SIGMAFOX_ENVIRONMENT_H
 #include <string>
+#include <utilities/memoryalloc.hpp>
+
+#define SF_MEMORY_ALLOC(sz) (ApplicationParameters::Allocator.allocate(sz))
+#define SF_MEMORY_FREE(ptr) (ApplicationParameters::Allocator.release(ptr))
 
 // --- ApplicationParameters Singleton -----------------------------------------
 //
@@ -14,6 +18,7 @@ class ApplicationParameters
 
     public:
         static inline ApplicationParameters& get();
+        static inline DefaultAllocator Allocator;
 
     protected:
         inline              ApplicationParameters();
@@ -62,6 +67,7 @@ class ApplicationStatistics
 
     public:
         static inline ApplicationStatistics& get();
+
 
     protected:
         inline              ApplicationStatistics();

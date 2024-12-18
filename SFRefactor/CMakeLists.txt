@@ -45,6 +45,8 @@ add_executable(Sigmafox
     "source/utilities/string.hpp"
     "source/utilities/string.cpp"
     "source/utilities/vector.hpp"
+    "source/utilities/memoryalloc.hpp"
+    "source/utilities/memoryalloc.cpp"
 
     "source/compiler/tokenizer.hpp"
     "source/compiler/tokenizer.cpp"

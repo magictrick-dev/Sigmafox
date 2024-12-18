@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_UTILITIES_VECTOR_HPP
 #define SIGMAFOX_UTILITIES_VECTOR_HPP
 #include <definitions.hpp>
+#include <environment.hpp>
 
 template <typename T>
 class Vector
@@ -112,7 +113,7 @@ template <typename T> Vector<T>::
 {
     if (this->buffer != nullptr)
     {
-        delete[] this->buffer;
+        SF_MEMORY_FREE(this->buffer);
     }
 }
 
