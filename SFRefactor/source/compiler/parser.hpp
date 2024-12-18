@@ -70,7 +70,6 @@
 #include <compiler/nodes/primary.hpp>
 #include <compiler/nodes/grouping.hpp>
 
-
 class SyntaxParser
 {
 
