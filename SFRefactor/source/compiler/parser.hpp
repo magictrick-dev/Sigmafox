@@ -20,8 +20,8 @@
 //      include_statement           :   "include" TOKEN_STRING ";" module
 //
 //      body_statement              :   (expression_statement | variable_statement)*
-//      variable_statement          :   "variable" IDENTIFIER expression expression* 
-//                                      (":=" expression)? ";"
+//      variable_statement          :   "variable" IDENTIFIER expression expression* (":=" expression)? ";"
+//      scope_statement             :   "scope" (body_statement)* "endscope"
 //      expression_statement        :   expression ";"
 //
 //      expression                  :   assigment
@@ -59,6 +59,7 @@
 #include <compiler/nodes/main.hpp>
 #include <compiler/nodes/expression_statement.hpp>
 #include <compiler/nodes/variable_statement.hpp>
+#include <compiler/nodes/scope_statement.hpp>
 
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
@@ -104,6 +105,7 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_body_statement();
         shared_ptr<ISyntaxNode>         match_expression_statement();
         shared_ptr<ISyntaxNode>         match_variable_statement();
+        shared_ptr<ISyntaxNode>         match_scope_statement();
 
         shared_ptr<ISyntaxNode>         match_expression();
         shared_ptr<ISyntaxNode>         match_assignment();
@@ -124,6 +126,7 @@ class SyntaxParser
         bool expect_next_token_as(TokenType type) const;
 
         void process_error(i32 where, SyntaxException& error, bool just_handled);
+        void process_warning(i32 where, SyntaxException& warning, bool just_handled);
 
     protected:
         std::vector<shared_ptr<ISyntaxNode>>    nodes;

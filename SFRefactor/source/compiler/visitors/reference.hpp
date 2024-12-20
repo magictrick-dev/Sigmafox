@@ -6,6 +6,8 @@
 #include <compiler/nodes/module.hpp>
 #include <compiler/nodes/root.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/variable_statement.hpp>
+#include <compiler/nodes/scope_statement.hpp>
 #include <compiler/nodes/expression.hpp>
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
@@ -36,6 +38,7 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)                  override;
         inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
         inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
+        inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) override;
 
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)      override;     
         inline virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)      override;     
@@ -179,6 +182,23 @@ visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)
     return;
 }
 
+void ReferenceVisitor::
+visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "BEGIN SCOPE" << std::endl;
+
+    this->push_tabs();
+    for (auto child_node : node->children) child_node->accept(this);
+    this->pop_tabs();
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "END SCOPE" << std::endl;
+
+    return;
+
+}
 
 void ReferenceVisitor::
 visit_SyntaxNodeExpression(SyntaxNodeExpression *node)     

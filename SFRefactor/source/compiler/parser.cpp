@@ -90,6 +90,20 @@ process_error(i32 where, SyntaxException &error, bool was_just_handled)
 
 }
 
+void SyntaxParser::
+process_warning(i32 where, SyntaxException &warning, bool was_just_handled)
+{
+
+    if (warning.handled == false)
+    {
+        std::cout << "[" << where << "]:";
+        std::cout << warning.what() << std::endl;
+    }
+
+    if (was_just_handled) warning.handled = true;
+
+}
+
 template <TokenType expect> void SyntaxParser::
 validate_grammar_token()
 {
@@ -427,7 +441,8 @@ match_body_statement()
     switch (current_token.type)
     {
 
-        case TokenType::TOKEN_KEYWORD_VARIABLE: return this->match_variable_statement();
+        case TokenType::TOKEN_KEYWORD_VARIABLE:     return this->match_variable_statement();
+        case TokenType::TOKEN_KEYWORD_SCOPE:        return this->match_scope_statement();
         default: break;
 
     }
@@ -459,9 +474,27 @@ match_variable_statement()
                     identifier_token.reference.c_str());
         }
 
+        // If the symbol exists in a parent scope, then issue a warning.
+        if (this->symbol_stack.identifier_exists_above(identifier_token.reference))
+        {
+            SyntaxWarning warning(this->path, this->tokenizer.get_current_token(),
+                    "Variable declaration '%s' shadows a parent scope.",
+                    identifier_token.reference.c_str());
+            if (ApplicationParameters::runtime_warnings_as_errors) 
+                throw warning;
+            else
+                this->process_warning(__LINE__, warning, true);
+        }
+
         // NOTE(Chris): There is potential here to make size optional in the grammar.
         //              This will actually cause some issues with the existing script
         //              files that I have, so I'm going to leave it as mandatory for now.
+
+        if (this->expect_current_token_as(TokenType::TOKEN_COLON_EQUALS))
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Unexpected ':=' encountered, did you mean to specify a size?");
+        }
 
         // Get the size.
         shared_ptr<ISyntaxNode> size = this->match_expression();
@@ -502,6 +535,79 @@ match_variable_statement()
         variable_node->size = size;
         variable_node->dimensions = optional_dimensions;
         return variable_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_scope_statement()
+{
+
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+
+    // Since we are processing that needs to recover to the end of its block,
+    // we need to wrap the entire block in a try-catch block and allow this
+    // try-catch to synchronize to ENDSCOPE on error.
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_SCOPE>();
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDSCOPE)) break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Validate the end of the scope.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ENDSCOPE>();
+
+    }
+    catch (SyntaxException& error)
+    {
+
+        // We recover here, so we let this fall through and validate the semicolon.
+        this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDSCOPE);
+        this->process_error(__LINE__, error, true);
+
+    }
+
+    try
+    {
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the scope node.
+        auto scope_node = this->generate_node<SyntaxNodeScopeStatement>();
+        scope_node->children = body_statements;
+        return scope_node;
 
     }
     catch (SyntaxException& error)
@@ -976,7 +1082,7 @@ match_primary()
 
         Token current_token = this->tokenizer.get_current_token();
         throw SyntaxError(this->path, current_token,
-                "Unexpect token encountered: '%s'.", current_token.reference.c_str());
+                "Unexpected token encountered: '%s'.", current_token.reference.c_str());
 
     }
 

@@ -56,7 +56,15 @@ main(int argc, char ** argv)
             return -1;
         }
 
+        // Check for --warnings-as-errors, or -w.
+        if (CLI::has_parameter("warnings-as-errors") || CLI::has_flag('w'))
+        {
+            ApplicationParameters::runtime_warnings_as_errors = true;
+            std::cout << "Runtime warnings will be treated as errors." << std::endl;
+        }
+
     } 
+    
 
     // --- Syntax Tree Construction --------------------------------------------
     //

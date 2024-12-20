@@ -17,45 +17,14 @@ class ApplicationParameters
 {
 
     public:
-        static inline ApplicationParameters& get();
-        static inline DefaultAllocator Allocator;
+        static inline DefaultAllocator  Allocator;
 
-    protected:
-        inline              ApplicationParameters();
-        inline virtual     ~ApplicationParameters();
-
-    protected:
-        std::string output_name;
-        std::string output_path;
+        static inline bool              runtime_warnings_as_errors;
+        static inline std::string       runtime_path;
+        static inline std::string       output_name;
+        static inline std::string       output_path;
 
 };
-
-inline ApplicationParameters& ApplicationParameters::
-get()
-{
-
-    // Lazy-evaluated singleton.
-    static ApplicationParameters* parameters;
-    if (parameters == nullptr)
-    {
-        parameters = new ApplicationParameters();
-    }
-
-    return *parameters;
-
-}
-
-inline ApplicationParameters::
-ApplicationParameters()
-{
-
-}
-
-inline ApplicationParameters:: 
-~ApplicationParameters()
-{
-
-}
 
 // --- ApplicationStatistics Singleton -----------------------------------------
 //

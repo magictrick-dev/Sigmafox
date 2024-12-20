@@ -18,6 +18,7 @@ class SymboltableStack
         inline bool     identifier_exists(const std::string& str) const;
         inline bool     identifier_exists_locally(const std::string &str) const;
         inline bool     identifier_exists_globally(const std::string &str) const;
+        inline bool     identifier_exists_above(const std::string &str) const;
 
         template <class... Args> inline void insert_symbol_locally(const std::string& str, Args... args);
         template <class... Args> inline void insert_symbol_globally(const std::string& str, Args... args);
@@ -104,6 +105,24 @@ identifier_exists_globally(const std::string& str) const
 
     if (this->table_stack[0].contains(str))
         return true;
+    return false;
+
+}
+
+template <typename Symboltype>
+bool SymboltableStack<Symboltype>::
+identifier_exists_above(const std::string& str) const
+{
+
+    for (i32 i = this->table_stack.size() - 2; i >= 0; --i)
+    {
+
+        const Symboltable<Symboltype>& current_table = this->table_stack[i];
+        if (current_table.contains(str))
+            return true;
+
+    }
+
     return false;
 
 }
