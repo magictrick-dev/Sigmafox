@@ -71,18 +71,20 @@ main(int argc, char ** argv)
     // Constructs the AST.
     //
 
-    SyntaxTree syntax_tree;
-    if (!syntax_tree.construct_ast(user_source_file))
     {
-       return -1; // The AST wasn't able to be created.
-    }
-    else
-    {
-        std::cout << "---------------------------------------------------" << std::endl;
-        std::cout << "              AST Reference Output" << std::endl;
-        std::cout << "---------------------------------------------------" << std::endl;
-        ReferenceVisitor reference_visitor(4);
-        syntax_tree.visit_root(&reference_visitor);
+        SyntaxTree syntax_tree;
+        if (!syntax_tree.construct_ast(user_source_file))
+        {
+           return -1; // The AST wasn't able to be created.
+        }
+        else
+        {
+            std::cout << "---------------------------------------------------" << std::endl;
+            std::cout << "              AST Reference Output" << std::endl;
+            std::cout << "---------------------------------------------------" << std::endl;
+            ReferenceVisitor reference_visitor(4);
+            syntax_tree.visit_root(&reference_visitor);
+        }
     }
 
     // --- Runtime Statistics --------------------------------------------------

@@ -113,7 +113,7 @@ allocate(u64 size)
     DefaultAllocHeader* header = (DefaultAllocHeader*)ptr;
     header->size = size;
 
-    this->update_allocation_statistics(size);
+    this->update_allocation_statistics(size + sizeof(DefaultAllocHeader));
 
     return (void*)(header + 1);
 
@@ -132,7 +132,7 @@ release(void* ptr)
     DefaultAllocHeader* header = (DefaultAllocHeader*)((u8*)ptr - (sizeof(DefaultAllocHeader)));
     u64 size = header->size;
 
-    this->update_release_statistics(size);
+    this->update_release_statistics(size + sizeof(DefaultAllocHeader));
 
     free(header);
 
