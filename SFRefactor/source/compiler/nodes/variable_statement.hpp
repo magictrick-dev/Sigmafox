@@ -2,16 +2,6 @@
 #define SIGMAFOX_COMPILER_NODES_VARIABLE_STATEMENT_HPP
 #include <compiler/syntaxnode.hpp>
 
-enum class VariableType
-{
-    VariableTypeUndefined,
-    VariableTypeInteger,
-    VariableTypeFloat,
-    VariableTypeString,
-    VariableTypeBoolean,
-    VariableTypeArray,
-};
-
 class SyntaxNodeVariableStatement : public ISyntaxNode 
 {
 
@@ -21,10 +11,11 @@ class SyntaxNodeVariableStatement : public ISyntaxNode
         inline virtual void     accept(ISyntaxNodeVisitor *visitor) override;
 
     public:
-        std::string     variable_name;
-        VariableType    variable_type;
-
+        std::string variable_name;
         shared_ptr<ISyntaxNode> right_hand_side;
+
+        shared_ptr<ISyntaxNode> size;
+        std::vector<shared_ptr<ISyntaxNode>> dimensions;
 
 };
 

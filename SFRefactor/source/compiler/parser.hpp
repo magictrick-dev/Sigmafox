@@ -126,13 +126,13 @@ class SyntaxParser
         void process_error(i32 where, SyntaxException& error, bool just_handled);
 
     protected:
-        std::vector<shared_ptr<ISyntaxNode>> nodes;
-        shared_ptr<ISyntaxNode> base_node;
-        SymboltableStack<Symbol> symbol_stack;
-        DependencyGraph* graph;
-        Tokenizer tokenizer;
-        Filepath path;
-        i32 error_count;
+        std::vector<shared_ptr<ISyntaxNode>>    nodes;
+        shared_ptr<ISyntaxNode>                 base_node;
+        SymboltableStack<Symbol>                symbol_stack;
+        DependencyGraph*                        graph;
+        Tokenizer                               tokenizer;
+        Filepath                                path;
+        i32                                     error_count;
 
 };
 

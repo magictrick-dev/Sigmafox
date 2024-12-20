@@ -32,9 +32,11 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node)                  override;
         inline virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node)              override;
         inline virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node)            override;
+
         inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)                  override;
         inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
         inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
+
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)      override;     
         inline virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)      override;     
         inline virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node)          override;         
@@ -164,7 +166,16 @@ void ReferenceVisitor::
 visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)
 {
 
-    SF_NO_IMPL("Not yet.");
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "VARIABLE " << node->variable_name;
+    if (node->right_hand_side != nullptr)
+    {
+        std::cout << " = ";
+        node->right_hand_side->accept(this);
+    }
+
+    std::cout << ";" << std::endl;
+
     return;
 }
 

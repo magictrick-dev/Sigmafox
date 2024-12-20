@@ -356,6 +356,7 @@ class Symboltable
         inline void         merge_from(const Symboltable<Symboltype, Hashfunction, LF>& other);
 
         inline void                             insert(const std::string &str, const Symboltype& val);
+        inline void                             emplace(const std::string &str, Symboltype&& val);
         template <class... Args> inline void    emplace(const std::string &str, Args... args);
 
     protected:
@@ -508,6 +509,34 @@ commit() const
 template <typename Symboltype, typename Hashfunction, float LF>
 void Symboltable<Symboltype, Hashfunction, LF>::
 insert(const std::string &str, const Symboltype& val)
+{
+
+    // Calculate the current load factor and resize if needed.
+    r32 current_load = (r32)this->load / (r32)this->capacity;
+    if (current_load >= std::min(LF, 1.0f)) 
+        this->resize(this->capacity * 2);
+
+    // Insert the new entry.
+    u64 hash = this->hash(str);
+    u64 offset = hash % this->capacity;
+
+    while (this->symbols_buffer[offset].is_active())
+    {
+
+        if (this->symbols_buffer[offset].get_key() == str) break;
+        offset = (offset + 1) % this->capacity;
+        misses += 1;
+
+    }
+
+    this->load++;
+    this->symbols_buffer[offset].set(val, str, hash);
+
+}
+
+template <typename Symboltype, typename Hashfunction, float LF>
+void Symboltable<Symboltype, Hashfunction, LF>::
+emplace(const std::string &str, Symboltype&& val)
 {
 
     // Calculate the current load factor and resize if needed.

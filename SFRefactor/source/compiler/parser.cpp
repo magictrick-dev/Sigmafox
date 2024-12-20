@@ -451,17 +451,31 @@ match_variable_statement()
         Token identifier_token = this->tokenizer.get_current_token();
         this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
 
-        // Get the expression.
-        shared_ptr<ISyntaxNode> expression = this->match_expression();
+        // If the symbol is already defined, it is an error.
+        if (this->symbol_stack.identifier_exists_locally(identifier_token.reference))
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Variable declaration '%s' is already defined.",
+                    identifier_token.reference.c_str());
+        }
+
+        // NOTE(Chris): There is potential here to make size optional in the grammar.
+        //              This will actually cause some issues with the existing script
+        //              files that I have, so I'm going to leave it as mandatory for now.
+
+        // Get the size.
+        shared_ptr<ISyntaxNode> size = this->match_expression();
 
         // Get the optional expressions.
-        std::vector<shared_ptr<ISyntaxNode>> optional_expressions;
+        std::vector<shared_ptr<ISyntaxNode>> optional_dimensions;
+        i32 arity = 0;
         while (this->expect_current_token_as(TokenType::TOKEN_COMMA))
         {
 
             this->tokenizer.shift();
-            shared_ptr<ISyntaxNode> optional_expression = this->match_expression();
-            optional_expressions.push_back(optional_expression);
+            shared_ptr<ISyntaxNode> optional_dimension = this->match_expression();
+            optional_dimensions.push_back(optional_dimension);
+            arity++;
 
         }
 
@@ -477,12 +491,16 @@ match_variable_statement()
         this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
 
         // Insert the symbol into the symbol table.
-        this->symbol_stack.insert_symbol_locally(identifier_token.reference,
-                identifier_token.reference, Symboltype::SYMBOL_TYPE_VARIABLE, 0);
+        Symboltype insert_type = (arity > 0) ? Symboltype::SYMBOL_TYPE_ARRAY : Symboltype::SYMBOL_TYPE_VARIABLE;
+        this->symbol_stack.insert_symbol_locally(identifier_token.reference, Symbol(
+            identifier_token.reference, insert_type, arity));
 
         // Generate the variable node.
         auto variable_node = this->generate_node<SyntaxNodeVariableStatement>();
-        // TODO(Chris): Finish this.
+        variable_node->variable_name = identifier_token.reference;
+        variable_node->right_hand_side = definition_statement;
+        variable_node->size = size;
+        variable_node->dimensions = optional_dimensions;
         return variable_node;
 
     }
@@ -542,6 +560,13 @@ match_assignment()
         if (left_hand_side->get_type() != SyntaxNodeType::NodeTypePrimary)
             return left_hand_side;
 
+        // Ensure that the left hand side primary node is an identifier and return
+        // it if it isn't an identifier.
+        shared_ptr<SyntaxNodePrimary> primary_node = 
+            dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
+        if (primary_node->literal_type != TokenType::TOKEN_IDENTIFIER)
+            return left_hand_side;
+
         // If the next token is not an assignment operator, then we can forward.
         if (!this->expect_current_token_as(TokenType::TOKEN_COLON_EQUALS))
             return left_hand_side;
@@ -549,23 +574,26 @@ match_assignment()
         // Validate the colon equals.
         this->validate_grammar_token<TokenType::TOKEN_COLON_EQUALS>();
 
-        // Ensure that the left hand side primary node is an identifier.
-        shared_ptr<SyntaxNodePrimary> primary_node = 
-            dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
-
-        if (primary_node->literal_type != TokenType::TOKEN_IDENTIFIER)
+        // Validate that the symbol exists in the local symbol table.
+        if (!this->symbol_stack.identifier_exists_locally(primary_node->literal_reference))
         {
             throw SyntaxError(this->path, this->tokenizer.get_current_token(),
-                    "Expected identifier, encountered '%s'.",
+                    "Undefined symbol '%s'.",
                     primary_node->literal_reference.c_str());
         }
 
         // Now get the right hand side.
         shared_ptr<ISyntaxNode> right_hand_side = this->match_expression();
 
-        // Update the symbol table.
-        this->symbol_stack.insert_symbol_locally(primary_node->literal_reference,
-                primary_node->literal_reference, Symboltype::SYMBOL_TYPE_VARIABLE, 0);
+        // Get the symbol from the symbol table and then make it defined.
+        // Arrays are automatically defined on initialization.
+        Symbol* symbol = this->symbol_stack.get_symbol_locally(primary_node->literal_reference);
+        SF_ENSURE_PTR(symbol);
+        if (symbol->type == Symboltype::SYMBOL_TYPE_UNDEFINED)
+        {
+            symbol->type = Symboltype::SYMBOL_TYPE_VARIABLE;
+        }
+
 
         // Generate the assignment node.
         auto assignment_node = this->generate_node<SyntaxNodeAssignment>();
@@ -917,7 +945,12 @@ match_primary()
             Token literal_token = this->tokenizer.get_current_token();
             this->tokenizer.shift();
 
-
+            // Check if the token is undefined (it is declared).
+            if (!this->symbol_stack.identifier_exists_locally(literal_token.reference))
+            {
+                throw SyntaxError(this->path, literal_token,
+                        "Undeclared symbol '%s' used in expression.", literal_token.reference.c_str());
+            }
 
             // Generate the primary node.
             auto primary_node = this->generate_node<SyntaxNodePrimary>();

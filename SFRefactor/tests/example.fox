@@ -3,17 +3,9 @@ include "dependents/file_d.fox";
 
 begin;
 
-    5 + 4 - 3 * 2 / 1;
+    variable hello 4;
+    variable test 4 := ( 14 * 3 ) + 4 - -( 4 * 2 );
 
-    ((5 - 3) + (-1) + (1 * 2));
-
-    16 = 4 ^ 2;
-
-    32 | 2;
-
-    128 % 2;
-    128 % -1;
-
-    hello := 1 + 2;
+    hello := test / 2;
 
 end;
