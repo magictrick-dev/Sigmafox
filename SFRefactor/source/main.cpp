@@ -75,7 +75,8 @@ main(int argc, char ** argv)
         SyntaxTree syntax_tree;
         if (!syntax_tree.construct_ast(user_source_file))
         {
-           return -1; // The AST wasn't able to be created.
+            std::cout << "The AST wasn't able to be created." << std::endl;
+            return -1; // The AST wasn't able to be created.
         }
         else
         {

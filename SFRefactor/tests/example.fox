@@ -4,12 +4,6 @@ include "dependents/file_d.fox";
 begin;
 
     variable hello 4;
-
-    scope;
-        variable hello 4 := 10;
-        variable test 4 := 20;
-    endscope;
-
-    variable test 4 := 30;
+    variable world 4 10 10;
 
 end;

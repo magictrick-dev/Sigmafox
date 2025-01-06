@@ -19,6 +19,7 @@
 #include <compiler/nodes/derivation.hpp>
 #include <compiler/nodes/unary.hpp>
 #include <compiler/nodes/functioncall.hpp>
+#include <compiler/nodes/arrayindex.hpp>
 #include <compiler/nodes/primary.hpp>
 #include <compiler/nodes/grouping.hpp>
 
@@ -51,6 +52,7 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeDerivation(SyntaxNodeDerivation *node)      override;     
         inline virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node)                override;               
         inline virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)  override; 
+        inline virtual void visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)      override; 
         inline virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node)            override;           
         inline virtual void visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)          override;
 
@@ -171,6 +173,17 @@ visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
     std::cout << "VARIABLE " << node->variable_name;
+
+    std::cout << " ";
+    node->size->accept(this);
+
+    for (auto dimension : node->dimensions)
+    {
+        std::cout << "[";
+        dimension->accept(this);
+        std::cout << "]";
+    }
+
     if (node->right_hand_side != nullptr)
     {
         std::cout << " = ";
@@ -397,6 +410,23 @@ visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)
 {
 
     SF_NO_IMPL("Not yet.");
+    return;
+
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)     
+{
+
+    std::cout << node->variable_name;
+    std::cout << "(";
+    for (i32 i = 0; i < node->indices.size(); ++i)
+    {
+        node->indices[i]->accept(this);
+        if (i != node->indices.size() - 1) std::cout << ", ";
+    }
+    std::cout << ")";
+
     return;
 
 }

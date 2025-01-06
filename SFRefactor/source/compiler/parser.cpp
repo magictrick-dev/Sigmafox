@@ -76,6 +76,25 @@ synchronize_to(TokenType type)
 }
 
 void SyntaxParser::
+synchronize_up_to(TokenType type)
+{
+
+    // Gets you right up to the next token for cases where you want to process it
+    // when you break from loops.
+    while (this->tokenizer.get_current_token().type != type)
+    {
+
+        // If the token is EOF, then we will break.
+        if (this->tokenizer.get_current_token().type == TokenType::TOKEN_EOF) break;
+
+        // Otherwise, shift until we reach our desired synchronization point.
+        this->tokenizer.shift();
+
+    }
+
+}
+
+void SyntaxParser::
 process_error(i32 where, SyntaxException &error, bool was_just_handled)
 {
 
@@ -502,10 +521,16 @@ match_variable_statement()
         // Get the optional expressions.
         std::vector<shared_ptr<ISyntaxNode>> optional_dimensions;
         i32 arity = 0;
-        while (this->expect_current_token_as(TokenType::TOKEN_COMMA))
+        while (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON) &&
+               !this->expect_current_token_as(TokenType::TOKEN_COLON_EQUALS))
         {
 
-            this->tokenizer.shift();
+            if (this->expect_current_token_as(TokenType::TOKEN_EOF))
+            {
+                throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                        "Unexpected end-of-file encountered.");
+            }
+
             shared_ptr<ISyntaxNode> optional_dimension = this->match_expression();
             optional_dimensions.push_back(optional_dimension);
             arity++;
@@ -663,15 +688,27 @@ match_assignment()
         shared_ptr<ISyntaxNode> left_hand_side = this->match_equality();
 
         // If it's not a primary node, then we can forward.
-        if (left_hand_side->get_type() != SyntaxNodeType::NodeTypePrimary)
+        if (left_hand_side->get_type() != SyntaxNodeType::NodeTypePrimary &&
+            left_hand_side->get_type() != SyntaxNodeType::NodeTypeArrayIndex)
+        {
             return left_hand_side;
+        }
 
-        // Ensure that the left hand side primary node is an identifier and return
-        // it if it isn't an identifier.
-        shared_ptr<SyntaxNodePrimary> primary_node = 
-            dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
-        if (primary_node->literal_type != TokenType::TOKEN_IDENTIFIER)
-            return left_hand_side;
+        std::string identifier;
+
+        // If the left hand side is a primary type, then we can check if it's an identifier.
+        if (left_hand_side->get_type() == SyntaxNodeType::NodeTypePrimary)
+        {
+
+            shared_ptr<SyntaxNodePrimary> primary_node = 
+                dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
+
+            if (primary_node->literal_type != TokenType::TOKEN_IDENTIFIER)
+                return left_hand_side;
+
+            identifier = primary_node->literal_reference;
+
+        }
 
         // If the next token is not an assignment operator, then we can forward.
         if (!this->expect_current_token_as(TokenType::TOKEN_COLON_EQUALS))
@@ -680,12 +717,21 @@ match_assignment()
         // Validate the colon equals.
         this->validate_grammar_token<TokenType::TOKEN_COLON_EQUALS>();
 
-        // Validate that the symbol exists in the local symbol table.
-        if (!this->symbol_stack.identifier_exists_locally(primary_node->literal_reference))
+        // Validate that the symbol exists in the local symbol table, arrays are guaranteed
+        // to exist in the symbol table intrinsically.
+        if (left_hand_side->get_type() == SyntaxNodeType::NodeTypePrimary)
         {
-            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
-                    "Undefined symbol '%s'.",
-                    primary_node->literal_reference.c_str());
+
+            shared_ptr<SyntaxNodePrimary> primary_node = 
+                dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
+
+            if (!this->symbol_stack.identifier_exists_locally(primary_node->literal_reference))
+            {
+                throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                        "Undefined symbol '%s'.",
+                        primary_node->literal_reference.c_str());
+            }
+
         }
 
         // Now get the right hand side.
@@ -693,13 +739,20 @@ match_assignment()
 
         // Get the symbol from the symbol table and then make it defined.
         // Arrays are automatically defined on initialization.
-        Symbol* symbol = this->symbol_stack.get_symbol_locally(primary_node->literal_reference);
-        SF_ENSURE_PTR(symbol);
-        if (symbol->type == Symboltype::SYMBOL_TYPE_UNDEFINED)
+        if (left_hand_side->get_type() == SyntaxNodeType::NodeTypePrimary)
         {
-            symbol->type = Symboltype::SYMBOL_TYPE_VARIABLE;
-        }
 
+            shared_ptr<SyntaxNodePrimary> primary_node = 
+                dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
+
+            Symbol* symbol = this->symbol_stack.get_symbol_locally(primary_node->literal_reference);
+            SF_ENSURE_PTR(symbol);
+            if (symbol->type == Symboltype::SYMBOL_TYPE_UNDEFINED)
+            {
+                symbol->type = Symboltype::SYMBOL_TYPE_VARIABLE;
+            }
+
+        }
 
         // Generate the assignment node.
         auto assignment_node = this->generate_node<SyntaxNodeAssignment>();
@@ -1017,6 +1070,100 @@ match_unary()
 shared_ptr<ISyntaxNode> SyntaxParser::
 match_function_call()
 {
+
+    return this->match_array_index();
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_array_index()
+{
+
+    try
+    {
+
+        if (this->expect_current_token_as(TokenType::TOKEN_IDENTIFIER) &&
+            this->expect_next_token_as(TokenType::TOKEN_LEFT_PARENTHESIS))
+        {
+
+            Token identifier_token = this->tokenizer.get_current_token();
+            this->tokenizer.shift();
+            this->tokenizer.shift();
+
+            // Get the parameters.
+            std::vector<shared_ptr<ISyntaxNode>> parameters;
+            shared_ptr<ISyntaxNode> current_parameter = nullptr;
+            i32 arity = 0;
+            while (!this->expect_current_token_as(TokenType::TOKEN_RIGHT_PARENTHESIS))
+            {
+
+                if (this->expect_current_token_as(TokenType::TOKEN_EOF))
+                {
+                    throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                            "Unexpected end-of-file encountered.");
+                }
+
+                try
+                {
+                    current_parameter = this->match_expression();
+                    if (current_parameter == nullptr) break;
+                    arity++;
+                    parameters.push_back(current_parameter);
+                }
+                catch (SyntaxException& syntax_error)
+                {
+                    this->synchronize_up_to(TokenType::TOKEN_RIGHT_PARENTHESIS);
+                    this->process_error(__LINE__, syntax_error, true);
+                }
+
+                if (this->expect_current_token_as(TokenType::TOKEN_COMMA))
+                {
+                    this->tokenizer.shift();
+                }
+
+            }
+
+            // Validate the right parenthesis.
+            this->validate_grammar_token<TokenType::TOKEN_RIGHT_PARENTHESIS>();
+
+            // Validate the arity.
+            Symbol* symbol = this->symbol_stack.get_symbol_locally(identifier_token.reference);
+            if (symbol == nullptr)
+            {
+                throw SyntaxError(this->path, identifier_token,
+                        "Undefined symbol '%s'.", identifier_token.reference.c_str());
+            }
+            if (symbol->type != Symboltype::SYMBOL_TYPE_ARRAY)
+            {
+                throw SyntaxError(this->path, identifier_token,
+                        "Symbol '%s' is not an array.", identifier_token.reference.c_str());
+            }
+            if (arity != symbol->arity)
+            {
+                throw SyntaxError(this->path, identifier_token,
+                        "Symbol '%s' expects %d arguments, but %d were provided.",
+                        identifier_token.reference.c_str(), symbol->arity, arity);
+            }
+
+            // Generate the array index node.
+            auto array_index_node = this->generate_node<SyntaxNodeArrayIndex>();
+            array_index_node->variable_name = identifier_token.reference;
+            array_index_node->indices = parameters;
+            return array_index_node;
+
+        }
+
+        else
+        {
+            return this->match_primary();
+        }
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
     return this->match_primary();
 

@@ -35,7 +35,8 @@
 //      derivation                  :   unary ("%" unary)*
 //      unary                       :   ("-" unary) | call
 //      function_call               :   primary ( "(" arguments? ")" )?
-//      primary                     :   NUMBER | STRING | identifier | "(" expression ")"
+//      array_index                 :   IDENTIFIER "(" expression ("," expression)* ")"
+//      primary                     :   NUMBER | STRING | IDENTIFIER | "(" expression ")"
 //
 // -----------------------------------------------------------------------------
 #ifndef SIGMAFOX_COMPILER_PARSER_H 
@@ -71,6 +72,7 @@
 #include <compiler/nodes/derivation.hpp>
 #include <compiler/nodes/unary.hpp>
 #include <compiler/nodes/functioncall.hpp>
+#include <compiler/nodes/arrayindex.hpp>
 #include <compiler/nodes/primary.hpp>
 #include <compiler/nodes/grouping.hpp>
 
@@ -92,6 +94,7 @@ class SyntaxParser
 
     protected:
         void synchronize_to(TokenType type);
+        void synchronize_up_to(TokenType type);
         template <class T, typename ...Params> std::shared_ptr<T> generate_node(Params... args);
 
         shared_ptr<ISyntaxNode>         match_root();
@@ -118,6 +121,7 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_derivation();
         shared_ptr<ISyntaxNode>         match_unary();
         shared_ptr<ISyntaxNode>         match_function_call();
+        shared_ptr<ISyntaxNode>         match_array_index();
         shared_ptr<ISyntaxNode>         match_primary();
 
         template<TokenType expect> void validate_grammar_token();
