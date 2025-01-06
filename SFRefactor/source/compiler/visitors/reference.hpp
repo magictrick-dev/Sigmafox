@@ -6,9 +6,11 @@
 #include <compiler/nodes/module.hpp>
 #include <compiler/nodes/root.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/procedure_statement.hpp>
 #include <compiler/nodes/variable_statement.hpp>
 #include <compiler/nodes/scope_statement.hpp>
 #include <compiler/nodes/expression.hpp>
+#include <compiler/nodes/procedure_call.hpp>
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
 #include <compiler/nodes/comparison.hpp>
@@ -18,8 +20,8 @@
 #include <compiler/nodes/extraction.hpp>
 #include <compiler/nodes/derivation.hpp>
 #include <compiler/nodes/unary.hpp>
-#include <compiler/nodes/functioncall.hpp>
-#include <compiler/nodes/arrayindex.hpp>
+#include <compiler/nodes/function_call.hpp>
+#include <compiler/nodes/array_index.hpp>
 #include <compiler/nodes/primary.hpp>
 #include <compiler/nodes/grouping.hpp>
 
@@ -40,8 +42,10 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
         inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
         inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) override;
+        inline virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node) override;
 
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)      override;     
+        inline virtual void visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node) override;
         inline virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)      override;     
         inline virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node)          override;         
         inline virtual void visit_SyntaxNodeComparison(SyntaxNodeComparison *node)      override;     
@@ -157,6 +161,30 @@ visit_SyntaxNodeMain(SyntaxNodeMain *node)
 }
 
 void ReferenceVisitor::
+visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "PROCEDURE " << node->identifier_name << " ";
+
+    for (i32 i = 0; i < node->parameters.size(); ++i)
+    {
+        std::cout << node->parameters[i];
+        if (i != node->parameters.size() - 1) std::cout << ", ";
+    }
+
+    std::cout << std::endl;
+
+    this->push_tabs();
+    for (auto body_statement : node->body_statements) body_statement->accept(this);
+    this->pop_tabs();
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "ENDPROCEDURE" << std::endl;
+
+}
+
+void ReferenceVisitor::
 visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
 {
 
@@ -165,6 +193,25 @@ visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
     std::cout << ";" << std::endl;
 
     return;
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "CALL " << node->procedure_name << " ";
+
+    std::cout << "(";
+    for (i32 i = 0; i < node->parameters.size(); ++i)
+    {
+        node->parameters[i]->accept(this);
+        if (i != node->parameters.size() - 1) std::cout << ", ";
+    }
+    std::cout << ")";
+
+    return;
+
 }
 
 void ReferenceVisitor::

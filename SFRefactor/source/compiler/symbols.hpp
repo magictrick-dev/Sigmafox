@@ -18,6 +18,7 @@ enum class Symboltype
     SYMBOL_TYPE_ARRAY,
     SYMBOL_TYPE_PROCEDURE,
     SYMBOL_TYPE_FUNCTION,
+    SYMBOL_TYPE_PARAMETER,
 };
 
 class Symbol
@@ -236,7 +237,7 @@ class SymboltableEntry
 
 };
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 SymboltableEntry<Symboltype>::
 SymboltableEntry()
 {
@@ -247,14 +248,14 @@ SymboltableEntry()
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 SymboltableEntry<Symboltype>::
 ~SymboltableEntry()
 {
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 void SymboltableEntry<Symboltype>::
 set(Symboltype symbol, std::string key, u64 hash)
 {
@@ -266,7 +267,7 @@ set(Symboltype symbol, std::string key, u64 hash)
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 void SymboltableEntry<Symboltype>::
 unset()
 {
@@ -277,7 +278,7 @@ unset()
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 bool SymboltableEntry<Symboltype>::
 is_active() const
 {
@@ -286,7 +287,7 @@ is_active() const
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 u64 SymboltableEntry<Symboltype>::
 get_hash() const
 {
@@ -295,7 +296,7 @@ get_hash() const
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 std::string SymboltableEntry<Symboltype>::
 get_key() const
 {
@@ -304,7 +305,7 @@ get_key() const
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 const Symboltype& SymboltableEntry<Symboltype>::
 get_value() const
 {
@@ -313,7 +314,7 @@ get_value() const
 
 }
 
-template <typename Symboltype = Symbol>
+template <typename Symboltype>
 Symboltype& SymboltableEntry<Symboltype>::
 get_value()
 {

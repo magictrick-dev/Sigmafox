@@ -1,9 +1,23 @@
 include "dependents/file_c.fox";
 include "dependents/file_d.fox";
 
+procedure test outputString;
+    variable hello 4 := (4 * 2) / 2;
+    variable world 4 10 10;
+
+    scope;
+        variable hello 4 := 10;
+    endscope;
+endprocedure;
+
 begin;
 
-    variable hello 4;
-    variable world 4 10 10;
+    procedure test outputString;
+        variable hello 4 := 4;
+    endprocedure;
+
+    variable foo 4 := 4;
+    variable bar := 5;
+    variable baz 4 := 6;
 
 end;

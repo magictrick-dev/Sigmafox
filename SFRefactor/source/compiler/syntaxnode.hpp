@@ -1,5 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_SYNTAX_NODE_HPP
 #define SIGMAFOX_COMPILER_SYNTAX_NODE_HPP
+#include <vector>
+#include <string>
 #include <definitions.hpp>
 #include <compiler/tokenizer.hpp>
 
@@ -12,8 +14,10 @@ class SyntaxNodeMain;
 class SyntaxNodeExpressionStatement;
 class SyntaxNodeVariableStatement;
 class SyntaxNodeScopeStatement;
+class SyntaxNodeProcedureStatement;
 
 class SyntaxNodeExpression;
+class SyntaxNodeProcedureCall;
 class SyntaxNodeAssignment;
 class SyntaxNodeEquality;
 class SyntaxNodeComparison;
@@ -44,8 +48,10 @@ class ISyntaxNodeVisitor
         virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) = 0;
         virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) = 0;
         virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) = 0;
+        virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node) = 0;
 
         virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)     = 0;
+        virtual void visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node) = 0;
         virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)     = 0;
         virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node)         = 0;
         virtual void visit_SyntaxNodeComparison(SyntaxNodeComparison *node)     = 0;
@@ -75,8 +81,10 @@ enum class SyntaxNodeType
     NodeTypeExpressionStatement,
     NodeTypeVariableStatement,
     NodeTypeScopeStatement,
+    NodeTypeProcedureStatement,
     
     NodeTypeExpression,
+    NodeTypeProcedureCall,
     NodeTypeAssignment,
     NodeTypeEquality,
     NodeTypeComparison,
@@ -127,6 +135,5 @@ class ISyntaxNode
         SyntaxNodeType type;
 
 };
-
 
 #endif

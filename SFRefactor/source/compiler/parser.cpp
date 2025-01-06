@@ -335,7 +335,8 @@ match_global_statement()
     switch (current_token.type)
     {
 
-        case TokenType::TOKEN_KEYWORD_INCLUDE: return this->match_include_statement();
+        case TokenType::TOKEN_KEYWORD_INCLUDE:      return this->match_include_statement();
+        case TokenType::TOKEN_KEYWORD_PROCEDURE:    return this->match_procedure_statement();
 
     }
 
@@ -462,6 +463,7 @@ match_body_statement()
 
         case TokenType::TOKEN_KEYWORD_VARIABLE:     return this->match_variable_statement();
         case TokenType::TOKEN_KEYWORD_SCOPE:        return this->match_scope_statement();
+        case TokenType::TOKEN_KEYWORD_PROCEDURE:    return this->match_procedure_statement();
         default: break;
 
     }
@@ -469,6 +471,115 @@ match_body_statement()
     // Expression statement.
     shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
     return expression_statement;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_procedure_statement()
+{
+
+    Token identifier_token = {0};
+    std::vector<std::string> parameters;
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+
+    try 
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_PROCEDURE>();
+
+        // Get the identifier.
+        identifier_token = this->tokenizer.get_current_token();
+        this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+
+        // If the symbol is already defined, it is an error. We disallow procedure
+        // definitions shadowing other procedure definitions, and all procedure definitions
+        // are lofted into the global scope.
+        if (this->symbol_stack.identifier_exists_globally(identifier_token.reference))
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Procedure declaration '%s' is already defined.",
+                    identifier_token.reference.c_str());
+        }
+
+        // Collect all the parameters, they must all be identifiers.
+        while (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+        {
+
+            Token parameter_token = this->tokenizer.get_current_token();
+            this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+            parameters.push_back(parameter_token.reference);
+
+        }
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // Add all the parameters into the current scope.
+        for (const std::string& parameter : parameters)
+        {
+            this->symbol_stack.insert_symbol_locally(parameter, 
+                Symbol(parameter, Symboltype::SYMBOL_TYPE_PARAMETER, 0));
+        }
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDPROCEDURE)) break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Validate the end of the procedure.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ENDPROCEDURE>();
+
+        // Insert the symbol into the symbol table.
+        this->symbol_stack.insert_symbol_globally(identifier_token.reference, Symbol(
+            identifier_token.reference, Symboltype::SYMBOL_TYPE_PROCEDURE, parameters.size()));
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDPROCEDURE);
+        this->process_error(__LINE__, error, true);
+    }
+
+    // Construct the node.
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the procedure node.
+        auto procedure_node = this->generate_node<SyntaxNodeProcedureStatement>();
+        procedure_node->identifier_name = identifier_token.reference;
+        procedure_node->parameters = parameters;
+        procedure_node->body_statements = body_statements;
+        return procedure_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
