@@ -45,6 +45,8 @@ add_executable(Sigmafox
     "source/utilities/string.hpp"
     "source/utilities/string.cpp"
     "source/utilities/vector.hpp"
+    "source/utilities/memoryalloc.hpp"
+    "source/utilities/memoryalloc.cpp"
 
     "source/compiler/tokenizer.hpp"
     "source/compiler/tokenizer.cpp"
@@ -59,11 +61,16 @@ add_executable(Sigmafox
     "source/compiler/symbolstack.hpp"
 
     "source/compiler/syntaxnode.hpp"
-    "source/compiler/nodes/include.hpp"
-    "source/compiler/nodes/main.hpp"
-    "source/compiler/nodes/module.hpp"
     "source/compiler/nodes/root.hpp"
+    "source/compiler/nodes/module.hpp"
+
+    "source/compiler/nodes/main.hpp"
+    "source/compiler/nodes/include.hpp"
+
     "source/compiler/nodes/expression_statement.hpp"
+    "source/compiler/nodes/variable_statement.hpp"
+    "source/compiler/nodes/scope_statement.hpp"
+
     "source/compiler/nodes/expression.hpp"
     "source/compiler/nodes/assignment.hpp"
     "source/compiler/nodes/equality.hpp"

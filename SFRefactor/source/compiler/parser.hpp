@@ -19,7 +19,9 @@
 //      global_statement            :   include_statement
 //      include_statement           :   "include" TOKEN_STRING ";" module
 //
-//      body_statement              :   (expression_statement)*
+//      body_statement              :   (expression_statement | variable_statement)*
+//      variable_statement          :   "variable" IDENTIFIER expression expression* (":=" expression)? ";"
+//      scope_statement             :   "scope" (body_statement)* "endscope"
 //      expression_statement        :   expression ";"
 //
 //      expression                  :   assigment
@@ -33,7 +35,8 @@
 //      derivation                  :   unary ("%" unary)*
 //      unary                       :   ("-" unary) | call
 //      function_call               :   primary ( "(" arguments? ")" )?
-//      primary                     :   NUMBER | STRING | identifier | "(" expression ")"
+//      array_index                 :   IDENTIFIER "(" expression ("," expression)* ")"
+//      primary                     :   NUMBER | STRING | IDENTIFIER | "(" expression ")"
 //
 // -----------------------------------------------------------------------------
 #ifndef SIGMAFOX_COMPILER_PARSER_H 
@@ -56,6 +59,8 @@
 
 #include <compiler/nodes/main.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/variable_statement.hpp>
+#include <compiler/nodes/scope_statement.hpp>
 
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
@@ -67,9 +72,9 @@
 #include <compiler/nodes/derivation.hpp>
 #include <compiler/nodes/unary.hpp>
 #include <compiler/nodes/functioncall.hpp>
+#include <compiler/nodes/arrayindex.hpp>
 #include <compiler/nodes/primary.hpp>
 #include <compiler/nodes/grouping.hpp>
-
 
 class SyntaxParser
 {
@@ -89,6 +94,7 @@ class SyntaxParser
 
     protected:
         void synchronize_to(TokenType type);
+        void synchronize_up_to(TokenType type);
         template <class T, typename ...Params> std::shared_ptr<T> generate_node(Params... args);
 
         shared_ptr<ISyntaxNode>         match_root();
@@ -101,6 +107,8 @@ class SyntaxParser
 
         shared_ptr<ISyntaxNode>         match_body_statement();
         shared_ptr<ISyntaxNode>         match_expression_statement();
+        shared_ptr<ISyntaxNode>         match_variable_statement();
+        shared_ptr<ISyntaxNode>         match_scope_statement();
 
         shared_ptr<ISyntaxNode>         match_expression();
         shared_ptr<ISyntaxNode>         match_assignment();
@@ -113,6 +121,7 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_derivation();
         shared_ptr<ISyntaxNode>         match_unary();
         shared_ptr<ISyntaxNode>         match_function_call();
+        shared_ptr<ISyntaxNode>         match_array_index();
         shared_ptr<ISyntaxNode>         match_primary();
 
         template<TokenType expect> void validate_grammar_token();
@@ -121,15 +130,16 @@ class SyntaxParser
         bool expect_next_token_as(TokenType type) const;
 
         void process_error(i32 where, SyntaxException& error, bool just_handled);
+        void process_warning(i32 where, SyntaxException& warning, bool just_handled);
 
     protected:
-        std::vector<shared_ptr<ISyntaxNode>> nodes;
-        shared_ptr<ISyntaxNode> base_node;
-        SymboltableStack<Symbol> symbol_stack;
-        DependencyGraph* graph;
-        Tokenizer tokenizer;
-        Filepath path;
-        i32 error_count;
+        std::vector<shared_ptr<ISyntaxNode>>    nodes;
+        shared_ptr<ISyntaxNode>                 base_node;
+        SymboltableStack<Symbol>                symbol_stack;
+        DependencyGraph*                        graph;
+        Tokenizer                               tokenizer;
+        Filepath                                path;
+        i32                                     error_count;
 
 };
 

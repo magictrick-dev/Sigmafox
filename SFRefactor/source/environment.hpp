@@ -1,6 +1,10 @@
 #ifndef SIGMAFOX_ENVIRONMENT_H
 #define SIGMAFOX_ENVIRONMENT_H
 #include <string>
+#include <utilities/memoryalloc.hpp>
+
+#define SF_MEMORY_ALLOC(sz) (ApplicationParameters::Allocator.allocate(sz))
+#define SF_MEMORY_FREE(ptr) (ApplicationParameters::Allocator.release(ptr))
 
 // --- ApplicationParameters Singleton -----------------------------------------
 //
@@ -13,44 +17,14 @@ class ApplicationParameters
 {
 
     public:
-        static inline ApplicationParameters& get();
+        static inline DefaultAllocator  Allocator;
 
-    protected:
-        inline              ApplicationParameters();
-        inline virtual     ~ApplicationParameters();
-
-    protected:
-        std::string output_name;
-        std::string output_path;
+        static inline bool              runtime_warnings_as_errors;
+        static inline std::string       runtime_path;
+        static inline std::string       output_name;
+        static inline std::string       output_path;
 
 };
-
-inline ApplicationParameters& ApplicationParameters::
-get()
-{
-
-    // Lazy-evaluated singleton.
-    static ApplicationParameters* parameters;
-    if (parameters == nullptr)
-    {
-        parameters = new ApplicationParameters();
-    }
-
-    return *parameters;
-
-}
-
-inline ApplicationParameters::
-ApplicationParameters()
-{
-
-}
-
-inline ApplicationParameters:: 
-~ApplicationParameters()
-{
-
-}
 
 // --- ApplicationStatistics Singleton -----------------------------------------
 //
@@ -62,6 +36,7 @@ class ApplicationStatistics
 
     public:
         static inline ApplicationStatistics& get();
+
 
     protected:
         inline              ApplicationStatistics();

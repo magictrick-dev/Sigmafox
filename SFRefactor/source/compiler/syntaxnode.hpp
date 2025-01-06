@@ -10,6 +10,8 @@ class SyntaxNodeInclude;
 
 class SyntaxNodeMain;
 class SyntaxNodeExpressionStatement;
+class SyntaxNodeVariableStatement;
+class SyntaxNodeScopeStatement;
 
 class SyntaxNodeExpression;
 class SyntaxNodeAssignment;
@@ -22,6 +24,7 @@ class SyntaxNodeExtraction;
 class SyntaxNodeDerivation;
 class SyntaxNodeUnary;
 class SyntaxNodeFunctionCall;
+class SyntaxNodeArrayIndex;
 class SyntaxNodePrimary;
 class SyntaxNodeGrouping;
 
@@ -39,6 +42,8 @@ class ISyntaxNodeVisitor
 
         virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) = 0;
         virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) = 0;
+        virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) = 0;
+        virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) = 0;
 
         virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)     = 0;
         virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)     = 0;
@@ -51,6 +56,7 @@ class ISyntaxNodeVisitor
         virtual void visit_SyntaxNodeDerivation(SyntaxNodeDerivation *node)     = 0;
         virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node)               = 0;
         virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node) = 0;
+        virtual void visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)     = 0;
         virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node)           = 0;
         virtual void visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)         = 0;
 
@@ -62,9 +68,14 @@ enum class SyntaxNodeType
     NodeTypeVoid,
     NodeTypeRoot,
     NodeTypeModule,
+
     NodeTypeMain,
+
     NodeTypeInclude,
     NodeTypeExpressionStatement,
+    NodeTypeVariableStatement,
+    NodeTypeScopeStatement,
+    
     NodeTypeExpression,
     NodeTypeAssignment,
     NodeTypeEquality,
@@ -76,6 +87,7 @@ enum class SyntaxNodeType
     NodeTypeDerivation,
     NodeTypeUnary,
     NodeTypeFunctionCall,
+    NodeTypeArrayIndex,
     NodeTypePrimary,
     NodeTypeGrouping,
 };

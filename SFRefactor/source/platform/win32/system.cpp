@@ -25,6 +25,22 @@ system_virtual_free(vptr buffer)
 }
 
 u64
+system_virtual_buffer_size(vptr buffer)
+{
+
+    u64 size_actual = 0;
+
+    MEMORY_BASIC_INFORMATION memory_information = {0};
+    VirtualQuery(buffer, &memory_information, sizeof(MEMORY_BASIC_INFORMATION));
+
+    size_actual = (u64)memory_information.RegionSize;
+    assert(size_actual != 0);
+
+    return size_actual;
+
+}
+
+u64
 system_resize_to_nearest_page_boundary(u64 size)
 {
 

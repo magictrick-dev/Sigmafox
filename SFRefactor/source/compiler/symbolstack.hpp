@@ -18,9 +18,12 @@ class SymboltableStack
         inline bool     identifier_exists(const std::string& str) const;
         inline bool     identifier_exists_locally(const std::string &str) const;
         inline bool     identifier_exists_globally(const std::string &str) const;
+        inline bool     identifier_exists_above(const std::string &str) const;
 
         template <class... Args> inline void insert_symbol_locally(const std::string& str, Args... args);
         template <class... Args> inline void insert_symbol_globally(const std::string& str, Args... args);
+        inline void insert_symbol_locally(const std::string& str, Symboltype&& symbol);
+        inline void insert_symbol_globally(const std::string& str, Symboltype&& symbol);
 
         Symboltype*             get_symbol(const std::string& str);
         Symboltype*             get_symbol_locally(const std::string &str);
@@ -106,6 +109,24 @@ identifier_exists_globally(const std::string& str) const
 
 }
 
+template <typename Symboltype>
+bool SymboltableStack<Symboltype>::
+identifier_exists_above(const std::string& str) const
+{
+
+    for (i32 i = this->table_stack.size() - 2; i >= 0; --i)
+    {
+
+        const Symboltable<Symboltype>& current_table = this->table_stack[i];
+        if (current_table.contains(str))
+            return true;
+
+    }
+
+    return false;
+
+}
+
 template <typename Symboltype> template <class... Args>
 void SymboltableStack<Symboltype>::
 insert_symbol_locally(const std::string& str, Args... args)
@@ -114,6 +135,39 @@ insert_symbol_locally(const std::string& str, Args... args)
     SF_ASSERT(!this->identifier_exists_locally(str));
     Symboltable<Symboltype> &table = this->table_stack[this->table_stack.size() - 1];
     table.emplace(str, args...);
+
+}
+
+template <typename Symboltype> template <class... Args>
+void SymboltableStack<Symboltype>::
+insert_symbol_globally(const std::string& str, Args... args)
+{
+
+    SF_ASSERT(!this->identifier_exists_globally(str));
+    Symboltable<Symboltype> &table = this->table_stack[0];
+    table.emplace(str, args...);
+
+}
+
+template <typename Symboltype>
+void SymboltableStack<Symboltype>::
+insert_symbol_locally(const std::string& str, Symboltype&& symbol)
+{
+
+    SF_ASSERT(!this->identifier_exists_locally(str));
+    Symboltable<Symboltype> &table = this->table_stack[this->table_stack.size() - 1];
+    table.emplace(str, symbol);
+
+}
+
+template <typename Symboltype>
+void SymboltableStack<Symboltype>::
+insert_symbol_globally(const std::string& str, Symboltype&& symbol)
+{
+
+    SF_ASSERT(!this->identifier_exists_globally(str));
+    Symboltable<Symboltype> &table = this->table_stack[0];
+    table.emplace(str, symbol);
 
 }
 

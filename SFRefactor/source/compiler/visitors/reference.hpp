@@ -6,6 +6,8 @@
 #include <compiler/nodes/module.hpp>
 #include <compiler/nodes/root.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/variable_statement.hpp>
+#include <compiler/nodes/scope_statement.hpp>
 #include <compiler/nodes/expression.hpp>
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/equality.hpp>
@@ -17,6 +19,7 @@
 #include <compiler/nodes/derivation.hpp>
 #include <compiler/nodes/unary.hpp>
 #include <compiler/nodes/functioncall.hpp>
+#include <compiler/nodes/arrayindex.hpp>
 #include <compiler/nodes/primary.hpp>
 #include <compiler/nodes/grouping.hpp>
 
@@ -32,8 +35,12 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node)                  override;
         inline virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node)              override;
         inline virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node)            override;
+
         inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)                  override;
         inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
+        inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
+        inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) override;
+
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)      override;     
         inline virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)      override;     
         inline virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node)          override;         
@@ -45,6 +52,7 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeDerivation(SyntaxNodeDerivation *node)      override;     
         inline virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node)                override;               
         inline virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)  override; 
+        inline virtual void visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)      override; 
         inline virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node)            override;           
         inline virtual void visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)          override;
 
@@ -160,6 +168,52 @@ visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
 }
 
 void ReferenceVisitor::
+visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "VARIABLE " << node->variable_name;
+
+    std::cout << " ";
+    node->size->accept(this);
+
+    for (auto dimension : node->dimensions)
+    {
+        std::cout << "[";
+        dimension->accept(this);
+        std::cout << "]";
+    }
+
+    if (node->right_hand_side != nullptr)
+    {
+        std::cout << " = ";
+        node->right_hand_side->accept(this);
+    }
+
+    std::cout << ";" << std::endl;
+
+    return;
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "BEGIN SCOPE" << std::endl;
+
+    this->push_tabs();
+    for (auto child_node : node->children) child_node->accept(this);
+    this->pop_tabs();
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "END SCOPE" << std::endl;
+
+    return;
+
+}
+
+void ReferenceVisitor::
 visit_SyntaxNodeExpression(SyntaxNodeExpression *node)     
 {
 
@@ -172,7 +226,10 @@ void ReferenceVisitor::
 visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)     
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    node->left->accept(this);
+    std::cout << " = ";
+    node->right->accept(this);
+
     return;
 }
 
@@ -184,7 +241,7 @@ visit_SyntaxNodeEquality(SyntaxNodeEquality *node)
     
     switch (node->operation_type)
     {
-        case TokenType::TOKEN_EQUALS:   std::cout << " = ";     break;
+        case TokenType::TOKEN_EQUALS:   std::cout << " == ";     break;
         case TokenType::TOKEN_HASH:     std::cout << " != ";    break;
         default:
         {
@@ -353,6 +410,23 @@ visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)
 {
 
     SF_NO_IMPL("Not yet.");
+    return;
+
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)     
+{
+
+    std::cout << node->variable_name;
+    std::cout << "(";
+    for (i32 i = 0; i < node->indices.size(); ++i)
+    {
+        node->indices[i]->accept(this);
+        if (i != node->indices.size() - 1) std::cout << ", ";
+    }
+    std::cout << ")";
+
     return;
 
 }
