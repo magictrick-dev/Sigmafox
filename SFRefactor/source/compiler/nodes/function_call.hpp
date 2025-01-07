@@ -11,7 +11,8 @@ class SyntaxNodeFunctionCall : public ISyntaxNode
         inline virtual void     accept(ISyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<ISyntaxNode> expression;
+        std::string function_name;
+        std::vector<shared_ptr<ISyntaxNode>> parameters;
 
 };
 

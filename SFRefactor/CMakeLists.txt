@@ -81,7 +81,7 @@ add_executable(Sigmafox
     "source/compiler/nodes/extraction.hpp"
     "source/compiler/nodes/derivation.hpp"
     "source/compiler/nodes/unary.hpp"
-    "source/compiler/nodes/functioncall.hpp"
+    "source/compiler/nodes/function_call.hpp"
     "source/compiler/nodes/primary.hpp"
     "source/compiler/nodes/grouping.hpp"
 

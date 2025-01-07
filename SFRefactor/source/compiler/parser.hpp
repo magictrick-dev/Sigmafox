@@ -16,15 +16,18 @@
 //
 //      main                        :   "begin" ";" (body_statement)* "end" ";"
 //
-//      global_statement            :   include_statement
-//      include_statement           :   "include" TOKEN_STRING ";" module
+//      global_statement            :   include_statement | procedure_statement
+//      body_statement              :   expression_statement | variable_statement | procedure_statement
 //
-//      body_statement              :   (expression_statement | variable_statement)*
+//      include_statement           :   "include" TOKEN_STRING ";" module
 //      variable_statement          :   "variable" IDENTIFIER expression expression* (":=" expression)? ";"
 //      scope_statement             :   "scope" (body_statement)* "endscope"
+//      function_statement          :   "function" IDENTIFIER (IDENTIFIER)* ";" (body_statement)* "endfunction"
+//      procedure_statement         :   "procedure" IDENTIFIER (IDENTIFIER)* ";" (body_statement)* "endprocedure"
 //      expression_statement        :   expression ";"
 //
-//      expression                  :   assigment
+//      expression                  :   procedure_call
+//      procedure_call              :   IDENTIFIER "(" arguments? ")"
 //      assigment                   :   IDENTIFIER ":=" assignment | equality
 //      equality                    :   comparison (("=" | "#") comparison)*
 //      comparison                  :   term (("<" | "<=" | ">" | ">=") term)*
@@ -59,10 +62,13 @@
 
 #include <compiler/nodes/main.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/function_statement.hpp>
+#include <compiler/nodes/procedure_statement.hpp>
 #include <compiler/nodes/variable_statement.hpp>
 #include <compiler/nodes/scope_statement.hpp>
 
 #include <compiler/nodes/assignment.hpp>
+#include <compiler/nodes/procedure_call.hpp>
 #include <compiler/nodes/equality.hpp>
 #include <compiler/nodes/comparison.hpp>
 #include <compiler/nodes/term.hpp>
@@ -71,8 +77,8 @@
 #include <compiler/nodes/extraction.hpp>
 #include <compiler/nodes/derivation.hpp>
 #include <compiler/nodes/unary.hpp>
-#include <compiler/nodes/functioncall.hpp>
-#include <compiler/nodes/arrayindex.hpp>
+#include <compiler/nodes/function_call.hpp>
+#include <compiler/nodes/array_index.hpp>
 #include <compiler/nodes/primary.hpp>
 #include <compiler/nodes/grouping.hpp>
 
@@ -109,8 +115,11 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_expression_statement();
         shared_ptr<ISyntaxNode>         match_variable_statement();
         shared_ptr<ISyntaxNode>         match_scope_statement();
+        shared_ptr<ISyntaxNode>         match_function_statement();
+        shared_ptr<ISyntaxNode>         match_procedure_statement();
 
         shared_ptr<ISyntaxNode>         match_expression();
+        shared_ptr<ISyntaxNode>         match_procedure_call();
         shared_ptr<ISyntaxNode>         match_assignment();
         shared_ptr<ISyntaxNode>         match_equality();
         shared_ptr<ISyntaxNode>         match_comparison();

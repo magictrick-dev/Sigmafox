@@ -1,22 +1,3 @@
-// --- Syntax Parser -----------------------------------------------------------
-//
-// Apologies to the next poor soul that has to read my code. Firstly, you're
-// probably asking yourself why there's >3000 lines of commented out C code at
-// the bottom of this document. The short answer is that its a reference implementation
-// that I wrote over the Summer of 2024. The implementation in C is significantly
-// faster, albeit not quite as fleshed out as what you see before you now. Perhaps
-// it will provide some insight into future optimizations should the need arise.
-//
-// The actual implementation of the parser is a bit convoluted to say the least.
-// It's the nature of recursive descent parsers. There's absolutely no way you're
-// going to be able to tell what's going on without looking at the CFG specification
-// outlined in the header or the (at the time of writing this doc box, non-existent)
-// documentation file to accompany this compiler. If you absolutely must understand
-// each nook and cranny of this monstrocity, then I suggest a well-performing
-// debugger like (and I hate to say this) Visual Studio and step through the
-// programmer to see how everything interconnects.
-//
-// -----------------------------------------------------------------------------
 #include <compiler/parser.hpp>
 #include <compiler/errorhandler.hpp>
 
@@ -229,12 +210,6 @@ generate_node(Params... args)
 // The actual descent code matches the grammar layout in the header file for this.
 // That's also a really good place to get your footing.
 //
-// The last thing to note here is that I use exception handling to catch errors.
-// Before you fetch a bucket to puke in, it's actually really handy considering
-// we have different recovery methods throughout the parser that exception handling
-// works quite well for. We use custom exceptions which we use to specifically throw
-// rather than standard exceptions.
-//
 
 shared_ptr<ISyntaxNode> SyntaxParser::
 match_root()
@@ -335,7 +310,9 @@ match_global_statement()
     switch (current_token.type)
     {
 
-        case TokenType::TOKEN_KEYWORD_INCLUDE: return this->match_include_statement();
+        case TokenType::TOKEN_KEYWORD_INCLUDE:      return this->match_include_statement();
+        case TokenType::TOKEN_KEYWORD_PROCEDURE:    return this->match_procedure_statement();
+        case TokenType::TOKEN_KEYWORD_FUNCTION:     return this->match_function_statement();
 
     }
 
@@ -462,6 +439,8 @@ match_body_statement()
 
         case TokenType::TOKEN_KEYWORD_VARIABLE:     return this->match_variable_statement();
         case TokenType::TOKEN_KEYWORD_SCOPE:        return this->match_scope_statement();
+        case TokenType::TOKEN_KEYWORD_PROCEDURE:    return this->match_procedure_statement();
+        case TokenType::TOKEN_KEYWORD_FUNCTION:     return this->match_function_statement();
         default: break;
 
     }
@@ -469,6 +448,239 @@ match_body_statement()
     // Expression statement.
     shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
     return expression_statement;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_procedure_statement()
+{
+
+    Token identifier_token = {};
+    std::vector<std::string> parameters;
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+
+    try 
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_PROCEDURE>();
+
+        // Get the identifier.
+        identifier_token = this->tokenizer.get_current_token();
+        this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+
+        // If the symbol is already defined, it is an error. We disallow procedure
+        // definitions shadowing other procedure definitions, and all procedure definitions
+        // are lofted into the global scope.
+        if (this->symbol_stack.identifier_exists_globally(identifier_token.reference))
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Procedure declaration '%s' is already defined.",
+                    identifier_token.reference.c_str());
+        }
+
+        // Collect all the parameters, they must all be identifiers.
+        while (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+        {
+
+            Token parameter_token = this->tokenizer.get_current_token();
+            this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+            parameters.push_back(parameter_token.reference);
+
+        }
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // Add all the parameters into the current scope.
+        for (const std::string& parameter : parameters)
+        {
+            this->symbol_stack.insert_symbol_locally(parameter, 
+                Symbol(parameter, Symboltype::SYMBOL_TYPE_PARAMETER, 0));
+        }
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDPROCEDURE)) break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Validate the end of the procedure.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ENDPROCEDURE>();
+
+        // Insert the procedure into the symbol table, globally.
+        this->symbol_stack.insert_symbol_globally(identifier_token.reference, Symbol(
+            identifier_token.reference, Symboltype::SYMBOL_TYPE_PROCEDURE, parameters.size()));
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDPROCEDURE);
+        this->process_error(__LINE__, error, true);
+    }
+
+    // Construct the node.
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the procedure node.
+        auto procedure_node = this->generate_node<SyntaxNodeProcedureStatement>();
+        procedure_node->identifier_name = identifier_token.reference;
+        procedure_node->parameters = parameters;
+        procedure_node->body_statements = body_statements;
+        return procedure_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_function_statement()
+{
+
+    Token identifier_token = {};
+    std::vector<std::string> parameters;
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+
+    try 
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_FUNCTION>();
+
+        // Get the identifier.
+        identifier_token = this->tokenizer.get_current_token();
+        this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+
+        // If the symbol is already defined, it is an error. We disallow procedure
+        // definitions shadowing other procedure definitions, and all procedure definitions
+        // are lofted into the global scope.
+        if (this->symbol_stack.identifier_exists_globally(identifier_token.reference))
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Procedure declaration '%s' is already defined.",
+                    identifier_token.reference.c_str());
+        }
+
+        // Collect all the parameters, they must all be identifiers.
+        while (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+        {
+
+            Token parameter_token = this->tokenizer.get_current_token();
+            this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+            parameters.push_back(parameter_token.reference);
+
+        }
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // The function requires that the name of the function is scoped as a variable,
+        // so we insert it into the symbol table as undefined.
+        this->symbol_stack.insert_symbol_locally(identifier_token.reference, 
+            Symbol(identifier_token.reference, Symboltype::SYMBOL_TYPE_UNDEFINED, 0));
+
+        // Add all the parameters into the current scope.
+        for (const std::string& parameter : parameters)
+        {
+            this->symbol_stack.insert_symbol_locally(parameter, 
+                Symbol(parameter, Symboltype::SYMBOL_TYPE_PARAMETER, 0));
+        }
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDFUNCTION)) break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Before we pop the scope, we ensure that the function identifier is not
+        // undefined.
+        Symbol *function_symbol = this->symbol_stack.get_symbol_locally(identifier_token.reference);
+        if (function_symbol->type == Symboltype::SYMBOL_TYPE_UNDEFINED)
+        {
+            throw SyntaxError(this->path, identifier_token,
+                    "The return value is not defined for %s.",
+                    identifier_token.reference.c_str());
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Validate the end of the procedure.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ENDFUNCTION>();
+
+        // Insert the procedure into the symbol table, globally.
+        this->symbol_stack.insert_symbol_globally(identifier_token.reference, Symbol(
+            identifier_token.reference, Symboltype::SYMBOL_TYPE_FUNCTION, parameters.size()));
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDFUNCTION);
+        this->process_error(__LINE__, error, true);
+    }
+
+    // Construct the node.
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the procedure node.
+        auto function_node = this->generate_node<SyntaxNodeFunctionStatement>();
+        function_node->identifier_name = identifier_token.reference;
+        function_node->parameters = parameters;
+        function_node->body_statements = body_statements;
+        return function_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -496,13 +708,19 @@ match_variable_statement()
         // If the symbol exists in a parent scope, then issue a warning.
         if (this->symbol_stack.identifier_exists_above(identifier_token.reference))
         {
+
             SyntaxWarning warning(this->path, this->tokenizer.get_current_token(),
                     "Variable declaration '%s' shadows a parent scope.",
                     identifier_token.reference.c_str());
             if (ApplicationParameters::runtime_warnings_as_errors) 
+            {
                 throw warning;
+            }
             else
+            {
                 this->process_warning(__LINE__, warning, true);
+            }
+
         }
 
         // NOTE(Chris): There is potential here to make size optional in the grammar.
@@ -672,8 +890,75 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_expression()
 {
 
-    shared_ptr<ISyntaxNode> expression = this->match_assignment();
+    shared_ptr<ISyntaxNode> expression = this->match_procedure_call();
     return expression;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_procedure_call()
+{
+
+    try 
+    {
+
+        // Check if the next token is an identifier.
+        Token identifier_token = this->tokenizer.get_current_token();
+
+        // Is the identifier a procedure?
+        if (!this->symbol_stack.identifier_exists_globally(identifier_token.reference))
+        {
+            return this->match_assignment();
+        }
+
+        Symbol* symbol = this->symbol_stack.get_symbol_globally(identifier_token.reference);
+        if (symbol->type != Symboltype::SYMBOL_TYPE_PROCEDURE)
+        {
+            return this->match_assignment();
+        }
+
+        // The symbol is a procedure, so we can match it.
+        this->tokenizer.shift();
+
+        // Match all the parameters. Procedure calls, by language specification don't
+        // use parenthesis to match their parameters. Trust me, I wouldn't have done it
+        // this way, but it's what I have to work with.
+        std::vector<shared_ptr<ISyntaxNode>> parameters;
+        while (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_EOF))
+            {
+                throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                        "Unexpected end-of-file encountered.");
+            }
+
+            // Get the parameter.
+            shared_ptr<ISyntaxNode> parameter = this->match_expression();
+            parameters.push_back(parameter);
+
+        }
+
+        // Validate the arity.
+        if (parameters.size() != symbol->arity)
+        {
+            throw SyntaxError(this->path, identifier_token,
+                    "Procedure '%s' expects %d parameters, but %d were provided.",
+                    identifier_token.reference.c_str(), symbol->arity, parameters.size());
+        }
+
+        // Generate the procedure call node.
+        auto procedure_call_node = this->generate_node<SyntaxNodeProcedureCall>();
+        procedure_call_node->procedure_name = identifier_token.reference;
+        procedure_call_node->parameters = parameters;
+        return procedure_call_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -1071,7 +1356,73 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_function_call()
 {
 
-    return this->match_array_index();
+    try
+    {
+
+        // If the symbol is an identifer, we need to check if it is a function,
+        // then validate it as a function call.
+        Token identifier_token = this->tokenizer.get_current_token();
+        if (!this->symbol_stack.identifier_exists_globally(identifier_token.reference))
+        {
+            return this->match_array_index();
+        }
+
+        Symbol* symbol = this->symbol_stack.get_symbol_globally(identifier_token.reference);
+        if (symbol->type != Symboltype::SYMBOL_TYPE_FUNCTION)
+        {
+            return this->match_array_index();
+        }
+
+        // The symbol is a function, so we can match it.
+        this->tokenizer.shift();
+        this->validate_grammar_token<TokenType::TOKEN_LEFT_PARENTHESIS>();
+
+        // Match all the parameters. We check for parenthesis here because functions
+        // are superior to procedures.
+        std::vector<shared_ptr<ISyntaxNode>> parameters;
+        while (!this->expect_current_token_as(TokenType::TOKEN_RIGHT_PARENTHESIS))
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_EOF))
+            {
+                throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                        "Unexpected end-of-file encountered.");
+            }
+
+            // Get the parameter.
+            shared_ptr<ISyntaxNode> parameter = this->match_expression();
+            parameters.push_back(parameter);
+
+            if (this->expect_current_token_as(TokenType::TOKEN_COMMA))
+            {
+                this->tokenizer.shift();
+            }
+
+        }
+
+        // Check for right parenthesis.
+        this->validate_grammar_token<TokenType::TOKEN_RIGHT_PARENTHESIS>();
+
+        // Validate the arity.
+        if (parameters.size() != symbol->arity)
+        {
+            throw SyntaxError(this->path, identifier_token,
+                    "Function '%s' expects %d parameters, but %d were provided.",
+                    identifier_token.reference.c_str(), symbol->arity, parameters.size());
+        }
+
+        // Generate the function call node.
+        auto function_call_node = this->generate_node<SyntaxNodeFunctionCall>();
+        function_call_node->function_name = identifier_token.reference;
+        function_call_node->parameters = parameters;
+        return function_call_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 

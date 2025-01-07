@@ -1,9 +1,12 @@
 include "dependents/file_c.fox";
 include "dependents/file_d.fox";
 
+function anotherTest a b;
+    anotherTest := 4;
+endfunction;
+
 begin;
 
-    variable hello 4;
-    variable world 4 10 10;
+    variable foo 4 := anotherTest(2, anotherTest(3,4));
 
 end;

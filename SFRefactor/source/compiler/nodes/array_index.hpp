@@ -12,8 +12,7 @@ class SyntaxNodeArrayIndex : public ISyntaxNode
 
     public:
         std::string variable_name;
-        std::vector<shared_ptr<ISyntaxNode>> indices;
-        shared_ptr<ISyntaxNode> right_hand_side;
+        std::vector<std::shared_ptr<ISyntaxNode>> indices;
 
 };
 
@@ -39,6 +38,4 @@ accept(ISyntaxNodeVisitor *visitor)
 
 }
 
-
 #endif
-
