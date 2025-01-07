@@ -6,6 +6,8 @@
 #include <compiler/nodes/module.hpp>
 #include <compiler/nodes/root.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/while_statement.hpp>
+#include <compiler/nodes/function_statement.hpp>
 #include <compiler/nodes/procedure_statement.hpp>
 #include <compiler/nodes/variable_statement.hpp>
 #include <compiler/nodes/scope_statement.hpp>
@@ -40,6 +42,7 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
 
         inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)                  override;
         inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
+        inline virtual void visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node) override;
         inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
         inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) override;
         inline virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node) override;
@@ -206,6 +209,24 @@ visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
     std::cout << "ENDFUNCTION" << std::endl;
+
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "WHILE ";
+    node->condition->accept(this);
+    std::cout << std::endl;
+
+    this->push_tabs();
+    for (auto child_node : node->children) child_node->accept(this);
+    this->pop_tabs();
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "ENDWHILE" << std::endl;
 
 }
 

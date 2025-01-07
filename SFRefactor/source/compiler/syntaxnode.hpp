@@ -12,6 +12,7 @@ class SyntaxNodeInclude;
 
 class SyntaxNodeMain;
 class SyntaxNodeExpressionStatement;
+class SyntaxNodeWhileStatement;
 class SyntaxNodeFunctionStatement;
 class SyntaxNodeVariableStatement;
 class SyntaxNodeScopeStatement;
@@ -46,6 +47,7 @@ class ISyntaxNodeVisitor
 
         virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) = 0;
         virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) = 0;
+        virtual void visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node) = 0;
         virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) = 0;
         virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) = 0;
         virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node) = 0;
@@ -80,6 +82,7 @@ enum class SyntaxNodeType
 
     NodeTypeInclude,
     NodeTypeExpressionStatement,
+    NodeTypeWhileStatement,
     NodeTypeVariableStatement,
     NodeTypeScopeStatement,
     NodeTypeFunctionStatement,

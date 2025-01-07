@@ -441,6 +441,7 @@ match_body_statement()
         case TokenType::TOKEN_KEYWORD_SCOPE:        return this->match_scope_statement();
         case TokenType::TOKEN_KEYWORD_PROCEDURE:    return this->match_procedure_statement();
         case TokenType::TOKEN_KEYWORD_FUNCTION:     return this->match_function_statement();
+        case TokenType::TOKEN_KEYWORD_WHILE:        return this->match_while_statement();
         default: break;
 
     }
@@ -448,6 +449,87 @@ match_body_statement()
     // Expression statement.
     shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
     return expression_statement;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_while_statement()
+{
+
+    shared_ptr<ISyntaxNode> condition_node = nullptr;
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_WHILE>();
+
+        // Match the condition.
+        condition_node = this->match_expression();
+        if (condition_node == nullptr)
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Expected expression in while statement.");
+        }
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDWHILE)) break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Validate the end of the while statement.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ENDWHILE>();
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDWHILE);
+        this->process_error(__LINE__, error, true);
+
+    }
+
+    // Construct the node.
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the while node.
+        auto while_node = this->generate_node<SyntaxNodeWhileStatement>();
+        while_node->condition = condition_node;
+        while_node->children = body_statements;
+        return while_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
@@ -1010,7 +1092,7 @@ match_assignment()
             shared_ptr<SyntaxNodePrimary> primary_node = 
                 dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
 
-            if (!this->symbol_stack.identifier_exists_locally(primary_node->literal_reference))
+            if (!this->symbol_stack.identifier_exists(primary_node->literal_reference))
             {
                 throw SyntaxError(this->path, this->tokenizer.get_current_token(),
                         "Undefined symbol '%s'.",
@@ -1030,7 +1112,7 @@ match_assignment()
             shared_ptr<SyntaxNodePrimary> primary_node = 
                 dynamic_pointer_cast<SyntaxNodePrimary>(left_hand_side);
 
-            Symbol* symbol = this->symbol_stack.get_symbol_locally(primary_node->literal_reference);
+            Symbol* symbol = this->symbol_stack.get_symbol(primary_node->literal_reference);
             SF_ENSURE_PTR(symbol);
             if (symbol->type == Symboltype::SYMBOL_TYPE_UNDEFINED)
             {
@@ -1550,7 +1632,7 @@ match_primary()
             this->tokenizer.shift();
 
             // Check if the token is undefined (it is declared).
-            if (!this->symbol_stack.identifier_exists_locally(literal_token.reference))
+            if (!this->symbol_stack.identifier_exists(literal_token.reference))
             {
                 throw SyntaxError(this->path, literal_token,
                         "Undeclared symbol '%s' used in expression.", literal_token.reference.c_str());
