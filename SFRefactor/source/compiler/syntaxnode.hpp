@@ -13,6 +13,7 @@ class SyntaxNodeInclude;
 class SyntaxNodeMain;
 class SyntaxNodeExpressionStatement;
 class SyntaxNodeWhileStatement;
+class SyntaxNodeLoopStatement;
 class SyntaxNodeFunctionStatement;
 class SyntaxNodeVariableStatement;
 class SyntaxNodeScopeStatement;
@@ -46,12 +47,13 @@ class ISyntaxNodeVisitor
         virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)     = 0;
 
         virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) = 0;
-        virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) = 0;
-        virtual void visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node) = 0;
-        virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) = 0;
-        virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) = 0;
-        virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node) = 0;
-        virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node) = 0;
+        virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)   = 0;
+        virtual void visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node)             = 0;
+        virtual void visit_SyntaxNodeLoopStatement(SyntaxNodeLoopStatement *node)               = 0;
+        virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)       = 0;
+        virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node)             = 0;
+        virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)       = 0;
+        virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)     = 0;
 
         virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)         = 0;
         virtual void visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)   = 0;
@@ -83,6 +85,7 @@ enum class SyntaxNodeType
     NodeTypeInclude,
     NodeTypeExpressionStatement,
     NodeTypeWhileStatement,
+    NodeTypeLoopStatement,
     NodeTypeVariableStatement,
     NodeTypeScopeStatement,
     NodeTypeFunctionStatement,

@@ -442,6 +442,7 @@ match_body_statement()
         case TokenType::TOKEN_KEYWORD_PROCEDURE:    return this->match_procedure_statement();
         case TokenType::TOKEN_KEYWORD_FUNCTION:     return this->match_function_statement();
         case TokenType::TOKEN_KEYWORD_WHILE:        return this->match_while_statement();
+        case TokenType::TOKEN_KEYWORD_LOOP:         return this->match_loop_statement();
         default: break;
 
     }
@@ -449,6 +450,106 @@ match_body_statement()
     // Expression statement.
     shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
     return expression_statement;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_loop_statement()
+{
+
+    std::string identifier;
+    shared_ptr<ISyntaxNode> initial_node = nullptr;
+    shared_ptr<ISyntaxNode> terminal_node = nullptr;
+    shared_ptr<ISyntaxNode> step_node = nullptr;
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_LOOP>();
+
+        // Match the identifier.
+        Token identifier_token = this->tokenizer.get_current_token();
+        this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+        identifier = identifier_token.reference;
+
+        // Get the initial expression.
+        initial_node = this->match_expression();
+
+        // Get the terminal expression.
+        terminal_node = this->match_expression();
+
+        // If there is a step expression, get it.
+        if (this->expect_current_token_as(TokenType::TOKEN_SEMICOLON) == false)
+        {
+            step_node = this->match_expression();
+        }
+
+        // Process the semicolon.
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // Add the identifier to the symbol table.
+        this->symbol_stack.insert_symbol_locally(identifier, 
+            Symbol(identifier, Symboltype::SYMBOL_TYPE_VARIABLE, 0));
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDLOOP)) break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Validate the end of the loop statement.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ENDLOOP>();
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDLOOP);
+        this->process_error(__LINE__, error, true);
+    }
+
+    // Construct the node.
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the loop node.
+        auto loop_node = this->generate_node<SyntaxNodeLoopStatement>();
+        loop_node->identifier = identifier;
+        loop_node->initial = initial_node;
+        loop_node->terminal = terminal_node;
+        loop_node->step = step_node;
+        loop_node->children = body_statements;
+        return loop_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
