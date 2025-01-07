@@ -176,6 +176,8 @@ Symboltype* SymboltableStack<Symboltype>::
 get_symbol(const std::string& str)
 {
 
+    // Essentially, we're fetcing from the top-most table to the bottom-most table.
+    // This allows us to ensure we're grabbing the most local symbol available.
     for (i32 i = this->table_stack.size() - 1; i >= 0; --i)
     {
 
@@ -194,6 +196,7 @@ Symboltype* SymboltableStack<Symboltype>::
 get_symbol_locally(const std::string& str)
 {
 
+    // Gets *only* the most local symbol.
     Symboltable<Symboltype>& current_table = this->table_stack[this->table_stack.size() - 1];
     if (current_table.contains(str))
         return &current_table[str];

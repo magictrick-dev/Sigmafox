@@ -1,12 +1,16 @@
 include "dependents/file_c.fox";
 include "dependents/file_d.fox";
 
-function anotherTest a b;
-    anotherTest := 4;
-endfunction;
-
 begin;
 
-    variable foo 4 := anotherTest(2, anotherTest(3,4));
+    variable test 4 := 10;
+
+    if test < 20;
+        variable foo 4 := test;
+    elseif test > 10;
+        variable bar 4 := test;
+    endif;
+
+    variable world 4 := 9;
 
 end;

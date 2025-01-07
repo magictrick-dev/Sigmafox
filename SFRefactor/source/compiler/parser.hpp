@@ -21,7 +21,10 @@
 //
 //      include_statement           :   "include" TOKEN_STRING ";" module
 //      variable_statement          :   "variable" IDENTIFIER expression expression* (":=" expression)? ";"
-//      scope_statement             :   "scope" (body_statement)* "endscope"
+//      scope_statement             :   "scope" (body_statement)* "endscope" ";"
+//      while_statement             :   "while" expression ";" (body_statement)* "endwhile" ";"
+//      loop_statement              :   "loop" identifier expression expression expression? ";" 
+//                                      (body_statement)* "endloop" ";"
 //      function_statement          :   "function" IDENTIFIER (IDENTIFIER)* ";" (body_statement)* "endfunction"
 //      procedure_statement         :   "procedure" IDENTIFIER (IDENTIFIER)* ";" (body_statement)* "endprocedure"
 //      expression_statement        :   expression ";"
@@ -62,10 +65,14 @@
 
 #include <compiler/nodes/main.hpp>
 #include <compiler/nodes/expression_statement.hpp>
+#include <compiler/nodes/while_statement.hpp>
+#include <compiler/nodes/loop_statement.hpp>
 #include <compiler/nodes/function_statement.hpp>
 #include <compiler/nodes/procedure_statement.hpp>
 #include <compiler/nodes/variable_statement.hpp>
 #include <compiler/nodes/scope_statement.hpp>
+#include <compiler/nodes/if_statement.hpp>
+#include <compiler/nodes/conditional.hpp>
 
 #include <compiler/nodes/assignment.hpp>
 #include <compiler/nodes/procedure_call.hpp>
@@ -117,6 +124,10 @@ class SyntaxParser
         shared_ptr<ISyntaxNode>         match_scope_statement();
         shared_ptr<ISyntaxNode>         match_function_statement();
         shared_ptr<ISyntaxNode>         match_procedure_statement();
+        shared_ptr<ISyntaxNode>         match_while_statement();
+        shared_ptr<ISyntaxNode>         match_loop_statement();
+        shared_ptr<ISyntaxNode>         match_if_statement();
+        shared_ptr<ISyntaxNode>         match_conditional();
 
         shared_ptr<ISyntaxNode>         match_expression();
         shared_ptr<ISyntaxNode>         match_procedure_call();
