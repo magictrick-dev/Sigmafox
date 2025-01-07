@@ -42,6 +42,7 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
         inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
         inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) override;
+        inline virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node) override;
         inline virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node) override;
 
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)      override;     
@@ -185,6 +186,30 @@ visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)
 }
 
 void ReferenceVisitor::
+visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "FUNCTION " << node->identifier_name << " ";
+
+    std::cout << "(";
+    for (i32 i = 0; i < node->parameters.size(); ++i)
+    {
+        std::cout << node->parameters[i];
+        if (i != node->parameters.size() - 1) std::cout << ", ";
+    }
+    std::cout << ")" << std::endl;
+
+    this->push_tabs();
+    for (auto body_statement : node->body_statements) body_statement->accept(this);
+    this->pop_tabs();
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "ENDFUNCTION" << std::endl;
+
+}
+
+void ReferenceVisitor::
 visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
 {
 
@@ -193,25 +218,6 @@ visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
     std::cout << ";" << std::endl;
 
     return;
-}
-
-void ReferenceVisitor::
-visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)
-{
-
-    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
-    std::cout << "CALL " << node->procedure_name << " ";
-
-    std::cout << "(";
-    for (i32 i = 0; i < node->parameters.size(); ++i)
-    {
-        node->parameters[i]->accept(this);
-        if (i != node->parameters.size() - 1) std::cout << ", ";
-    }
-    std::cout << ")";
-
-    return;
-
 }
 
 void ReferenceVisitor::
@@ -268,6 +274,25 @@ visit_SyntaxNodeExpression(SyntaxNodeExpression *node)
     return;
 
 }
+
+void ReferenceVisitor::
+visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)
+{
+
+    std::cout << "CALL " << node->procedure_name << " ";
+
+    std::cout << "(";
+    for (i32 i = 0; i < node->parameters.size(); ++i)
+    {
+        node->parameters[i]->accept(this);
+        if (i != node->parameters.size() - 1) std::cout << ", ";
+    }
+    std::cout << ")";
+
+    return;
+
+}
+
 
 void ReferenceVisitor::
 visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)     
@@ -456,7 +481,15 @@ void ReferenceVisitor::
 visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node) 
 {
 
-    SF_NO_IMPL("Not yet.");
+    std::cout << node->function_name;
+    std::cout << "(";
+    for (i32 i = 0; i < node->parameters.size(); ++i)
+    {
+        node->parameters[i]->accept(this);
+        if (i != node->parameters.size() - 1) std::cout << ", ";
+    }
+    std::cout << ")";
+
     return;
 
 }

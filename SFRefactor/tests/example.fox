@@ -1,23 +1,12 @@
 include "dependents/file_c.fox";
 include "dependents/file_d.fox";
 
-procedure test outputString;
-    variable hello 4 := (4 * 2) / 2;
-    variable world 4 10 10;
-
-    scope;
-        variable hello 4 := 10;
-    endscope;
-endprocedure;
+function anotherTest a b;
+    anotherTest := 4;
+endfunction;
 
 begin;
 
-    procedure test outputString;
-        variable hello 4 := 4;
-    endprocedure;
-
-    variable foo 4 := 4;
-    variable bar := 5;
-    variable baz 4 := 6;
+    variable foo 4 := anotherTest(2, anotherTest(3,4));
 
 end;
