@@ -3,8 +3,14 @@ include "dependents/file_d.fox";
 
 begin;
 
-    loop i 1 10 2;
-        variable foo 4 := i;
-    endloop;
+    variable test 4 := 10;
+
+    if test < 20;
+        variable foo 4 := test;
+    elseif test > 10;
+        variable bar 4 := test;
+    endif;
+
+    variable world 4 := 9;
 
 end;

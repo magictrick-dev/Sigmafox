@@ -52,6 +52,8 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node)              override;
         inline virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)        override;
         inline virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)      override;
+        inline virtual void visit_SyntaxNodeIfStatement(SyntaxNodeIfStatement *node)                    override;
+        inline virtual void visit_SyntaxNodeConditional(SyntaxNodeConditional * node)                   override;
 
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)          override;     
         inline virtual void visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)    override;
@@ -214,6 +216,48 @@ visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
     std::cout << "ENDFUNCTION" << std::endl;
+
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeIfStatement(SyntaxNodeIfStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "IF ";
+    node->conditional->accept(this);
+    std::cout << std::endl;
+
+    this->push_tabs();
+    for (auto child_node : node->children) child_node->accept(this);
+    this->pop_tabs();
+
+    if (node->conditional_else != nullptr)
+        node->conditional_else->accept(this);
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "ENDIF" << std::endl;
+
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeConditional(SyntaxNodeConditional *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "ELSEIF ";
+    node->condition->accept(this);
+    std::cout << std::endl;
+
+    this->push_tabs();
+    for (auto child_node : node->children) child_node->accept(this);
+    this->pop_tabs();
+
+    // Follow the chain.
+    if (node->conditional_else != nullptr)
+        node->conditional_else->accept(this);
+
+    return;
 
 }
 

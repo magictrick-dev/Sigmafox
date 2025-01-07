@@ -443,6 +443,7 @@ match_body_statement()
         case TokenType::TOKEN_KEYWORD_FUNCTION:     return this->match_function_statement();
         case TokenType::TOKEN_KEYWORD_WHILE:        return this->match_while_statement();
         case TokenType::TOKEN_KEYWORD_LOOP:         return this->match_loop_statement();
+        case TokenType::TOKEN_KEYWORD_IF:           return this->match_if_statement();
         default: break;
 
     }
@@ -450,6 +451,174 @@ match_body_statement()
     // Expression statement.
     shared_ptr<ISyntaxNode> expression_statement = this->match_expression_statement();
     return expression_statement;
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_if_statement()
+{
+
+    shared_ptr<ISyntaxNode> condition_node = nullptr;
+    shared_ptr<ISyntaxNode> else_node = nullptr;
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_IF>();
+
+        // Match the condition.
+        condition_node = this->match_expression();
+
+        // Match the semicolon.
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDIF) ||
+                this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ELSEIF)) 
+                    break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+                throw;
+            }
+
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Process the next else-if statement.
+        shared_ptr<ISyntaxNode> elseif_node = this->match_conditional();
+        else_node = elseif_node;
+
+        // We should have recursed into the endif token by this point.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ENDIF>();
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDIF);
+        this->process_error(__LINE__, error, true);
+    }
+
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the if node.
+        auto if_node = this->generate_node<SyntaxNodeIfStatement>();
+        if_node->conditional = condition_node;
+        if_node->conditional_else = else_node;
+        if_node->children = body_statements;
+
+        return if_node;
+
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
+
+}
+
+shared_ptr<ISyntaxNode> SyntaxParser::
+match_conditional()
+{
+
+    shared_ptr<ISyntaxNode> condition_node = nullptr;
+    shared_ptr<ISyntaxNode> else_node = nullptr;
+    std::vector<shared_ptr<ISyntaxNode>> body_statements;
+    try
+    {
+
+        if (!this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ELSEIF))
+            return nullptr;
+
+        // Match the elseif token.
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_ELSEIF>();
+
+        // Match the condition.
+        condition_node = this->match_expression();
+
+        // Match the semicolon.
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Push the scope.
+        this->symbol_stack.push_table();
+
+        // Match all body statements.
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_EOF) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDIF) ||
+                this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ELSEIF)) 
+                    break;
+
+            try
+            {
+                current_node = this->match_body_statement();
+                if (current_node == nullptr) break;
+                body_statements.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Pop the scope.
+        this->symbol_stack.pop_table();
+
+        // Process the next else-if statement. Since this will continue to recurse
+        // all additional elseif statements, we can just call this function again.
+        // We don't process the endif.
+        shared_ptr<ISyntaxNode> elseif_node = this->match_conditional();
+        else_node = elseif_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->process_error(__LINE__, error, true);
+        throw; // Forward back up to the if statement.
+    }
+
+    try
+    {
+
+        // Generate the node.
+        auto elseif_node = this->generate_node<SyntaxNodeConditional>();
+        elseif_node->condition = condition_node;
+        elseif_node->conditional_else = else_node;
+        elseif_node->children = body_statements;
+        return elseif_node;
+
+    }
+    catch (SyntaxException& error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+        throw;
+    }
 
 }
 
