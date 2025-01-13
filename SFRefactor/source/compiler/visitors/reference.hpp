@@ -54,6 +54,8 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)      override;
         inline virtual void visit_SyntaxNodeIfStatement(SyntaxNodeIfStatement *node)                    override;
         inline virtual void visit_SyntaxNodeConditional(SyntaxNodeConditional * node)                   override;
+        inline virtual void visit_SyntaxNodeReadStatement(SyntaxNodeReadStatement *node)                override;
+        inline virtual void visit_SyntaxNodeWriteStatement(SyntaxNodeWriteStatement *node)              override;
 
         inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)          override;     
         inline virtual void visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)    override;
@@ -168,6 +170,38 @@ visit_SyntaxNodeMain(SyntaxNodeMain *node)
 
     for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
     std::cout << "END MAIN" << std::endl;
+
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeReadStatement(SyntaxNodeReadStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "READ ";
+
+    node->unit->accept(this);
+
+    std::cout << " " << node->identifier << ";" << std::endl;
+
+}
+
+void ReferenceVisitor::
+visit_SyntaxNodeWriteStatement(SyntaxNodeWriteStatement *node)
+{
+
+    for (i32 i = 0; i < this->tabs; ++i) std::cout << " ";
+    std::cout << "WRITE ";
+
+    node->unit->accept(this);
+
+    for (i32 i = 0; i < node->expressions.size(); ++i)
+    {
+        node->expressions[i]->accept(this);
+        if (i != node->expressions.size() - 1) std::cout << ", ";
+    }
+
+    std::cout << ";" << std::endl;
 
 }
 

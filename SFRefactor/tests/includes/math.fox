@@ -9,7 +9,9 @@ procedure example;
 
 endprocedure;
 
-function add_pair a b;
-    variable result 4 := a + b;
-    add_pair := result;
-endfunction;
+{
+    function add_pair a b;
+        variable result 4 := a + b;
+        add_pair := result;
+    endfunction;
+}
