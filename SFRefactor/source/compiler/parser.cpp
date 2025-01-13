@@ -371,6 +371,13 @@ match_include_statement()
                 "Unable to parse %s.", include_path_token.reference.c_str());
     }
 
+    if (!include_parser->symbol_stack.is_root_table())
+    {
+        throw SyntaxError(this->path, include_path_token,
+                "Module %s did not successfully pop all symbol tables.",
+                include_path_token.reference.c_str());
+    }
+
     auto include_node = this->generate_node<SyntaxNodeInclude>();
     include_node->path = include_path.c_str();
     include_node->module = include_parser->get_base_node();
