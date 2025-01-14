@@ -1,16 +1,8 @@
-include "dependents/file_c.fox";
-include "dependents/file_d.fox";
+include "includes/math.fox";
+include "includes/intrinsics.fox";
 
 begin;
 
-    variable test 4 := 10;
-
-    if test < 20;
-        variable foo 4 := test;
-    elseif test > 10;
-        variable bar 4 := test;
-    endif;
-
-    variable world 4 := 9;
+    example;
 
 end;

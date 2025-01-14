@@ -1,0 +1,10 @@
+
+function add_pair a b;
+    variable result 4 := a + b;
+    add_pair := result;
+endfunction;
+
+function mul_pair a b;
+    variable result 4 := a * b;
+    mul_pair := result;
+endfunction;
