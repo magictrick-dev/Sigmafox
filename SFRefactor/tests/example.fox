@@ -3,6 +3,10 @@ include "includes/intrinsics.fox";
 
 begin;
 
-    example;
+    variable foo 4 := add_pair(10, 20);
+    variable output 32;
+    read 4 output;
+
+    write 5 output "," foo;
 
 end;

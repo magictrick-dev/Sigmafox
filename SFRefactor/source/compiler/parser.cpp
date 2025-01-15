@@ -380,6 +380,7 @@ match_include_statement()
 
     auto include_node = this->generate_node<SyntaxNodeInclude>();
     include_node->path = include_path.c_str();
+    include_node->user_path = path;
     include_node->module = include_parser->get_base_node();
     return include_node;
 
@@ -467,12 +468,98 @@ shared_ptr<ISyntaxNode> SyntaxParser::
 match_write_statement()
 {
 
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_WRITE>();
+
+        // Match the unit.
+        shared_ptr<ISyntaxNode> unit_node = this->match_expression();
+
+        // Match all the expressions for writing.
+        std::vector<shared_ptr<ISyntaxNode>> expressions;
+        shared_ptr<ISyntaxNode> current_node = nullptr;
+        while (this->expect_current_token_as(TokenType::TOKEN_SEMICOLON) == false)
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_EOF)) break;
+
+            try
+            {
+                current_node = this->match_expression();
+                if (current_node == nullptr) break;
+                expressions.push_back(current_node);
+            }
+            catch (SyntaxException& syntax_error)
+            {
+                this->process_error(__LINE__, syntax_error, true);
+            }
+
+        }
+
+        // Ensure there is at least one expression to write.
+        if (expressions.size() == 0)
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Expected expression in write statement.");
+        }
+
+        // Match the semicolon.
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Create the write node.
+        auto write_node = this->generate_node<SyntaxNodeWriteStatement>();
+        write_node->unit = unit_node;
+        write_node->expressions = expressions;
+        return write_node;
+
+    }
+    catch (SyntaxError &error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+    }
+
     return nullptr;
 }
 
 shared_ptr<ISyntaxNode> SyntaxParser::
 match_read_statement()
 {
+
+    try
+    {
+
+        this->validate_grammar_token<TokenType::TOKEN_KEYWORD_READ>();
+
+        // Match the unit.
+        shared_ptr<ISyntaxNode> unit_node = this->match_expression();
+
+        // Match the identifier.
+        if (!this->expect_current_token_as(TokenType::TOKEN_IDENTIFIER))
+        {
+            throw SyntaxError(this->path, this->tokenizer.get_current_token(),
+                    "Expected identifier in read statement.");
+        }
+
+        Token identifier_token = this->tokenizer.get_current_token();
+        this->validate_grammar_token<TokenType::TOKEN_IDENTIFIER>();
+
+        // Match the semicolon.
+        this->validate_grammar_token<TokenType::TOKEN_SEMICOLON>();
+
+        // Generate the read node.
+        auto read_node = this->generate_node<SyntaxNodeReadStatement>();
+        read_node->unit = unit_node;
+        read_node->identifier = identifier_token.reference;
+        return read_node;
+
+    }
+    catch (SyntaxError &error)
+    {
+        this->synchronize_to(TokenType::TOKEN_SEMICOLON);
+        this->process_error(__LINE__, error, true);
+    }
 
     return nullptr;
 }
