@@ -32,7 +32,8 @@ class SyntaxException : public std::exception
 
 // --- Syntax Warnings ---------------------------------------------------------
 //
-// The syntax warnings operate in the same capacity as errors.
+// The syntax warnings operate in the same capacity as errors, but only when
+// the compiler flags are set to allow warnings as errors.
 //
 
 class SyntaxWarning : public SyntaxException 

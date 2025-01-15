@@ -1,36 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_VISITORS_REFERENCE_HPP
 #define SIGMAFOX_COMPILER_VISITORS_REFERENCE_HPP
-#include <compiler/syntaxnode.hpp>
-
-#include <compiler/nodes/root.hpp>
-#include <compiler/nodes/main.hpp>
-#include <compiler/nodes/module.hpp>
-
-#include <compiler/nodes/include.hpp>
-#include <compiler/nodes/expression_statement.hpp>
-#include <compiler/nodes/while_statement.hpp>
-#include <compiler/nodes/loop_statement.hpp>
-#include <compiler/nodes/function_statement.hpp>
-#include <compiler/nodes/procedure_statement.hpp>
-#include <compiler/nodes/variable_statement.hpp>
-#include <compiler/nodes/scope_statement.hpp>
-
-#include <compiler/nodes/expression.hpp>
-#include <compiler/nodes/procedure_call.hpp>
-#include <compiler/nodes/assignment.hpp>
-#include <compiler/nodes/equality.hpp>
-#include <compiler/nodes/comparison.hpp>
-#include <compiler/nodes/term.hpp>
-#include <compiler/nodes/factor.hpp>
-#include <compiler/nodes/magnitude.hpp>
-#include <compiler/nodes/extraction.hpp>
-#include <compiler/nodes/derivation.hpp>
-#include <compiler/nodes/unary.hpp>
-#include <compiler/nodes/function_call.hpp>
-#include <compiler/nodes/array_index.hpp>
-#include <compiler/nodes/primary.hpp>
-#include <compiler/nodes/grouping.hpp>
-
+#include <compiler/syntaxvisitor.hpp>
+#include <compiler/syntaxnodes.hpp>
 
 class ReferenceVisitor : public ISyntaxNodeVisitor
 {
@@ -40,38 +11,38 @@ class ReferenceVisitor : public ISyntaxNodeVisitor
         inline          ReferenceVisitor(i32 tab_size);
         inline virtual ~ReferenceVisitor();
 
-        inline virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node)                  override;
-        inline virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node)              override;
-        inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node)                  override;
+        inline virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node) override;
+        inline virtual void visit_SyntaxNodeModule(SyntaxNodeModule *node) override;
+        inline virtual void visit_SyntaxNodeMain(SyntaxNodeMain *node) override;
 
-        inline virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node)                            override;
-        inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)    override; 
-        inline virtual void visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node)              override;
-        inline virtual void visit_SyntaxNodeLoopStatement(SyntaxNodeLoopStatement *node)                override;
-        inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)        override; 
-        inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node)              override;
-        inline virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)        override;
-        inline virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)      override;
-        inline virtual void visit_SyntaxNodeIfStatement(SyntaxNodeIfStatement *node)                    override;
-        inline virtual void visit_SyntaxNodeConditional(SyntaxNodeConditional * node)                   override;
-        inline virtual void visit_SyntaxNodeReadStatement(SyntaxNodeReadStatement *node)                override;
-        inline virtual void visit_SyntaxNodeWriteStatement(SyntaxNodeWriteStatement *node)              override;
+        inline virtual void visit_SyntaxNodeInclude(SyntaxNodeInclude *node) override;
+        inline virtual void visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node) override; 
+        inline virtual void visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node) override;
+        inline virtual void visit_SyntaxNodeLoopStatement(SyntaxNodeLoopStatement *node) override;
+        inline virtual void visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node) override; 
+        inline virtual void visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node) override;
+        inline virtual void visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node) override;
+        inline virtual void visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node) override;
+        inline virtual void visit_SyntaxNodeIfStatement(SyntaxNodeIfStatement *node) override;
+        inline virtual void visit_SyntaxNodeConditional(SyntaxNodeConditional * node) override;
+        inline virtual void visit_SyntaxNodeReadStatement(SyntaxNodeReadStatement *node) override;
+        inline virtual void visit_SyntaxNodeWriteStatement(SyntaxNodeWriteStatement *node) override;
 
-        inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node)          override;     
-        inline virtual void visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)    override;
-        inline virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)          override;     
-        inline virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node)              override;         
-        inline virtual void visit_SyntaxNodeComparison(SyntaxNodeComparison *node)          override;     
-        inline virtual void visit_SyntaxNodeTerm(SyntaxNodeTerm *node)                      override;                 
-        inline virtual void visit_SyntaxNodeFactor(SyntaxNodeFactor *node)                  override;             
-        inline virtual void visit_SyntaxNodeMagnitude(SyntaxNodeMagnitude *node)            override;       
-        inline virtual void visit_SyntaxNodeExtraction(SyntaxNodeExtraction *node)          override;     
-        inline virtual void visit_SyntaxNodeDerivation(SyntaxNodeDerivation *node)          override;     
-        inline virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node)                    override;               
-        inline virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)      override; 
-        inline virtual void visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)          override; 
-        inline virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node)                override;           
-        inline virtual void visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)              override;
+        inline virtual void visit_SyntaxNodeExpression(SyntaxNodeExpression *node) override;     
+        inline virtual void visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node) override;
+        inline virtual void visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node) override;     
+        inline virtual void visit_SyntaxNodeEquality(SyntaxNodeEquality *node) override;         
+        inline virtual void visit_SyntaxNodeComparison(SyntaxNodeComparison *node) override;     
+        inline virtual void visit_SyntaxNodeTerm(SyntaxNodeTerm *node) override;                 
+        inline virtual void visit_SyntaxNodeFactor(SyntaxNodeFactor *node) override;             
+        inline virtual void visit_SyntaxNodeMagnitude(SyntaxNodeMagnitude *node) override;       
+        inline virtual void visit_SyntaxNodeExtraction(SyntaxNodeExtraction *node) override;     
+        inline virtual void visit_SyntaxNodeDerivation(SyntaxNodeDerivation *node) override;     
+        inline virtual void visit_SyntaxNodeUnary(SyntaxNodeUnary *node) override;               
+        inline virtual void visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node) override; 
+        inline virtual void visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node) override; 
+        inline virtual void visit_SyntaxNodePrimary(SyntaxNodePrimary *node) override;           
+        inline virtual void visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node) override;
 
     protected:
         void    push_tabs();
@@ -194,11 +165,11 @@ visit_SyntaxNodeWriteStatement(SyntaxNodeWriteStatement *node)
     std::cout << "WRITE ";
 
     node->unit->accept(this);
+    std::cout << " ";
 
     for (i32 i = 0; i < node->expressions.size(); ++i)
     {
         node->expressions[i]->accept(this);
-        if (i != node->expressions.size() - 1) std::cout << ", ";
     }
 
     std::cout << ";" << std::endl;

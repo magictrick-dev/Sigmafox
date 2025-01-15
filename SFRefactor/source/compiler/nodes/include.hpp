@@ -12,6 +12,7 @@ class SyntaxNodeInclude : public ISyntaxNode
 
     public:
         std::string path;
+        std::string user_path;
         shared_ptr<ISyntaxNode> module;
 
 };

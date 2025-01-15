@@ -12,6 +12,7 @@
 #include <compiler/parser.hpp>
 #include <compiler/syntaxtree.hpp>
 #include <compiler/visitors/reference.hpp>
+#include <compiler/visitors/generation.hpp>
 #include <compiler/symbols.hpp>
 
 int
@@ -85,6 +86,14 @@ main(int argc, char ** argv)
             std::cout << "---------------------------------------------------" << std::endl;
             ReferenceVisitor reference_visitor(4);
             syntax_tree.visit_root(&reference_visitor);
+
+            std::cout << "---------------------------------------------------" << std::endl;
+            std::cout << "              C++ Generation Output" << std::endl;
+            std::cout << "---------------------------------------------------" << std::endl;
+            std::string main_absolute_path = user_source_file.c_str();
+            GenerationVisitor generation_visitor(main_absolute_path, 4);
+            syntax_tree.visit_root(&generation_visitor);
+            generation_visitor.dump_files();
         }
     }
 
