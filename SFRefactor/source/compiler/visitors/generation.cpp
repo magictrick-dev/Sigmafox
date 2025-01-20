@@ -64,6 +64,24 @@ add_line_to_foot(const std::string &scope)
 }
 
 void GeneratableFile::
+add_to_current_line_in_head(const std::string &scope)
+{
+    global_scope.back() += scope;
+}
+
+void GeneratableFile::
+add_to_current_line_in_body(const std::string &scope)
+{
+    main_scope.back() += scope;
+}
+
+void GeneratableFile::
+add_to_current_line_in_foot(const std::string &scope)
+{
+    foot_scope.back() += scope;
+}
+
+void GeneratableFile::
 push_tabs()
 {
     tabs += tab_size;
@@ -300,10 +318,14 @@ visit_SyntaxNodeMain(SyntaxNodeMain *node)
 {
 
     // Visit all the children.
+    this->current_file->push_tabs();
+    
     for (auto child : node->children)
     {
         child->accept(this);
     }
+
+    this->current_file->pop_tabs();
 
     return;
 
@@ -313,7 +335,13 @@ void GenerationVisitor::
 visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
 {
 
+    // Generate the expression.
+    node->expression->accept(this);
 
+    // Add the semicolon.
+    this->current_file->add_to_current_line_in_body(";");
+
+    return;
 
 }
 
@@ -321,7 +349,28 @@ void GenerationVisitor::
 visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node)
 {
 
+    // Generate the while statement.
+    this->current_file->add_to_current_line_in_body("while (");
 
+    // Generate the condition.
+    node->condition->accept(this);
+
+    // Close the while statement.
+    this->current_file->add_to_current_line_in_body(")");
+
+    // Add the brackets.
+    this->current_file->add_line_to_body("{");
+
+    // Generate the body.
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
+
+    // Close the brackets.
+    this->current_file->add_line_to_body("}");
+
+    return;
 
 }
 
@@ -337,7 +386,19 @@ void GenerationVisitor::
 visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)
 {
 
+    // Generate the variable statement.
+    this->current_file->add_line_to_body(this->current_file->get_tabs());
 
+    this->current_file->add_to_current_line_in_body("auto ");
+    this->current_file->add_to_current_line_in_body(node->variable_name);
+
+    if (node->right_hand_side != nullptr)
+    {
+        this->current_file->add_to_current_line_in_body(" = ");
+        node->right_hand_side->accept(this);
+    }
+
+    this->current_file->add_to_current_line_in_body(";");
 
 }
 
@@ -401,7 +462,7 @@ void GenerationVisitor::
 visit_SyntaxNodeExpression(SyntaxNodeExpression *node)    
 {
 
-
+    node->expression->accept(this);
 
 }
 
@@ -417,7 +478,10 @@ void GenerationVisitor::
 visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)    
 {
 
-
+    // Generate the assignment.
+    node->left->accept(this);
+    this->current_file->add_to_current_line_in_body(" = ");
+    node->right->accept(this);
 
 }
 
@@ -425,7 +489,10 @@ void GenerationVisitor::
 visit_SyntaxNodeEquality(SyntaxNodeEquality *node)        
 {
 
-
+    // Generate the equality.
+    node->left->accept(this);
+    this->current_file->add_to_current_line_in_body(" == ");
+    node->right->accept(this);
 
 }
 
@@ -433,7 +500,43 @@ void GenerationVisitor::
 visit_SyntaxNodeComparison(SyntaxNodeComparison *node)    
 {
 
+    // Generate the comparison operation.
+    node->left->accept(this);
+    
+    this->current_file->add_to_current_line_in_body(" ");
+    
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_LESS_THAN:
+        {
+            this->current_file->add_to_current_line_in_body("<");
+            break;
+        }
+        case TokenType::TOKEN_LESS_THAN_EQUALS:
+        {
+            this->current_file->add_to_current_line_in_body("<=");
+            break;
+        }
+        case TokenType::TOKEN_GREATER_THAN:
+        {
+            this->current_file->add_to_current_line_in_body(">");
+            break;
+        }
+        case TokenType::TOKEN_GREATER_THAN_EQUALS:
+        {
+            this->current_file->add_to_current_line_in_body(">=");
+            break;
+        }
+        default:
+        {
+            SF_ASSERT(0); // Should never reach here.
+            break;
+        }
+    }
 
+    this->current_file->add_to_current_line_in_body(" ");
+
+    node->right->accept(this);
 
 }
 
@@ -441,7 +544,33 @@ void GenerationVisitor::
 visit_SyntaxNodeTerm(SyntaxNodeTerm *node)                
 {
 
+    // Generate the term.
+    node->left->accept(this);
+    
+    this->current_file->add_to_current_line_in_body(" ");
+    
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_PLUS:
+        {
+            this->current_file->add_to_current_line_in_body("+");
+            break;
+        }
+        case TokenType::TOKEN_MINUS:
+        {
+            this->current_file->add_to_current_line_in_body("-");
+            break;
+        }
+        default:
+        {
+            SF_ASSERT(0); // Should never reach here.
+            break;
+        }
+    }
 
+    this->current_file->add_to_current_line_in_body(" ");
+
+    node->right->accept(this);
 
 }
 
@@ -449,7 +578,38 @@ void GenerationVisitor::
 visit_SyntaxNodeFactor(SyntaxNodeFactor *node)            
 {
 
+    // Generate the factor.
+    node->left->accept(this);
+    
+    this->current_file->add_to_current_line_in_body(" ");
+    
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_STAR:
+        {
+            this->current_file->add_to_current_line_in_body("*");
+            break;
+        }
+        case TokenType::TOKEN_FORWARD_SLASH:
+        {
+            this->current_file->add_to_current_line_in_body("/");
+            break;
+        }
+        case TokenType::TOKEN_PERCENT:
+        {
+            this->current_file->add_to_current_line_in_body("%");
+            break;
+        }
+        default:
+        {
+            SF_ASSERT(0); // Should never reach here.
+            break;
+        }
+    }
 
+    this->current_file->add_to_current_line_in_body(" ");
+
+    node->right->accept(this);
 
 }
 
@@ -457,7 +617,12 @@ void GenerationVisitor::
 visit_SyntaxNodeMagnitude(SyntaxNodeMagnitude *node)     
 {
 
-
+    // Generate the magnitude.
+    this->current_file->add_to_current_line_in_body("pow(");
+    node->left->accept(this);
+    this->current_file->add_to_current_line_in_body(", ");
+    node->right->accept(this);
+    this->current_file->add_to_current_line_in_body(") ");
 
 }
 
@@ -481,7 +646,28 @@ void GenerationVisitor::
 visit_SyntaxNodeUnary(SyntaxNodeUnary *node)
 {
 
+    // Generate the unary operation.
+    switch (node->operation_type)
+    {
+        case TokenType::TOKEN_MINUS:
+        {
+            this->current_file->add_to_current_line_in_body("-");
+            break;
+        }
+        case TokenType::TOKEN_PLUS:
+        {
+            this->current_file->add_to_current_line_in_body("+");
+            break;
+        }
+        default:
+        {
+            SF_ASSERT(0); // Should never reach here.
+            break;
+        }
+    }
 
+    // Generate the factor.
+    node->right->accept(this);
 
 }
 
@@ -497,7 +683,15 @@ void GenerationVisitor::
 visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)
 {
 
+    // Generate the array index.
+    this->current_file->add_to_current_line_in_body(node->variable_name);
 
+    for (auto index : node->indices)
+    {
+        this->current_file->add_to_current_line_in_body("[");
+        index->accept(this);
+        this->current_file->add_to_current_line_in_body("]");
+    }
 
 }
 
@@ -505,13 +699,48 @@ void GenerationVisitor::
 visit_SyntaxNodePrimary(SyntaxNodePrimary *node)
 {
 
-
+    // Generate the primary.
+    switch (node->literal_type)
+    {
+        case TokenType::TOKEN_IDENTIFIER:
+        {
+            this->current_file->add_to_current_line_in_body(node->literal_reference);
+            break;
+        }
+        case TokenType::TOKEN_INTEGER:
+        {
+            this->current_file->add_to_current_line_in_body(node->literal_reference);
+            break;
+        }
+        case TokenType::TOKEN_REAL:
+        {
+            this->current_file->add_to_current_line_in_body(node->literal_reference);
+            break;
+        }
+        case TokenType::TOKEN_STRING:
+        {
+            this->current_file->add_to_current_line_in_body("\"");
+            this->current_file->add_to_current_line_in_body(node->literal_reference);
+            this->current_file->add_to_current_line_in_body("\"");
+            break;
+        }
+        default:
+        {
+            SF_ASSERT(0); // Should never reach here.
+            break;
+        }
+    }
 
 }
 
 void GenerationVisitor::
 visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)
 {
+
+    // Generate the grouping.
+    this->current_file->add_to_current_line_in_body("(");
+    node->grouping->accept(this);
+    this->current_file->add_to_current_line_in_body(")");
 
 }
 

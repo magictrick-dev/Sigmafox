@@ -31,6 +31,10 @@ class GeneratableFile
         void        add_line_to_body(const std::string &scope);
         void        add_line_to_foot(const std::string &scope);
 
+        void        add_to_current_line_in_head(const std::string &scope);
+        void        add_to_current_line_in_body(const std::string &scope);
+        void        add_to_current_line_in_foot(const std::string &scope);
+
         void        push_tabs();
         void        pop_tabs();
         std::string get_tabs() const;
