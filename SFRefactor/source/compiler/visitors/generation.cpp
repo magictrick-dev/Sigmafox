@@ -2,6 +2,58 @@
 #include <algorithm>
 #include <compiler/visitors/generation.hpp>
 
+// --- Generatable Region ------------------------------------------------------
+//
+// A logical partition of text data in a document. Typically, we separate a document
+// into three sections, the head, body, and foot. This way, we can easily manipulate
+// where text is stored regardless of where we are in the tree. Certain nodes like
+// procedures or functions may be lofted into the global scope, we can easily do this
+// by pushing and popping regions to restore where we are at in the current document.
+//
+
+GeneratableRegion::
+GeneratableRegion()
+{
+
+}
+
+GeneratableRegion::
+~GeneratableRegion()
+{
+
+}
+
+void GeneratableRegion::
+add_line(const std::string &scope)
+{
+    this->scope.push_back(scope);
+}
+
+void GeneratableRegion::
+add_to_current_line(const std::string &scope)
+{
+    this->scope.back() += scope;
+}
+
+std::string GeneratableRegion::
+merge_lines() const
+{
+
+    std::string output;
+    for (const auto &line : this->scope)
+    {
+        output += line + "\n";
+    }
+    return output;
+
+}
+
+std::string GeneratableRegion::
+get_current_line() const
+{
+    return this->scope.back();
+}
+
 // --- Generatable File --------------------------------------------------------
 //
 // Essentially encapsulates the file that is being generated. Since we're using
@@ -46,39 +98,67 @@ get_absolute_path() const
 }
 
 void GeneratableFile::
-add_line_to_head(const std::string &scope)
+push_region_as_head()
 {
-    global_scope.push_back(scope);
+
+    this->region_stack.push(&head);
+
 }
 
 void GeneratableFile::
-add_line_to_body(const std::string &scope)
+push_region_as_body()
 {
-    main_scope.push_back(scope);
+
+    this->region_stack.push(&body);
+
 }
 
 void GeneratableFile::
-add_line_to_foot(const std::string &scope)
+push_region_as_foot()
 {
-    foot_scope.push_back(scope);
+
+    this->region_stack.push(&foot);
+
 }
 
 void GeneratableFile::
-add_to_current_line_in_head(const std::string &scope)
+pop_region()
 {
-    global_scope.back() += scope;
+
+    // Ensure we don't over-pop the stock.
+    SF_ASSERT(this->region_stack.size() > 0);
+    this->region_stack.pop();
+
 }
 
 void GeneratableFile::
-add_to_current_line_in_body(const std::string &scope)
+insert_line(const std::string &scope)
 {
-    main_scope.back() += scope;
+    this->region_stack.top()->add_line(scope);
 }
 
 void GeneratableFile::
-add_to_current_line_in_foot(const std::string &scope)
+insert_blank_line()
 {
-    foot_scope.back() += scope;
+    this->region_stack.top()->add_line("");
+}
+
+void GeneratableFile::
+append_to_current_line(const std::string &scope)
+{
+    this->region_stack.top()->add_to_current_line(scope);
+}
+
+void GeneratableFile::
+add_tabs_to_current_line()
+{
+    this->region_stack.top()->add_to_current_line(this->get_tabs());
+}
+
+void GeneratableFile::
+add_tabs_to_new_line()
+{
+    this->insert_line(this->get_tabs());
 }
 
 void GeneratableFile::
@@ -107,24 +187,20 @@ get_tabs() const
 std::string GeneratableFile::
 generate() const
 {
+
     std::string output;
 
-    for (const auto &scope : global_scope)
-    {
-        output += scope + "\n";
-    }
+    // Generate the head.
+    output += head.merge_lines();
 
-    for (const auto &scope : main_scope)
-    {
-        output += scope + "\n";
-    }
+    // Generate the body.
+    output += body.merge_lines();
 
-    for (const auto &scope : foot_scope)
-    {
-        output += scope + "\n";
-    }
+    // Generate the foot.
+    output += foot.merge_lines();
 
     return output;
+
 }
 
 // --- Generation Visitor ------------------------------------------------------
@@ -141,18 +217,14 @@ GenerationVisitor(const std::string& main_absolute_path, i32 tab_size)
 
     // Set the current file as the main file.
     current_file = &main_file;
+    this->tab_size = tab_size;
 
     // Construct the general body of the main file, and then the appropriate spacing.
-    this->current_file->add_line_to_head("#include <iostream>");
-
-    this->current_file->add_line_to_body("");
-    this->current_file->add_line_to_body("int main(int argc, char* argv[])");
-    this->current_file->add_line_to_body("{");
-    this->current_file->add_line_to_body("");
-
-    this->current_file->add_line_to_foot("");
-    this->current_file->add_line_to_foot("}");
-    this->current_file->add_line_to_foot("");
+    this->current_file->push_region_as_head();
+    this->current_file->insert_line("#include <iostream>");
+    this->current_file->insert_line("#include <vector>");
+    this->current_file->insert_line("#include <string>");
+    this->current_file->insert_line("#include <functional>");
 
 }
 
@@ -237,6 +309,7 @@ visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
     // Create a new file.
     if (exists == false)
     {
+        
         GeneratableFile new_file(node->path, node->user_path, this->tab_size);
         this->include_files.push_back(new_file);
         this->stack_index++;
@@ -253,15 +326,23 @@ visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
         std::transform(header_guard.begin(), header_guard.end(), header_guard.begin(), ::toupper);
 
         // Create the header guard.
-        this->current_file->add_line_to_head("#ifndef " + header_guard);
-        this->current_file->add_line_to_head("#define " + header_guard);
+        //this->current_file->add_line_to_head("#ifndef " + header_guard);
+        //this->current_file->add_line_to_head("#define " + header_guard);
+        this->current_file->push_region_as_head();
+        this->current_file->insert_line("#ifndef " + header_guard);
+        this->current_file->insert_line("#define " + header_guard);
+        this->current_file->pop_region();
 
         // Generate the module.
         node->module->accept(this);
 
         // Add the endif.
-        this->current_file->add_line_to_foot("");
-        this->current_file->add_line_to_foot("#endif");
+        //this->current_file->add_line_to_foot("");
+        //this->current_file->add_line_to_foot("#endif");
+        this->current_file->push_region_as_foot();
+        this->current_file->insert_blank_line();
+        this->current_file->insert_line("#endif");
+        this->current_file->pop_region();
 
         // Pop the current file.
         this->stack_index--;
@@ -279,7 +360,10 @@ visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
     
     // Whether or not the file needed to be generated isn't important at this point,
     // we can just include the file here.
-    this->current_file->add_line_to_head("#include \"" + node->user_path + "\"");
+    //this->current_file->add_line_to_head("#include \"" + node->user_path + "\"");
+    this->current_file->push_region_as_head();
+    this->current_file->insert_line("#include \"" + node->user_path + "\"");
+    this->current_file->pop_region();
 
     return;
 
@@ -289,13 +373,11 @@ void GenerationVisitor::
 visit_SyntaxNodeModule(SyntaxNodeModule *node)
 {
 
-    // Visit all the children, no additional processing necessary at this point.
+    // Visit all the children.
     for (auto child : node->globals)
     {
         child->accept(this);
     }
-
-    return;
 
 }
 
@@ -317,17 +399,26 @@ void GenerationVisitor::
 visit_SyntaxNodeMain(SyntaxNodeMain *node)
 {
 
-    // Visit all the children.
+    this->current_file->push_region_as_body();
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line("int main(int argc, char **argv)");
+    this->current_file->insert_line("{");
+    this->current_file->insert_blank_line();
     this->current_file->push_tabs();
-    
+
+    // Visit all the children.
     for (auto child : node->children)
     {
         child->accept(this);
     }
+    
+    this->current_file->pop_region();
+    this->current_file->push_region_as_foot();
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line("}");
+    this->current_file->insert_blank_line();
+    this->current_file->pop_region();
 
-    this->current_file->pop_tabs();
-
-    return;
 
 }
 
@@ -335,13 +426,10 @@ void GenerationVisitor::
 visit_SyntaxNodeExpressionStatement(SyntaxNodeExpressionStatement *node)
 {
 
-    // Generate the expression.
+    this->current_file->add_tabs_to_new_line();
     node->expression->accept(this);
+    this->current_file->append_to_current_line(";");
 
-    // Add the semicolon.
-    this->current_file->add_to_current_line_in_body(";");
-
-    return;
 
 }
 
@@ -349,28 +437,27 @@ void GenerationVisitor::
 visit_SyntaxNodeWhileStatement(SyntaxNodeWhileStatement *node)
 {
 
-    // Generate the while statement.
-    this->current_file->add_to_current_line_in_body("while (");
-
-    // Generate the condition.
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("while (");
     node->condition->accept(this);
+    this->current_file->append_to_current_line(")");
 
-    // Close the while statement.
-    this->current_file->add_to_current_line_in_body(")");
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("{");
+    this->current_file->insert_blank_line();
 
-    // Add the brackets.
-    this->current_file->add_line_to_body("{");
-
-    // Generate the body.
+    // Visit all the children.
+    this->current_file->push_tabs();
     for (auto child : node->children)
     {
         child->accept(this);
     }
 
-    // Close the brackets.
-    this->current_file->add_line_to_body("}");
+    this->current_file->pop_tabs();
 
-    return;
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("}");
+    this->current_file->insert_blank_line();
 
 }
 
@@ -378,7 +465,48 @@ void GenerationVisitor::
 visit_SyntaxNodeLoopStatement(SyntaxNodeLoopStatement *node)
 {
 
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("for (");
+    this->current_file->append_to_current_line("int ");
+    this->current_file->append_to_current_line(node->identifier);
+    this->current_file->append_to_current_line(" = ");
+    node->initial->accept(this);
+    this->current_file->append_to_current_line("; ");
+    this->current_file->append_to_current_line(node->identifier);
+    this->current_file->append_to_current_line(" < ");
+    node->terminal->accept(this);
+    this->current_file->append_to_current_line("; ");
 
+    if (node->step != nullptr)
+    {
+        this->current_file->append_to_current_line(node->identifier);
+        this->current_file->append_to_current_line(" += ");
+        node->step->accept(this);
+    }
+    else
+    {
+        this->current_file->append_to_current_line(node->identifier);
+        this->current_file->append_to_current_line("++");
+    }
+
+    this->current_file->append_to_current_line(")");
+
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("{");
+    this->current_file->insert_blank_line();
+
+    // Visit all the children.
+    this->current_file->push_tabs();
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
+
+    this->current_file->pop_tabs();
+
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("}");
+    this->current_file->insert_blank_line();
 
 }
 
@@ -386,19 +514,18 @@ void GenerationVisitor::
 visit_SyntaxNodeVariableStatement(SyntaxNodeVariableStatement *node)
 {
 
-    // Generate the variable statement.
-    this->current_file->add_line_to_body(this->current_file->get_tabs());
-
-    this->current_file->add_to_current_line_in_body("auto ");
-    this->current_file->add_to_current_line_in_body(node->variable_name);
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("int");
+    this->current_file->append_to_current_line(" ");
+    this->current_file->append_to_current_line(node->variable_name);
 
     if (node->right_hand_side != nullptr)
     {
-        this->current_file->add_to_current_line_in_body(" = ");
+        this->current_file->append_to_current_line(" = ");
         node->right_hand_side->accept(this);
     }
 
-    this->current_file->add_to_current_line_in_body(";");
+    this->current_file->append_to_current_line(";");
 
 }
 
@@ -406,7 +533,20 @@ void GenerationVisitor::
 visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node)
 {
 
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("{");
 
+    // Visit all the children.
+    this->current_file->push_tabs();
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
+    this->current_file->pop_tabs();
+
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("{");
+    this->current_file->insert_blank_line();
 
 }
 
@@ -414,7 +554,44 @@ void GenerationVisitor::
 visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)
 {
 
+    this->current_file->push_region_as_head();
+    this->current_file->insert_line("int func_");
+    this->current_file->append_to_current_line(node->identifier_name);
+    this->current_file->append_to_current_line("(");
 
+    // Generate the parameters.
+    for (i32 i = 0; i < node->parameters.size(); i++)
+    {
+        this->current_file->add_tabs_to_current_line();
+        this->current_file->append_to_current_line("int ");
+        this->current_file->append_to_current_line(node->parameters[i]);
+        if (i < node->parameters.size() - 1)
+        {
+            this->current_file->append_to_current_line(", ");
+        }
+    }
+
+    this->current_file->append_to_current_line(")");
+    this->current_file->insert_line("{");
+    this->current_file->insert_blank_line();
+
+    // Visit all the children.
+    this->current_file->push_tabs();
+    for (auto child : node->body_statements)
+    {
+        child->accept(this);
+    }
+
+    this->current_file->insert_blank_line();
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("return " + node->identifier_name + ";");
+
+    this->current_file->pop_tabs();
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line("}");
+    this->current_file->insert_blank_line();
+
+    this->current_file->pop_region();
 
 }
 
@@ -422,7 +599,40 @@ void GenerationVisitor::
 visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)
 {
 
+    this->current_file->push_region_as_head();
+    this->current_file->insert_line("void proc_");
+    this->current_file->append_to_current_line(node->identifier_name);
+    this->current_file->append_to_current_line("(");
 
+    // Generate the parameters.
+    for (i32 i = 0; i < node->parameters.size(); i++)
+    {
+        this->current_file->add_tabs_to_current_line();
+        this->current_file->append_to_current_line("int ");
+        this->current_file->append_to_current_line(node->parameters[i]);
+        if (i < node->parameters.size() - 1)
+        {
+            this->current_file->append_to_current_line(", ");
+        }
+    }
+
+    this->current_file->append_to_current_line(")");
+    this->current_file->insert_line("{");
+    this->current_file->insert_blank_line();
+
+    // Visit all the children.
+    this->current_file->push_tabs();
+    for (auto child : node->body_statements)
+    {
+        child->accept(this);
+    }
+
+    this->current_file->pop_tabs();
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line("}");
+    this->current_file->insert_blank_line();
+
+    this->current_file->pop_region();
 
 }
 
@@ -430,15 +640,62 @@ void GenerationVisitor::
 visit_SyntaxNodeIfStatement(SyntaxNodeIfStatement *node)
 {
 
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("if (");
+    node->conditional->accept(this);
+    this->current_file->append_to_current_line(")");
 
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("{");
+    this->current_file->insert_blank_line();
 
+    // Visit all the children.
+    this->current_file->push_tabs();
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
+
+    this->current_file->pop_tabs();
+
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("}");
+    this->current_file->insert_blank_line();
+
+    // Visit the else statement.
+    if (node->conditional_else != nullptr)
+        node->conditional_else->accept(this);
+    
 }
 
 void GenerationVisitor::
 visit_SyntaxNodeConditional(SyntaxNodeConditional * node)
 {
 
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("else if (");
+    node->condition->accept(this);
+    this->current_file->append_to_current_line(")");
 
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("{");
+    this->current_file->insert_blank_line();
+
+    // Visit all the children.
+    this->current_file->push_tabs();
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
+
+    this->current_file->pop_tabs();
+
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("}");
+    this->current_file->insert_blank_line();
+
+    if (node->conditional_else != nullptr)
+        node->conditional_else->accept(this);
 
 }
 
@@ -446,7 +703,10 @@ void GenerationVisitor::
 visit_SyntaxNodeReadStatement(SyntaxNodeReadStatement *node)
 {
 
-
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("std::cin >> ");
+    this->current_file->append_to_current_line(node->identifier);
+    this->current_file->append_to_current_line(";");
 
 }
 
@@ -454,7 +714,27 @@ void GenerationVisitor::
 visit_SyntaxNodeWriteStatement(SyntaxNodeWriteStatement *node)
 {
 
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("std::cout << ");
+    
+    for (i32 i = 0; i < node->expressions.size(); i++)
+    {
 
+        node->expressions[i]->accept(this);
+        if (i < node->expressions.size() - 1)
+        {
+            this->current_file->push_tabs();
+            this->current_file->add_tabs_to_new_line();
+            this->current_file->append_to_current_line(" << ");
+            this->current_file->pop_tabs();
+        }
+
+    }
+
+    this->current_file->push_tabs();
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line(" << std::endl;");
+    this->current_file->pop_tabs();
 
 }
 
@@ -470,7 +750,20 @@ void GenerationVisitor::
 visit_SyntaxNodeProcedureCall(SyntaxNodeProcedureCall *node)
 {
 
+    this->current_file->append_to_current_line("proc_" + node->procedure_name);
+    this->current_file->append_to_current_line("(");
 
+    // Generate the parameters.
+    for (i32 i = 0; i < node->parameters.size(); i++)
+    {
+        node->parameters[i]->accept(this);
+        if (i < node->parameters.size() - 1)
+        {
+            this->current_file->append_to_current_line(", ");
+        }
+    }
+
+    this->current_file->append_to_current_line(")");
 
 }
 
@@ -478,9 +771,8 @@ void GenerationVisitor::
 visit_SyntaxNodeAssignment(SyntaxNodeAssignment *node)    
 {
 
-    // Generate the assignment.
     node->left->accept(this);
-    this->current_file->add_to_current_line_in_body(" = ");
+    this->current_file->append_to_current_line(" = ");
     node->right->accept(this);
 
 }
@@ -489,9 +781,8 @@ void GenerationVisitor::
 visit_SyntaxNodeEquality(SyntaxNodeEquality *node)        
 {
 
-    // Generate the equality.
     node->left->accept(this);
-    this->current_file->add_to_current_line_in_body(" == ");
+    this->current_file->append_to_current_line(" == ");
     node->right->accept(this);
 
 }
@@ -500,41 +791,36 @@ void GenerationVisitor::
 visit_SyntaxNodeComparison(SyntaxNodeComparison *node)    
 {
 
-    // Generate the comparison operation.
     node->left->accept(this);
-    
-    this->current_file->add_to_current_line_in_body(" ");
-    
+
     switch (node->operation_type)
     {
-        case TokenType::TOKEN_LESS_THAN:
-        {
-            this->current_file->add_to_current_line_in_body("<");
-            break;
-        }
-        case TokenType::TOKEN_LESS_THAN_EQUALS:
-        {
-            this->current_file->add_to_current_line_in_body("<=");
-            break;
-        }
         case TokenType::TOKEN_GREATER_THAN:
         {
-            this->current_file->add_to_current_line_in_body(">");
+            this->current_file->append_to_current_line(" > ");
             break;
         }
         case TokenType::TOKEN_GREATER_THAN_EQUALS:
         {
-            this->current_file->add_to_current_line_in_body(">=");
+            this->current_file->append_to_current_line(" >= ");
+            break;
+        }
+        case TokenType::TOKEN_LESS_THAN:
+        {
+            this->current_file->append_to_current_line(" < ");
+            break;
+        }
+        case TokenType::TOKEN_LESS_THAN_EQUALS:
+        {
+            this->current_file->append_to_current_line(" <= ");
             break;
         }
         default:
         {
-            SF_ASSERT(0); // Should never reach here.
+            SF_ASSERT(!"Invalid comparison operator.");
             break;
         }
     }
-
-    this->current_file->add_to_current_line_in_body(" ");
 
     node->right->accept(this);
 
@@ -544,31 +830,26 @@ void GenerationVisitor::
 visit_SyntaxNodeTerm(SyntaxNodeTerm *node)                
 {
 
-    // Generate the term.
     node->left->accept(this);
-    
-    this->current_file->add_to_current_line_in_body(" ");
-    
+
     switch (node->operation_type)
     {
         case TokenType::TOKEN_PLUS:
         {
-            this->current_file->add_to_current_line_in_body("+");
+            this->current_file->append_to_current_line(" + ");
             break;
         }
         case TokenType::TOKEN_MINUS:
         {
-            this->current_file->add_to_current_line_in_body("-");
+            this->current_file->append_to_current_line(" - ");
             break;
         }
         default:
         {
-            SF_ASSERT(0); // Should never reach here.
+            SF_ASSERT(!"Invalid term operator.");
             break;
         }
     }
-
-    this->current_file->add_to_current_line_in_body(" ");
 
     node->right->accept(this);
 
@@ -578,36 +859,26 @@ void GenerationVisitor::
 visit_SyntaxNodeFactor(SyntaxNodeFactor *node)            
 {
 
-    // Generate the factor.
     node->left->accept(this);
-    
-    this->current_file->add_to_current_line_in_body(" ");
-    
+
     switch (node->operation_type)
     {
         case TokenType::TOKEN_STAR:
         {
-            this->current_file->add_to_current_line_in_body("*");
+            this->current_file->append_to_current_line(" * ");
             break;
         }
         case TokenType::TOKEN_FORWARD_SLASH:
         {
-            this->current_file->add_to_current_line_in_body("/");
-            break;
-        }
-        case TokenType::TOKEN_PERCENT:
-        {
-            this->current_file->add_to_current_line_in_body("%");
+            this->current_file->append_to_current_line(" / ");
             break;
         }
         default:
         {
-            SF_ASSERT(0); // Should never reach here.
+            SF_ASSERT(!"Invalid factor operator.");
             break;
         }
     }
-
-    this->current_file->add_to_current_line_in_body(" ");
 
     node->right->accept(this);
 
@@ -617,12 +888,11 @@ void GenerationVisitor::
 visit_SyntaxNodeMagnitude(SyntaxNodeMagnitude *node)     
 {
 
-    // Generate the magnitude.
-    this->current_file->add_to_current_line_in_body("pow(");
+    this->current_file->append_to_current_line(" pow(");
     node->left->accept(this);
-    this->current_file->add_to_current_line_in_body(", ");
+    this->current_file->append_to_current_line(", ");
     node->right->accept(this);
-    this->current_file->add_to_current_line_in_body(") ");
+    this->current_file->append_to_current_line(") ");
 
 }
 
@@ -646,27 +916,25 @@ void GenerationVisitor::
 visit_SyntaxNodeUnary(SyntaxNodeUnary *node)
 {
 
-    // Generate the unary operation.
     switch (node->operation_type)
     {
         case TokenType::TOKEN_MINUS:
         {
-            this->current_file->add_to_current_line_in_body("-");
+            this->current_file->append_to_current_line("-");
             break;
         }
         case TokenType::TOKEN_PLUS:
         {
-            this->current_file->add_to_current_line_in_body("+");
+            this->current_file->append_to_current_line("+");
             break;
         }
         default:
         {
-            SF_ASSERT(0); // Should never reach here.
+            SF_ASSERT(!"Invalid unary operator.");
             break;
         }
     }
 
-    // Generate the factor.
     node->right->accept(this);
 
 }
@@ -675,7 +943,20 @@ void GenerationVisitor::
 visit_SyntaxNodeFunctionCall(SyntaxNodeFunctionCall *node)
 {
 
+    this->current_file->append_to_current_line("func_" + node->function_name);
+    this->current_file->append_to_current_line("(");
 
+    // Generate the parameters.
+    for (i32 i = 0; i < node->parameters.size(); i++)
+    {
+        node->parameters[i]->accept(this);
+        if (i < node->parameters.size() - 1)
+        {
+            this->current_file->append_to_current_line(", ");
+        }
+    }
+
+    this->current_file->append_to_current_line(")");
 
 }
 
@@ -683,14 +964,13 @@ void GenerationVisitor::
 visit_SyntaxNodeArrayIndex(SyntaxNodeArrayIndex *node)
 {
 
-    // Generate the array index.
-    this->current_file->add_to_current_line_in_body(node->variable_name);
+    this->current_file->append_to_current_line(node->variable_name);
 
-    for (auto index : node->indices)
+    for (int i = 0; i < node->indices.size(); i++)
     {
-        this->current_file->add_to_current_line_in_body("[");
-        index->accept(this);
-        this->current_file->add_to_current_line_in_body("]");
+        this->current_file->append_to_current_line("[");
+        node->indices[i]->accept(this);
+        this->current_file->append_to_current_line("]");
     }
 
 }
@@ -699,34 +979,31 @@ void GenerationVisitor::
 visit_SyntaxNodePrimary(SyntaxNodePrimary *node)
 {
 
-    // Generate the primary.
     switch (node->literal_type)
     {
         case TokenType::TOKEN_IDENTIFIER:
         {
-            this->current_file->add_to_current_line_in_body(node->literal_reference);
+            this->current_file->append_to_current_line(node->literal_reference.c_str());
             break;
         }
         case TokenType::TOKEN_INTEGER:
         {
-            this->current_file->add_to_current_line_in_body(node->literal_reference);
+            this->current_file->append_to_current_line(node->literal_reference.c_str());
             break;
         }
         case TokenType::TOKEN_REAL:
         {
-            this->current_file->add_to_current_line_in_body(node->literal_reference);
+            this->current_file->append_to_current_line(node->literal_reference.c_str());
             break;
         }
         case TokenType::TOKEN_STRING:
         {
-            this->current_file->add_to_current_line_in_body("\"");
-            this->current_file->add_to_current_line_in_body(node->literal_reference);
-            this->current_file->add_to_current_line_in_body("\"");
+            this->current_file->append_to_current_line("\"" + node->literal_reference + "\"");
             break;
         }
         default:
         {
-            SF_ASSERT(0); // Should never reach here.
+            SF_ASSERT(!"Invalid primary type.");
             break;
         }
     }
@@ -737,10 +1014,9 @@ void GenerationVisitor::
 visit_SyntaxNodeGrouping(SyntaxNodeGrouping *node)
 {
 
-    // Generate the grouping.
-    this->current_file->add_to_current_line_in_body("(");
+    this->current_file->append_to_current_line("(");
     node->grouping->accept(this);
-    this->current_file->add_to_current_line_in_body(")");
+    this->current_file->append_to_current_line(")");
 
 }
 

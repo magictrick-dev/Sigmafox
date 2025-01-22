@@ -1,12 +1,35 @@
 include "includes/math.fox";
 include "includes/intrinsics.fox";
 
+procedure testNumbers a b;
+
+    if (a < b);
+        scope;
+            write 4 "A is less than B." " " "Expression checked.";
+        endscope;
+    elseif (a = b);
+        scope;
+            write 4 "A is equal to B." " " "Expression checked.";
+        endscope;
+    elseif (1);
+        scope;
+            write 4 "B is less than A." " " "Expression checked.";
+        endscope;
+    endif;
+
+endprocedure;
+
 begin;
 
     variable foo 4 := add_pair(10, 20);
-    variable output 32;
-    read 4 output;
 
-    write 5 output "," foo;
+    variable bar 4 := 20;
+    while foo <= 10;
+        bar := bar - 1;
+    endwhile;
+
+    loop idx 0 10 2;
+        bar := bar + (idx * 2);
+    endloop;
 
 end;

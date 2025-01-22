@@ -18,8 +18,27 @@
 // is responsible for ensuring that no duplicate includes are handled.
 //
 
+class GeneratableRegion
+{
+    public:
+                    GeneratableRegion();
+        virtual    ~GeneratableRegion();
+
+        void        add_line(const std::string &scope);
+        void        add_to_current_line(const std::string &scope);
+
+        std::string get_current_line() const;
+    
+        std::string merge_lines() const;
+
+    protected:
+        std::vector<std::string> scope;
+
+};
+
 class GeneratableFile
 {
+
     public:
                     GeneratableFile(const std::string& absolute_path, 
                         const std::string& filename, i32 tab_size);
@@ -27,17 +46,22 @@ class GeneratableFile
 
         std::string get_filename() const;
         std::string get_absolute_path() const;
-        void        add_line_to_head(const std::string &scope);
-        void        add_line_to_body(const std::string &scope);
-        void        add_line_to_foot(const std::string &scope);
 
-        void        add_to_current_line_in_head(const std::string &scope);
-        void        add_to_current_line_in_body(const std::string &scope);
-        void        add_to_current_line_in_foot(const std::string &scope);
+        void        push_region_as_head();
+        void        push_region_as_body();
+        void        push_region_as_foot();
+        void        pop_region();
+
+        void        insert_line(const std::string &scope);
+        void        insert_blank_line();
+        void        append_to_current_line(const std::string &scope);
 
         void        push_tabs();
         void        pop_tabs();
+
         std::string get_tabs() const;
+        void        add_tabs_to_current_line();
+        void        add_tabs_to_new_line();
 
         std::string generate() const;
 
@@ -46,9 +70,10 @@ class GeneratableFile
         i32 tab_size;
         std::string filename;
         std::string absolute_path;
-        std::vector<std::string>        global_scope;
-        std::vector<std::string>        main_scope;
-        std::vector<std::string>        foot_scope;
+        std::stack<GeneratableRegion*> region_stack;
+        GeneratableRegion head;
+        GeneratableRegion body;
+        GeneratableRegion foot;
 
 };
 
@@ -95,10 +120,10 @@ class GenerationVisitor : public ISyntaxNodeVisitor
 
     protected:
         i32 tab_size;
+        i32 stack_index = -1;
         GeneratableFile main_file;
         GeneratableFile *current_file;
         std::vector<GeneratableFile> include_files;
-        i32 stack_index = -1;
 
 };
 
