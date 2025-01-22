@@ -62,6 +62,8 @@ add_executable(Sigmafox
     "source/compiler/syntaxnode.hpp"
     "source/compiler/visitors/generation.hpp"
     "source/compiler/visitors/generation.cpp"
+    "source/compiler/visitors/expressions.hpp"
+    "source/compiler/visitors/expressions.cpp"
     "source/compiler/nodes/root.hpp"
     "source/compiler/nodes/module.hpp"
     "source/compiler/nodes/main.hpp"
