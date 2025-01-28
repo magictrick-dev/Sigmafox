@@ -24,6 +24,12 @@ if (WIN32)
         "source/platform/win32/system.cpp"
     )
 endif (WIN32)
+if (UNIX)
+    set(PLATFORM_FILES
+        "source/platform/unix/filesystem.cpp"
+        "source/platform/unix/system.cpp"
+    )
+endif (UNIX)
 
 # --- Executable File Listings -------------------------------------------------
 #
@@ -73,7 +79,7 @@ add_executable(Sigmafox
     "source/compiler/nodes/scope_statement.hpp"
     "source/compiler/nodes/expression.hpp"
     "source/compiler/nodes/assignment.hpp"
-    "source/compiler/nodes/equality.hpp"
+    "source/compiler/nodes/equality.hpmo"
     "source/compiler/nodes/comparison.hpp"
     "source/compiler/nodes/term.hpp"
     "source/compiler/nodes/factor.hpp"

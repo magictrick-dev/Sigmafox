@@ -1,6 +1,5 @@
 #include <windows.h>
 #include <platform/system.hpp>
-#include <intrin.h>
 
 vptr 
 system_virtual_alloc(vptr offset, u64 size)
