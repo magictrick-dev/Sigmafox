@@ -64,7 +64,7 @@ visit_SyntaxNodeTerm(SyntaxNodeTerm *node)
                  
 void ExpressionVisitor::
 visit_SyntaxNodeFactor(SyntaxNodeFactor *node)
-        {
+{
 
 
 
@@ -75,8 +75,7 @@ visit_SyntaxNodeMagnitude(SyntaxNodeMagnitude *node)
 {
 
 
-
-}
+}        
        
 void ExpressionVisitor::
 visit_SyntaxNodeExtraction(SyntaxNodeExtraction *node)
