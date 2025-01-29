@@ -1,5 +1,8 @@
 #include <platform/filesystem.hpp>
+#include <dirent.h>
+#include <sys/stat.h>
 #include <unistd.h>
+#include <errno.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <cstring>
@@ -132,6 +135,73 @@ file_write_all(ccptr file_path, vptr buffer, u64 buffer_size)
 
 }
 
+b32
+file_create_directory(ccptr file_path)
+{
+
+    // Create a directory.
+    if (mkdir(file_path, 0777) == -1)
+    {
+        return false;
+    }
+
+    return true;
+
+}
+
+b32
+file_remove_directory(ccptr file_path)
+{
+
+    struct dirent *entry;
+    struct stat statbuf;
+    char full_path[1024];
+    
+    DIR *dir = opendir(path);
+    if (!dir) 
+    {
+        perror("opendir");
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL) 
+    {
+        // Skip "." and ".." directories
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+
+        if (lstat(full_path, &statbuf) == -1) 
+        {
+            perror("lstat");
+            continue;
+        }
+
+        if (S_ISDIR(statbuf.st_mode))
+        {
+            // i love recursion haha
+            remove_directory(full_path);
+        } 
+        else 
+        {
+            if (unlink(full_path) == -1) 
+            {
+                perror("unlink");
+            }
+        }
+    }
+
+    closedir(dir);
+
+    // Remove the empty directory
+    if (rmdir(path) == -1) 
+    {
+        perror("rmdir");
+    }
+
+}
+
 u64         
 file_current_working_directory(u32 buffer_size, cptr buffer)
 {
@@ -159,5 +229,39 @@ file_canonicalize_path(u32 buffer_size, cptr dest, ccptr path)
     }
 
     SF_ASSERT(strlen(canonical_path) < buffer_size);
+
+}
+
+ccptr
+file_get_current_working_directory()
+{
+
+    // Get the current working directory.
+    static char buffer[1024];
+    static bool initialized = false;
+    if (!initialized)
+    {
+        file_current_working_directory(1024, buffer);
+        initialized = true;
+    }
+
+    return buffer;
+
+}
+
+ccptr
+file_get_runtime_directory()
+{
+
+    // Get the runtime directory.
+    static char buffer[1024];
+    static bool initialized = false;
+    if (!initialized)
+    {
+        file_runtime_directory(1024, buffer);
+        initialized = true;
+    }
+
+    return buffer;
 
 }

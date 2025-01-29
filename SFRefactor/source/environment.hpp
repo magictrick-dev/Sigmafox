@@ -21,7 +21,6 @@ class ApplicationParameters
 
         static inline bool              runtime_warnings_as_errors;
         static inline std::string       runtime_path;
-        static inline std::string       output_name;
         static inline std::string       output_path;
 
 };

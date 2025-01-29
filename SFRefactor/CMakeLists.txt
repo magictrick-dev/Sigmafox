@@ -108,5 +108,5 @@ target_include_directories(Sigmafox PUBLIC "source")
 set_property(TARGET Sigmafox PROPERTY CXX_STANDARD 20)
 
 if (WIN32)
-    TARGET_LINK_LIBRARIES(Sigmafox Shlwapi.lib)
+    TARGET_LINK_LIBRARIES(Sigmafox Shlwapi.lib Shell32.lib)
 endif(WIN32)

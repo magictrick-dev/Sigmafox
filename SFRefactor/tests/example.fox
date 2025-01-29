@@ -32,4 +32,6 @@ begin;
         bar := bar + (idx * 2);
     endloop;
 
+    testNumbers 4 5;
+
 end;

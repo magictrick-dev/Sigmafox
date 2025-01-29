@@ -1,12 +1,13 @@
 #include <windows.h>
 #include <shlwapi.h>
+#include <shellapi.h>
 #include <platform/filesystem.hpp>
 
 b32         
 file_exists(ccptr file_path)
 {
 
-    DWORD dwAttrib = GetFileAttributes(file_path);
+    DWORD dwAttrib = GetFileAttributesA(file_path);
     return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 
@@ -32,7 +33,7 @@ b32
 file_is_directory(ccptr file_path)
 {
 
-    DWORD dwAttrib = GetFileAttributes(file_path);
+    DWORD dwAttrib = GetFileAttributesA(file_path);
     return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
         (dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 
@@ -42,7 +43,7 @@ b32
 file_is_file(ccptr file_path)
 {
 
-    DWORD dwAttrib = GetFileAttributes(file_path);
+    DWORD dwAttrib = GetFileAttributesA(file_path);
     return (dwAttrib != INVALID_FILE_ATTRIBUTES && 
         !(dwAttrib & FILE_ATTRIBUTE_DIRECTORY));
 
@@ -103,6 +104,88 @@ file_write_all(ccptr file_path, vptr buffer, u64 buffer_size)
 
 }
 
+b32
+file_create_directory(ccptr file_path)
+{
+
+    return CreateDirectoryA(file_path, NULL);
+
+}
+
+b32
+file_remove_directory(ccptr file_path)
+{
+
+    char searchPath[MAX_PATH];
+    _WIN32_FIND_DATAA findFileData = {0};
+    HANDLE hFind;
+
+    // Construct the search path
+    snprintf(searchPath, MAX_PATH, "%s\\*", file_path);
+
+    hFind = FindFirstFileA(searchPath, &findFileData);
+    if (hFind == INVALID_HANDLE_VALUE) 
+    {
+        printf("Error opening directory: %s\n", file_path);
+        return false;
+    }
+
+    do 
+    {
+
+        // Skip "." and ".." directories
+        if (strcmp(findFileData.cFileName, ".") == 0 || strcmp(findFileData.cFileName, "..") == 0) 
+            continue;
+
+        char fullPath[MAX_PATH];
+        snprintf(fullPath, MAX_PATH, "%s\\%s", file_path, findFileData.cFileName);
+
+        if (findFileData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) 
+        {
+            // Recursively delete subdirectory
+            file_remove_directory(fullPath);
+        } 
+        else 
+        {
+            // Remove read-only attribute if needed
+            SetFileAttributesA(fullPath, FILE_ATTRIBUTE_NORMAL);
+
+            // Delete file
+            if (!DeleteFileA(fullPath)) 
+            {
+                printf("Failed to delete file: %s\n", fullPath);
+                return false;
+            }
+        }
+    } 
+    while (FindNextFileA(hFind, &findFileData));
+
+    FindClose(hFind);
+
+    // Remove the now-empty directory
+    if (!RemoveDirectoryA(file_path)) 
+    {
+        printf("Failed to remove directory: %s\n", file_path);
+        return false;
+    }
+
+    return true;
+
+}
+
+u64
+file_runtime_directory(u32 buffer_size, cptr buffer)
+{
+
+    SF_ENSURE_PTR(buffer);
+    SF_ASSERT(buffer_size != 0);
+
+    DWORD read_size = GetModuleFileNameA(NULL, buffer, buffer_size);
+    SF_ASSERT(read_size > 0);
+    return (u32)read_size;
+
+}
+
 u64         
 file_current_working_directory(u32 buffer_size, cptr buffer)
 {
@@ -110,7 +193,7 @@ file_current_working_directory(u32 buffer_size, cptr buffer)
     SF_ENSURE_PTR(buffer);
     SF_ASSERT(buffer_size != 0);
 
-    DWORD read_size = GetCurrentDirectory(buffer_size, buffer);
+    DWORD read_size = GetCurrentDirectoryA(buffer_size, buffer);
     SF_ASSERT(read_size > 0);
     return (u32)read_size;
 
@@ -144,5 +227,37 @@ file_canonicalize_path(u32 buffer_size, cptr dest, ccptr path)
     // This will take the contents of temp, canonicalize it in destination.
     BOOL result = PathCanonicalizeA(dest, temporary_buffer);
     SF_ASSERT(result);
+
+}
+
+ccptr 
+file_get_current_working_directory()
+{
+
+    // Cache the directory since it won't change.
+    static char buffer[MAX_PATH];
+    static bool initialized = false;
+    if (!initialized)
+    {
+        file_current_working_directory(MAX_PATH, buffer);
+        initialized = true;
+    }
+    return buffer;
+
+}
+
+ccptr
+file_get_runtime_directory()
+{
+
+    // Cache the directory since it won't change.
+    static char buffer[MAX_PATH];
+    static bool initialized = false;
+    if (!initialized)
+    {
+        file_runtime_directory(MAX_PATH, buffer);
+        initialized = true;
+    }
+    return buffer;
 
 }

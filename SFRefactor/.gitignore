@@ -2,6 +2,7 @@
 comp/
 build/
 bin/
+output/
 cosy.*
 output/
 *.exe

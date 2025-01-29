@@ -69,6 +69,7 @@ class GeneratableFile
         i32 tabs;
         i32 tab_size;
         std::string filename;
+        std::string relative_path;
         std::string absolute_path;
         std::stack<GeneratableRegion*> region_stack;
         GeneratableRegion head;
@@ -85,6 +86,7 @@ class GenerationVisitor : public ISyntaxNodeVisitor
         virtual        ~GenerationVisitor();
 
         void            dump_files();
+        bool            generate_files(const std::string &output_directory, bool force_remove_output);
 
     public:
         virtual void visit_SyntaxNodeRoot(SyntaxNodeRoot *node) override;
@@ -121,6 +123,7 @@ class GenerationVisitor : public ISyntaxNodeVisitor
     protected:
         i32 tab_size;
         i32 stack_index = -1;
+        GeneratableFile cmake_file;
         GeneratableFile main_file;
         GeneratableFile *current_file;
         std::vector<GeneratableFile> include_files;

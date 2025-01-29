@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <compiler/visitors/generation.hpp>
+#include <platform/filesystem.hpp>
 
 // --- Generatable Region ------------------------------------------------------
 //
@@ -212,8 +213,25 @@ generate() const
 
 GenerationVisitor::
 GenerationVisitor(const std::string& main_absolute_path, i32 tab_size)
-    : main_file(main_absolute_path, "main.cpp", tab_size)
+    : main_file(main_absolute_path, "main.cpp", tab_size), cmake_file(main_absolute_path, "CMakeLists.txt", tab_size)
 {
+
+    // Prepare the cmake file.
+    // TODO(Chris): The project itself should reflect the project name as provided by
+    //              the user. This is a temporary name and will need to be changed later.
+    this->cmake_file.push_region_as_head();
+    this->cmake_file.insert_line("cmake_minimum_required(VERSION 3.21)");
+    this->cmake_file.insert_line("project(cosy)");
+    this->cmake_file.insert_line("add_executable(cosy");
+    this->cmake_file.push_tabs();
+    this->cmake_file.add_tabs_to_new_line();
+    this->cmake_file.append_to_current_line("main.cpp");
+    this->cmake_file.pop_tabs();
+    this->cmake_file.pop_region();
+
+    this->cmake_file.push_region_as_foot();
+    this->cmake_file.insert_line(")");
+    this->cmake_file.pop_region();
 
     // Set the current file as the main file.
     current_file = &main_file;
@@ -252,6 +270,146 @@ dump_files()
         std::cout << "---------------------------------------------------" << std::endl;
         std::cout << file.generate() << std::endl;
     }
+
+}
+
+bool GenerationVisitor::
+generate_files(const std::string &output_directory, bool force_remove_output)
+{
+
+    // Ensure the output directory exists.
+    Filepath output_path(output_directory);
+    if (output_path.is_valid_directory() == false)
+    {
+        if (file_create_directory(output_path.c_str()) == false)
+        {
+            return false;
+        }
+
+        printf("-- Created output directory: %s\n", output_path.c_str());
+    }
+
+    // If the file directory does exist, ensure the user knows that they want to
+    // enforce the removal of the original directory.
+    else if (force_remove_output == true)
+    {
+        if (file_remove_directory(output_path.c_str()) == false)
+        {
+            printf("-- Failed to remove output directory: %s\n", output_path.c_str());
+            return false;
+        }
+        if (file_create_directory(output_path.c_str()) == false)
+        {
+            printf("-- Failed to create output directory: %s\n", output_path.c_str());
+            return false;
+        }
+        printf("-- Overwritten and created output directory: %s\n", output_path.c_str());
+    }
+
+    // Construct the required folder structure based on the generated files.
+    Filepath main_path = this->main_file.get_absolute_path();
+    std::string root_directory = main_path.root_directory().c_str();
+    std::vector<std::string> folders;
+    for (const auto &file : this->include_files)
+    {
+        std::string file_path(file.get_absolute_path());
+
+        // From the main path, we can construct the relative path to the file.
+        Filepath relative_path_folder = file_path.substr(root_directory.length());
+        relative_path_folder = relative_path_folder.root_directory();
+
+        // If the folder doesn't exist, add it to the list.
+        if (std::find(folders.begin(), folders.end(), relative_path_folder.c_str()) == folders.end())
+            folders.push_back(relative_path_folder.c_str());
+
+    }
+
+    for (const auto &folder : folders)
+    {
+        printf("-- Creating folder: %s\n", folder.c_str());
+        Filepath output_folder(output_directory);
+        output_folder += "/" + folder;
+        output_folder.canonicalize();
+
+        if (file_create_directory(output_folder.c_str()) == false)
+        {
+            printf("-- Failed to create folder: %s\n", folder.c_str());
+            return false;
+        }
+
+    }
+
+    // Write the main file.
+    Filepath main_output_path(output_directory);
+    main_output_path += "/" + this->main_file.get_filename();
+    main_output_path.canonicalize();
+    printf("-- Writing file: %s\n", main_output_path.c_str());
+
+    if (file_write_all(main_output_path.c_str(), this->main_file.generate().data(),
+        this->main_file.generate().length()) == false)
+    {
+        printf("-- Failed to write main file: %s\n", main_output_path.c_str());
+        return false;
+    }
+
+    // Now the other files.
+    for (const auto &file : this->include_files)
+    {
+
+        // From the main path, we can construct the relative path to the file.
+        std::string file_path(file.get_absolute_path());
+        Filepath relative_path_folder = file_path.substr(root_directory.length());
+
+        // Write the file.
+        Filepath output_path(output_directory);
+        output_path += "/" + std::string(relative_path_folder.c_str());
+        output_path.canonicalize();
+
+        // Remove the extension.
+        std::string output_path_str(output_path.c_str());
+        output_path_str = output_path_str.substr(0, output_path_str.find_last_of("."));
+        output_path_str += ".hpp";
+
+        // Once we have this, we want to pull out the relative directory and add this
+        // to the cmake file.
+        std::string relative_to_root = output_path_str.substr(root_directory.length() + 1);
+        
+        // Replace backslashes with forward slashes.
+        std::replace(relative_to_root.begin(), relative_to_root.end(), '\\', '/');
+
+        this->cmake_file.push_region_as_body();
+        this->cmake_file.push_tabs();
+        this->cmake_file.add_tabs_to_new_line();
+        this->cmake_file.append_to_current_line("\"");
+        this->cmake_file.append_to_current_line(relative_to_root.c_str());
+        this->cmake_file.append_to_current_line("\"");
+        this->cmake_file.pop_tabs();
+        this->cmake_file.pop_region();
+
+        printf("-- Writing file: %s\n", output_path_str.c_str());
+        if (file_write_all(output_path_str.c_str(), file.generate().data(), file.generate().length()) == false)
+        {
+            printf("-- Failed to write file: %s\n", output_path.c_str());
+            return false;
+        }
+
+    }
+
+    // Finally the cmake file.
+    Filepath cmake_output_path(output_directory);
+    cmake_output_path += "/CMakeLists.txt";
+    cmake_output_path.canonicalize();
+    printf("-- Writing file: %s\n", cmake_output_path.c_str());
+
+    if (file_write_all(cmake_output_path.c_str(), this->cmake_file.generate().data(), 
+            this->cmake_file.generate().length()) == false)
+    {
+        printf("-- Failed to write cmake file: %s\n", cmake_output_path.c_str());
+        return false;
+    }
+
+
+    return true;
 
 }
 
@@ -361,8 +519,12 @@ visit_SyntaxNodeInclude(SyntaxNodeInclude *node)
     // Whether or not the file needed to be generated isn't important at this point,
     // we can just include the file here.
     //this->current_file->add_line_to_head("#include \"" + node->user_path + "\"");
+    std::string include = node->user_path;
+    include = include.substr(0, include.find_last_of("."));
+    include += ".hpp";
+    
     this->current_file->push_region_as_head();
-    this->current_file->insert_line("#include \"" + node->user_path + "\"");
+    this->current_file->insert_line("#include \"" + include + "\"");
     this->current_file->pop_region();
 
     return;
@@ -399,6 +561,7 @@ void GenerationVisitor::
 visit_SyntaxNodeMain(SyntaxNodeMain *node)
 {
 
+    // Prepare the main function.
     this->current_file->push_region_as_body();
     this->current_file->insert_blank_line();
     this->current_file->insert_line("int main(int argc, char **argv)");
@@ -545,7 +708,7 @@ visit_SyntaxNodeScopeStatement(SyntaxNodeScopeStatement *node)
     this->current_file->pop_tabs();
 
     this->current_file->add_tabs_to_new_line();
-    this->current_file->append_to_current_line("{");
+    this->current_file->append_to_current_line("}");
     this->current_file->insert_blank_line();
 
 }
@@ -555,7 +718,7 @@ visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)
 {
 
     this->current_file->push_region_as_head();
-    this->current_file->insert_line("int func_");
+    this->current_file->insert_line("inline int func_");
     this->current_file->append_to_current_line(node->identifier_name);
     this->current_file->append_to_current_line("(");
 
@@ -577,6 +740,8 @@ visit_SyntaxNodeFunctionStatement(SyntaxNodeFunctionStatement *node)
 
     // Visit all the children.
     this->current_file->push_tabs();
+    this->current_file->add_tabs_to_new_line();
+    this->current_file->append_to_current_line("int " + node->identifier_name + ";");
     for (auto child : node->body_statements)
     {
         child->accept(this);
@@ -600,7 +765,7 @@ visit_SyntaxNodeProcedureStatement(SyntaxNodeProcedureStatement *node)
 {
 
     this->current_file->push_region_as_head();
-    this->current_file->insert_line("void proc_");
+    this->current_file->insert_line("inline void proc_");
     this->current_file->append_to_current_line(node->identifier_name);
     this->current_file->append_to_current_line("(");
 
