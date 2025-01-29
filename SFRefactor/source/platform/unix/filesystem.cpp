@@ -157,11 +157,11 @@ file_remove_directory(ccptr file_path)
     struct stat statbuf;
     char full_path[1024];
     
-    DIR *dir = opendir(path);
+    DIR *dir = opendir(file_path);
     if (!dir) 
     {
         perror("opendir");
-        return;
+        return false;
     }
 
     while ((entry = readdir(dir)) != NULL) 
@@ -170,7 +170,7 @@ file_remove_directory(ccptr file_path)
         if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
             continue;
 
-        snprintf(full_path, sizeof(full_path), "%s/%s", path, entry->d_name);
+        snprintf(full_path, sizeof(full_path), "%s/%s", file_path, entry->d_name);
 
         if (lstat(full_path, &statbuf) == -1) 
         {
@@ -181,12 +181,13 @@ file_remove_directory(ccptr file_path)
         if (S_ISDIR(statbuf.st_mode))
         {
             // i love recursion haha
-            remove_directory(full_path);
+            file_remove_directory(full_path);
         } 
         else 
         {
             if (unlink(full_path) == -1) 
             {
+                return false;
                 perror("unlink");
             }
         }
@@ -195,10 +196,13 @@ file_remove_directory(ccptr file_path)
     closedir(dir);
 
     // Remove the empty directory
-    if (rmdir(path) == -1) 
+    if (rmdir(file_path) == -1) 
     {
+        return false;
         perror("rmdir");
     }
+
+    return true;
 
 }
 
@@ -214,6 +218,21 @@ file_current_working_directory(u32 buffer_size, cptr buffer)
     }
 
     return strlen(cwd);
+
+}
+
+u64
+file_runtime_directory(u32 buffer_size, cptr buffer)
+{
+
+    // Get the runtime directory.
+    char* runtime = getcwd(buffer, buffer_size);
+    if (runtime == nullptr)
+    {
+        return 0;
+    }
+
+    return strlen(runtime);
 
 }
 
