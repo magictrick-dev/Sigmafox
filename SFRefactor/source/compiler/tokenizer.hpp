@@ -133,7 +133,6 @@ class Tokenizer
         b32             next_token_is(TokenType type) const;
 
     protected:
-        b32             match_characters(u32 count, ...);
         template <typename... Args> b32 match_set_of_characters(Args... args);
         char            peek(u32 look_ahead);
         char            consume(u32 count);

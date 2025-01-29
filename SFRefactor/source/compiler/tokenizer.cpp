@@ -313,34 +313,6 @@ consume_whitespace()
 
 }
 
-b32 Tokenizer::
-match_characters(u32 count, ...)
-{
-
-    // TODO(Chris): We don't need to use va_list for this, we can use an initializer list
-    //              or some other C++ construct to solve this problem. For now, leave it
-    //              as is since it is working as intended.
-    va_list args;
-    va_start(args, count);
-    b32 matched = false;
-
-    char current = this->peek(0);
-    for (u32 idx = 0; idx < count; ++idx)
-    {
-        char argument_character = va_arg(args, char);
-        if (argument_character == current)
-        {
-            matched = true;
-            break;
-        }
-    }
-
-    va_end(args);
-
-    return matched;
-
-}
-
 template <typename... Args>
 b32 Tokenizer::
 match_set_of_characters(Args... args)
