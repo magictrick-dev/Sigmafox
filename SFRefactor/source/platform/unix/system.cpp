@@ -3,6 +3,13 @@
 #include <unistd.h>
 #include <sys/mman.h>
 
+// NOTE(Chris): This is more or less a consequence of how I designed the API, since
+//              I didn't anticipate that UNIX would require the size of the buffer
+//              to unmap it. Windows would happily yeet the mapped pages without a size,
+//              and it would assume that if you didn't provide it, you wanted to unmap
+//              all of the pages you mapped. Either way, the unordered map is used to
+//              track and store the sizes of these buffers to mimmic the Windows behavior
+//              on UNIX. It's probably fine anyway, since we only use this for file I/O.
 static std::unordered_map<vptr, u64> buffer_sizes; 
 
 vptr    

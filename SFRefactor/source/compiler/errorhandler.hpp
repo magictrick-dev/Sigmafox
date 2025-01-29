@@ -23,9 +23,6 @@ class SyntaxException : public std::exception
 {
 
     public:
-        ccptr what() const = 0;
-
-    public:
         bool handled = false;
 
 };
@@ -44,7 +41,7 @@ class SyntaxWarning : public SyntaxException
         template <class... Args> inline SyntaxWarning(const Filepath& location,
                 const Token& reference, std::string format, Args... args);
 
-        inline ccptr    what() const override;
+        inline virtual const char* what() const noexcept;
 
     protected:
         std::string message;
@@ -86,7 +83,7 @@ SyntaxWarning(const Filepath& location, const Token& reference,
 }
 
 ccptr SyntaxWarning::
-what() const
+what() const noexcept
 {
 
     return this->message.c_str();
@@ -108,7 +105,7 @@ class SyntaxError : public SyntaxException
         template <class... Args> inline SyntaxError(const Filepath& location,
                 const Token& reference, std::string format, Args... args);
 
-        inline ccptr    what() const override;
+        inline const char* what() const noexcept;
 
     protected:
         std::string message;
@@ -151,7 +148,7 @@ SyntaxError(const Filepath& location, const Token& reference,
 }
 
 ccptr SyntaxError::
-what() const
+what() const noexcept
 {
 
     return this->message.c_str();

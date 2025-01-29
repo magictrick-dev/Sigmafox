@@ -10,6 +10,9 @@ project(Sigmafox)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
 add_compile_definitions(SIGMAFOX_DEBUG_BUILD=1)
 
+# Enable debug symbols.
+set(CMAKE_BUILD_TYPE Debug)
+
 # --- Platform Detection -------------------------------------------------------
 #
 # Determines which platform specific files to compile for the current target
@@ -79,7 +82,7 @@ add_executable(Sigmafox
     "source/compiler/nodes/scope_statement.hpp"
     "source/compiler/nodes/expression.hpp"
     "source/compiler/nodes/assignment.hpp"
-    "source/compiler/nodes/equality.hpmo"
+    "source/compiler/nodes/equality.hpp"
     "source/compiler/nodes/comparison.hpp"
     "source/compiler/nodes/term.hpp"
     "source/compiler/nodes/factor.hpp"

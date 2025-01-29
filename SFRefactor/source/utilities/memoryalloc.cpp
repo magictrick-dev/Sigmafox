@@ -123,7 +123,7 @@ void DefaultAllocator::
 release(void* ptr)
 {
 
-    SF_ENSURE_PTR(ptr != nullptr);
+    SF_ENSURE_PTR(ptr);
     if (ptr == nullptr)
     {
         return;

@@ -2,6 +2,8 @@
 #define SIGMAFOX_DEFINITIONS_H
 #include <cstdint>
 #include <cassert>
+#include <cstring>
+#include <cstdlib>
 #include <memory>
 
 typedef uint8_t     u8;
