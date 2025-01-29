@@ -265,7 +265,12 @@ root_directory() const
 
     std::string path = this->c_str();
     u64 index = path.length() - 1;
+// Oof, this is a bit of a hack, but it should work for now.
+#if defined(_WIN32)
     while (path[index--] != '\\') path.pop_back();
+#else
+    while (path[index--] != '/') path.pop_back();
+#endif
     return Filepath(path);
 
 }
