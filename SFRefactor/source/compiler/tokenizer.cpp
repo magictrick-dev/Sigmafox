@@ -278,14 +278,14 @@ consume_whitespace()
     // NOTE(Chris): There might be additional whitespace characters to consider
     //              here that we might not have caught. On these edge cases, we
     //              should probably check for them.
-    if (this->match_characters(4, '\t', '\r', '\n', ' '))
+    if (this->match_set_of_characters('\t', '\r', '\n', ' '))
     {
         this->consume(1);
         this->synchronize();
         return true;
     }
 
-    else if (this->match_characters(1, '{'))
+    else if (this->match_set_of_characters('{'))
     {
 
         // Consumes everything after the '{'.
@@ -336,6 +336,28 @@ match_characters(u32 count, ...)
     }
 
     va_end(args);
+
+    return matched;
+
+}
+
+template <typename... Args>
+b32 Tokenizer::
+match_set_of_characters(Args... args)
+{
+
+    // We can use a variadic template to solve this problem.
+    b32 matched = false;
+    char current = this->peek(0);
+    char set[] = {args...};
+    for (u32 idx = 0; idx < sizeof...(args); ++idx)
+    {
+        if (set[idx] == current)
+        {
+            matched = true;
+            break;
+        }
+    }
 
     return matched;
 

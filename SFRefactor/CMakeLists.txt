@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.21)
 
 project(Sigmafox)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_definitions(SIGMAFOX_DEBUG_BUILD=1)
 
 # Enable debug symbols.

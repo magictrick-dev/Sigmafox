@@ -36,4 +36,18 @@ typedef void*       vptr;
 
 using std::shared_ptr;
 
+inline void memop_string_copy(char* dest, const char* src, u64 size)
+{
+
+    SF_ASSERT(dest != nullptr);
+    SF_ASSERT(src != nullptr);
+    SF_ASSERT(size > 0);
+
+    for (u64 i = 0; i < size; ++i)
+    {
+        dest[i] = src[i];
+    }
+
+}
+
 #endif

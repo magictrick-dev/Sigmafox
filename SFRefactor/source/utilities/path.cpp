@@ -42,7 +42,7 @@ Filepath(ccptr path)
     this->buffer_ptr        = (char*)SF_MEMORY_ALLOC(required_size);
     this->buffer_capacity   = required_size;
     this->buffer_length     = string_length;
-    strcpy(this->buffer_ptr, path);
+    memop_string_copy(this->buffer_ptr, path, string_length + 1);
 
 }
 
@@ -57,7 +57,7 @@ Filepath(const std::string& path)
     this->buffer_ptr        = (char*)SF_MEMORY_ALLOC(required_size);
     this->buffer_capacity   = required_size;
     this->buffer_length     = string_length;
-    strcpy(this->buffer_ptr, path.c_str());
+    memop_string_copy(this->buffer_ptr, path.c_str(), string_length + 1);
 
 }
 
@@ -69,7 +69,7 @@ Filepath(const Filepath& other)
     this->buffer_ptr = (char*)SF_MEMORY_ALLOC(other.buffer_capacity);
     this->buffer_length = other.buffer_length;
     this->buffer_capacity = other.buffer_capacity;
-    strcpy(this->buffer_ptr, other.buffer_ptr);
+    memop_string_copy(this->buffer_ptr, other.buffer_ptr, other.buffer_length+1);
 
 }
 
@@ -82,7 +82,7 @@ operator=(const Filepath& rhs)
     this->buffer_ptr = (char*)SF_MEMORY_ALLOC(rhs.buffer_capacity);
     this->buffer_length = rhs.buffer_length;
     this->buffer_capacity = rhs.buffer_capacity;
-    strcpy(this->buffer_ptr, rhs.buffer_ptr);
+    memop_string_copy(this->buffer_ptr, rhs.buffer_ptr, rhs.buffer_length+1);
     return *this;
 
 }
@@ -94,7 +94,7 @@ operator+=(const Filepath& rhs)
     u64 required_size = rhs.buffer_length + this->buffer_length;
     if (required_size >= this->buffer_capacity - 1)
         this->resize(required_size + 1);
-    strcpy(this->buffer_ptr + this->buffer_length, rhs.buffer_ptr);
+    memop_string_copy(this->buffer_ptr + this->buffer_length, rhs.buffer_ptr, rhs.buffer_length+1);
     this->buffer_length = strlen(this->buffer_ptr);
     return *this;
 
@@ -108,7 +108,7 @@ operator+=(ccptr rhs)
     u64 required_size = right_length + this->buffer_length;
     if (required_size >= this->buffer_capacity - 1)
         this->resize(required_size + 1);
-    strcpy(this->buffer_ptr + this->buffer_length, rhs);
+    memop_string_copy(this->buffer_ptr + this->buffer_length, rhs, right_length+1);
     this->buffer_length = strlen(this->buffer_ptr);
     return *this;
 
@@ -122,7 +122,7 @@ operator+=(const std::string& rhs)
     u64 required_size = right_length + this->buffer_length;
     if (required_size >= this->buffer_capacity - 1)
         this->resize(required_size + 1);
-    strcpy(this->buffer_ptr + this->buffer_length, rhs.c_str());
+    memop_string_copy(this->buffer_ptr + this->buffer_length, rhs.c_str(), right_length+1);
     this->buffer_length = strlen(this->buffer_ptr);
     return *this;
 
@@ -166,7 +166,7 @@ resize(u64 request_size)
     if (best_fit <= this->buffer_capacity) return;
 
     char* new_buffer = (char*)SF_MEMORY_ALLOC(best_fit);
-    strcpy(new_buffer, this->buffer_ptr);
+    memcpy(new_buffer, this->buffer_ptr, this->buffer_length);
     SF_MEMORY_FREE(this->buffer_ptr);
     this->buffer_ptr = new_buffer;
     this->buffer_capacity = best_fit;
@@ -215,7 +215,7 @@ canonicalize()
     this->buffer_ptr        = (char*)SF_MEMORY_ALLOC(required_size);
     this->buffer_capacity   = required_size;
     this->buffer_length     = string_length;
-    strcpy(this->buffer_ptr, buffer);
+    memop_string_copy(this->buffer_ptr, buffer, string_length + 1);
 
     return *this;
 
