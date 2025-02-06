@@ -1,7 +1,0 @@
-function debug n;
-    debug := n;
-endfunction;
-
-begin;
-    debug(10);
-end;

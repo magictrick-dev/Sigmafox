@@ -6,9 +6,13 @@ cmake_minimum_required(VERSION 3.21)
 # Additionally, you can toggle the debug flag for production builds as well.
 #
 
-project(Sigmafox C CXX)
+project(Sigmafox)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "../bin")
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 add_compile_definitions(SIGMAFOX_DEBUG_BUILD=1)
+
+# Enable debug symbols.
+set(CMAKE_BUILD_TYPE Debug)
 
 # --- Platform Detection -------------------------------------------------------
 #
@@ -20,10 +24,16 @@ add_compile_definitions(SIGMAFOX_DEBUG_BUILD=1)
 set(PLATFORM_FILES)
 if (WIN32)
     set(PLATFORM_FILES
-        "source/platform/win32/fileio.c"
-        "source/platform/win32/system.c"
+        "source/platform/win32/filesystem.cpp"
+        "source/platform/win32/system.cpp"
     )
 endif (WIN32)
+if (UNIX)
+    set(PLATFORM_FILES
+        "source/platform/unix/filesystem.cpp"
+        "source/platform/unix/system.cpp"
+    )
+endif (UNIX)
 
 # --- Executable File Listings -------------------------------------------------
 #
@@ -31,37 +41,61 @@ endif (WIN32)
 #
  
 add_executable(Sigmafox
-    "source/main.c"
+    "source/main.cpp"
+    "source/definitions.hpp"
+    "source/environment.hpp"
 
-    "source/compiler/parser.h"
-    "source/compiler/parser.c"
-    "source/compiler/stringpool.h"
-    "source/compiler/stringpool.c"
-    "source/compiler/symboltable.h"
-    "source/compiler/symboltable.c"
-    "source/compiler/generation.h"
-    "source/compiler/generation.c"
-    "source/compiler/tokenizer.h"
-    "source/compiler/tokenizer.c"
-    "source/compiler/errorhandler.h"
-    "source/compiler/errorhandler.c"
-    
-    "source/platform/fileio.h"
-    "source/platform/system.h"
+    "source/platform/filesystem.hpp"
+    "source/platform/system.hpp"
 
-    "source/core/definitions.h"
-    "source/core/arena.h"
-    "source/core/arena.c"
-    "source/core/pool.h"
-    "source/core/pool.c"
-    "source/core/cli.h"
-    "source/core/cli.c"
-    "source/core/memops.h"
-    "source/core/memops.c"
-    "source/core/resource.h"
-    "source/core/resource.c"
-    "source/core/generalalloc.h"
-    "source/core/generalalloc.c"
+    "source/utilities/path.hpp"
+    "source/utilities/path.cpp"
+    "source/utilities/cli.hpp"
+    "source/utilities/cli.cpp"
+    "source/utilities/string.hpp"
+    "source/utilities/vector.hpp"
+    "source/utilities/memoryalloc.hpp"
+    "source/utilities/memoryalloc.cpp"
+
+    "source/compiler/tokenizer.hpp"
+    "source/compiler/tokenizer.cpp"
+    "source/compiler/parser.hpp"
+    "source/compiler/parser.cpp"
+    "source/compiler/syntaxtree.hpp"
+    "source/compiler/syntaxtree.cpp"
+    "source/compiler/dependencygraph.hpp"
+    "source/compiler/dependencygraph.cpp"
+    "source/compiler/errorhandler.hpp"
+    "source/compiler/symbols.hpp"
+    "source/compiler/symbolstack.hpp"
+    "source/compiler/syntaxvisitor.hpp"
+    "source/compiler/syntaxnode.hpp"
+    "source/compiler/symbols/symbol.hpp"
+    "source/compiler/symbols/symbol.cpp"
+    "source/compiler/symbols/table.hpp"
+    "source/compiler/symbols/table.cpp"
+    "source/compiler/visitors/generation.hpp"
+    "source/compiler/visitors/generation.cpp"
+    "source/compiler/nodes/root.hpp"
+    "source/compiler/nodes/module.hpp"
+    "source/compiler/nodes/main.hpp"
+    "source/compiler/nodes/include.hpp"
+    "source/compiler/nodes/expression_statement.hpp"
+    "source/compiler/nodes/variable_statement.hpp"
+    "source/compiler/nodes/scope_statement.hpp"
+    "source/compiler/nodes/expression.hpp"
+    "source/compiler/nodes/assignment.hpp"
+    "source/compiler/nodes/equality.hpp"
+    "source/compiler/nodes/comparison.hpp"
+    "source/compiler/nodes/term.hpp"
+    "source/compiler/nodes/factor.hpp"
+    "source/compiler/nodes/magnitude.hpp"
+    "source/compiler/nodes/extraction.hpp"
+    "source/compiler/nodes/derivation.hpp"
+    "source/compiler/nodes/unary.hpp"
+    "source/compiler/nodes/function_call.hpp"
+    "source/compiler/nodes/primary.hpp"
+    "source/compiler/nodes/grouping.hpp"
 
     ${PLATFORM_FILES}
 )
@@ -74,4 +108,7 @@ add_executable(Sigmafox
 
 target_include_directories(Sigmafox PUBLIC "source")
 set_property(TARGET Sigmafox PROPERTY CXX_STANDARD 20)
-set_property(TARGET Sigmafox PROPERTY C_STANDARD 17)
+
+if (WIN32)
+    TARGET_LINK_LIBRARIES(Sigmafox Shlwapi.lib Shell32.lib)
+endif(WIN32)

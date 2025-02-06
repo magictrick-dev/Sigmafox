@@ -1,9 +1,0 @@
-include 's1.fox';
-include 's2.fox';
-include 's3.fox';
-
-begin;
-
-    write 6 'Hello, world from importing.fox.';
-
-end;

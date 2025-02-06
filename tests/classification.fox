@@ -1,0 +1,7 @@
+
+begin;
+
+    variable foo 4;
+    foo := 10 + 4;
+
+end;

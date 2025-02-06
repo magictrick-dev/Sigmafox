@@ -1,0 +1,61 @@
+#ifndef SIGMAFOX_COMPILER_PARSER_NODE_HPP 
+#define SIGMAFOX_COMPILER_PARSER_NODE_HPP
+#include <definitions.hpp>
+
+enum class Nodetype 
+{
+
+    NODE_TYPE_UNKNOWN,
+    NODE_TYPE_ROOT,
+    NODE_TYPE_MODULE,
+
+    NODE_TYPE_MAIN,
+
+    NODE_TYPE_INCLUDE_STATEMENT,
+    NODE_TYPE_FUNCTION_STATEMENT,
+    NODE_TYPE_PROCEDURE_STATEMENT,
+
+    NODE_TYPE_EXPRESSION_STATEMENT,
+    NODE_TYPE_WHILE_STATEMENT,
+    NODE_TYPE_LOOP_STATEMENT,
+    NODE_TYPE_VARIABLE_STATEMENT,
+    NODE_TYPE_SCOPE_STATEMENT,
+    NODE_TYPE_CONDITIONAL_STATEMENT,
+    NODE_TYPE_READ_STATEMENT,
+    NODE_TYPE_WRITE_STATEMENT,
+    NODE_TYPE_PROCEDURE_STATEMENT,
+
+    NODE_TYPE_EXPRESSION,
+    NODE_TYPE_ASSIGNMENT,
+    NODE_TYPE_EQUALITY,
+    NODE_TYPE_COMPARISON,
+    NODE_TYPE_TERM,
+    NODE_TYPE_FACTOR,
+    NODE_TYPE_MAGNITUDE,
+    NODE_TYPE_EXTRACTION,
+    NODE_TYPE_DERIVATION,
+    NODE_TYPE_UNARY,
+    NODE_TYPE_FUNCTION_CALL,
+    NODE_TYPE_ARRAY_INDEX,
+    NODE_TYPE_PRIMARY,
+    NODE_TYPE_GROUPING,
+
+};
+
+class SyntaxNodeVisitor;
+class SyntaxNode 
+{
+    public:
+                        SyntaxNode();
+        virtual        ~SyntaxNode();
+
+        Nodetype        type() const;
+        virtual void    accept(SyntaxNodeVisitor* visitor) = 0;
+
+    protected:
+        Nodetype node_type;
+
+};
+
+
+#endif
