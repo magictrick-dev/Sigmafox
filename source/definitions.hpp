@@ -39,6 +39,7 @@ typedef void*       vptr;
 #define SF_NO_IMPL(msg)     (assert(!(msg)))
 
 using std::shared_ptr;
+using std::make_shared;
 using std::string;
 using std::vector;
 using std::unordered_map;

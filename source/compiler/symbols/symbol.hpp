@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_SYMBOLS_SYMBOL_HPP
 #define SIGMAFOX_COMPILER_SYMBOLS_SYMBOL_HPP
 #include <definitions.hpp>
+#include <compiler/parser/node.hpp>
 
 // --- Symbol ------------------------------------------------------------------
 //
@@ -21,8 +22,8 @@
 enum class Symboltype
 {
     SYMBOL_TYPE_UNKNOWN,
+    SYMBOL_TYPE_DECLARED,
     SYMBOL_TYPE_VARIABLE,
-    SYMBOL_TYPE_ARRAY,
     SYMBOL_TYPE_PROCEDURE,
     SYMBOL_TYPE_FUNCTION,
 };
@@ -41,23 +42,31 @@ class Symbol
 {
     public:
                     Symbol();
-                    Symbol(string name, Symboltype type, Datatype datatype);
+                    Symbol(string name, Symboltype type, Datatype datatype, shared_ptr<SyntaxNode> node, i32 arity = 0);
         virtual    ~Symbol();
 
         void        set_name(string name);
         void        set_type(Symboltype type);
         void        set_datatype(Datatype datatype);
+        void        set_node(shared_ptr<SyntaxNode> node);
+        void        set_arity(i32 arity);
 
-        string      get_name() const;
-        Symboltype  get_type() const;
-        Datatype    get_datatype() const;
+        string                  get_name() const;
+        Symboltype              get_type() const;
+        Datatype                get_datatype() const;
+        shared_ptr<SyntaxNode>  get_node() const;
+        i32                     get_arity() const;
+
+        bool                    is_array() const;
 
         bool        promote(Datatype type);
 
     protected:
-        string      name;
-        Symboltype  type; 
-        Datatype    datatype;
+        i32                     arity;
+        string                  name;
+        Symboltype              type; 
+        Datatype                datatype;
+        shared_ptr<SyntaxNode>  node;
 
 };
 

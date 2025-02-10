@@ -1,7 +1,6 @@
 #ifndef SIGAMFOX_COMPILER_PARSER_BRANCHES_HPP
 #define SIGAMFOX_COMPILER_PARSER_BRANCHES_HPP
 #include <definitions.hpp>
-#include <compiler/parser/visitor.hpp>
 #include <compiler/parser/node.hpp>
 
 // --- Root Syntax Node --------------------------------------------------------
@@ -12,31 +11,13 @@
 class SyntaxNodeRoot : public SyntaxNode
 {
     public:
-        inline                  SyntaxNodeRoot();
-        inline virtual         ~SyntaxNodeRoot();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeRoot();
+        virtual         ~SyntaxNodeRoot();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         vector<shared_ptr<SyntaxNode>> children;
 };
-
-SyntaxNodeRoot::
-SyntaxNodeRoot()
-{
-    this->node_type = Nodetype::NODE_TYPE_ROOT;
-}
-
-SyntaxNodeRoot::
-~SyntaxNodeRoot()
-{
-
-}
-
-void SyntaxNodeRoot::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Module Syntax Node ------------------------------------------------------
 //
@@ -49,31 +30,13 @@ accept(SyntaxNodeVisitor *visitor)
 class SyntaxNodeModule : public SyntaxNode
 {
     public:
-        inline                  SyntaxNodeModule();
-        inline virtual         ~SyntaxNodeModule();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeModule();
+        virtual         ~SyntaxNodeModule();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         vector<shared_ptr<SyntaxNode>> children;
 };
-
-SyntaxNodeModule::
-SyntaxNodeModule()
-{
-    this->node_type = Nodetype::NODE_TYPE_MODULE;
-}
-
-SyntaxNodeModule::
-~SyntaxNodeModule()
-{
-
-}
-
-void SyntaxNodeModule::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Main Syntax Node --------------------------------------------------------
 //
@@ -85,31 +48,13 @@ accept(SyntaxNodeVisitor *visitor)
 class SyntaxNodeMain : public SyntaxNode
 {
     public:
-        inline                  SyntaxNodeMain();
-        inline virtual         ~SyntaxNodeMain();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeMain();
+        virtual         ~SyntaxNodeMain();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         vector<shared_ptr<SyntaxNode>> children;
 };
-
-SyntaxNodeMain::
-SyntaxNodeMain()
-{
-    this->node_type = Nodetype::NODE_TYPE_MAIN;
-}
-
-SyntaxNodeMain::
-~SyntaxNodeMain()
-{
-
-}
-
-void SyntaxNodeMain::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Include Statement Syntax Node -------------------------------------------
 //
@@ -121,9 +66,9 @@ accept(SyntaxNodeVisitor *visitor)
 class SyntaxNodeIncludeStatement : public SyntaxNode
 {
     public:
-        inline                  SyntaxNodeIncludeStatement();
-        inline virtual         ~SyntaxNodeIncludeStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeIncludeStatement();
+        virtual         ~SyntaxNodeIncludeStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         shared_ptr<SyntaxNode> module;
@@ -132,23 +77,23 @@ class SyntaxNodeIncludeStatement : public SyntaxNode
         string user_path;
 };
 
-SyntaxNodeIncludeStatement::
-SyntaxNodeIncludeStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_INCLUDE_STATEMENT;
-}
+// --- Parameter Syntax Node ---------------------------------------------------
+//
+// Represents a parameter in a function or procedure definition.
+//
 
-SyntaxNodeIncludeStatement::
-~SyntaxNodeIncludeStatement()
+class SyntaxNodeParameter : public SyntaxNode
 {
+    public:
+                         SyntaxNodeParameter();
+        virtual         ~SyntaxNodeParameter();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
-}
+    public:
+        string identifier;
+        string signature;
 
-void SyntaxNodeIncludeStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
+};
 
 // --- Function Statement Syntax Node ------------------------------------------
 //
@@ -160,35 +105,17 @@ class SyntaxNodeFunctionStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeFunctionStatement();
-        inline virtual         ~SyntaxNodeFunctionStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeFunctionStatement();
+        virtual         ~SyntaxNodeFunctionStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         string identifier;
         string signature;
-        vector<string> parameters;
+        vector<shared_ptr<SyntaxNode>> parameters;
         vector<shared_ptr<SyntaxNode>> children;
 
 };
-
-SyntaxNodeFunctionStatement::
-SyntaxNodeFunctionStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_FUNCTION_STATEMENT;
-}
-
-SyntaxNodeFunctionStatement::
-~SyntaxNodeFunctionStatement()
-{
-
-}
-
-void SyntaxNodeFunctionStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Procedure Statement Syntax Node -----------------------------------------
 //
@@ -202,36 +129,17 @@ class SyntaxNodeProcedureStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeProcedureStatement();
-        inline virtual         ~SyntaxNodeProcedureStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeProcedureStatement();
+        virtual         ~SyntaxNodeProcedureStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         string identifier;
         string signature;
-        vector<string> parameters;
+        vector<shared_ptr<SyntaxNode>> parameters;
         vector<shared_ptr<SyntaxNode>> children;
 
 };
-
-SyntaxNodeProcedureStatement::
-SyntaxNodeProcedureStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_PROCEDURE_STATEMENT;
-    this->signature = "void";
-}
-
-SyntaxNodeProcedureStatement::
-~SyntaxNodeProcedureStatement()
-{
-
-}
-
-void SyntaxNodeProcedureStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Expression Statement Syntax Node ----------------------------------------
 //
@@ -243,32 +151,33 @@ class SyntaxNodeExpressionStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeExpressionStatement();
-        inline virtual         ~SyntaxNodeExpressionStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeExpressionStatement();
+        virtual         ~SyntaxNodeExpressionStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         shared_ptr<SyntaxNode> expression;
 
 };
 
-SyntaxNodeExpressionStatement::
-SyntaxNodeExpressionStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_EXPRESSION_STATEMENT;
-}
+// --- Procedure Call Statement Syntax Node ------------------------------------
+//
+// For procedure call invocations.
+//
 
-SyntaxNodeExpressionStatement::
-~SyntaxNodeExpressionStatement()
+class SyntaxNodeProcedureCallStatement : public SyntaxNode
 {
 
-}
+    public:
+                         SyntaxNodeProcedureCallStatement();
+        virtual         ~SyntaxNodeProcedureCallStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
-void SyntaxNodeExpressionStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
+    public:
+        string identifier;
+        vector<shared_ptr<SyntaxNode>> arguments;
+
+};
 
 // --- While Statement Syntax Node ---------------------------------------------
 //
@@ -280,33 +189,15 @@ class SyntaxNodeWhileStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeWhileStatement();
-        inline virtual         ~SyntaxNodeWhileStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeWhileStatement();
+        virtual         ~SyntaxNodeWhileStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         shared_ptr<SyntaxNode> expression;
         vector<shared_ptr<SyntaxNode>> children;
 
 };
-
-SyntaxNodeWhileStatement::
-SyntaxNodeWhileStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_WHILE_STATEMENT;
-}
-
-SyntaxNodeWhileStatement::
-~SyntaxNodeWhileStatement()
-{
-
-}
-
-void SyntaxNodeWhileStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Loop Statement Syntax Node ----------------------------------------------
 //
@@ -319,9 +210,9 @@ class SyntaxNodeLoopStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeLoopStatement();
-        inline virtual         ~SyntaxNodeLoopStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeLoopStatement();
+        virtual         ~SyntaxNodeLoopStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         string iterator;
@@ -332,24 +223,6 @@ class SyntaxNodeLoopStatement : public SyntaxNode
 
 };
 
-SyntaxNodeLoopStatement::
-SyntaxNodeLoopStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_LOOP_STATEMENT;
-}
-
-SyntaxNodeLoopStatement::
-~SyntaxNodeLoopStatement()
-{
-
-}
-
-void SyntaxNodeLoopStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
-
 // --- Variable Statement Syntax Node -----------------------------------------
 //
 // Variable statements are used to declare variables in the program. They are
@@ -358,7 +231,7 @@ accept(SyntaxNodeVisitor *visitor)
 // a storage constant, however this is a product of the legacy implementation of
 // COSY and isn't a requirement for this language.
 //
-// Additionally, COSY doesn't allow for inline variable definitions, but we can
+// Additionally, COSY doesn't allow for variable definitions, but we can
 // support this trivially by allowing the expression to be optional.
 //
 
@@ -366,9 +239,9 @@ class SyntaxNodeVariableStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeVariableStatement();
-        inline virtual         ~SyntaxNodeVariableStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeVariableStatement();
+        virtual         ~SyntaxNodeVariableStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         string identifier;
@@ -378,25 +251,6 @@ class SyntaxNodeVariableStatement : public SyntaxNode
         vector<shared_ptr<SyntaxNode>> dimensions;
 
 };
-
-SyntaxNodeVariableStatement::
-SyntaxNodeVariableStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_VARIABLE_STATEMENT;
-    this->signature = "int64_t";
-}
-
-SyntaxNodeVariableStatement::
-~SyntaxNodeVariableStatement()
-{
-
-}
-
-void SyntaxNodeVariableStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Scope Statement Syntax Node --------------------------------------------
 //
@@ -413,32 +267,14 @@ class SyntaxNodeScopeStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeScopeStatement();
-        inline virtual         ~SyntaxNodeScopeStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeScopeStatement();
+        virtual         ~SyntaxNodeScopeStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         vector<shared_ptr<SyntaxNode>> children;
 
 };
-
-SyntaxNodeScopeStatement::
-SyntaxNodeScopeStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_SCOPE_STATEMENT;
-}
-
-SyntaxNodeScopeStatement::
-~SyntaxNodeScopeStatement()
-{
-
-}
-
-void SyntaxNodeScopeStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Conditional Statement Syntax Node --------------------------------------
 //
@@ -452,9 +288,9 @@ class SyntaxNodeConditionalStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeConditionalStatement();
-        inline virtual         ~SyntaxNodeConditionalStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeConditionalStatement();
+        virtual         ~SyntaxNodeConditionalStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         shared_ptr<SyntaxNode> expression;
@@ -462,24 +298,6 @@ class SyntaxNodeConditionalStatement : public SyntaxNode
         vector<shared_ptr<SyntaxNode>> children;
 
 };
-
-SyntaxNodeConditionalStatement::
-SyntaxNodeConditionalStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_CONDITIONAL_STATEMENT;
-}
-
-SyntaxNodeConditionalStatement::
-~SyntaxNodeConditionalStatement()
-{
-
-}
-
-void SyntaxNodeConditionalStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Read Statement Syntax Node ---------------------------------------------
 //
@@ -491,9 +309,9 @@ class SyntaxNodeReadStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeReadStatement();
-        inline virtual         ~SyntaxNodeReadStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeReadStatement();
+        virtual         ~SyntaxNodeReadStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         string identifier;
@@ -501,24 +319,6 @@ class SyntaxNodeReadStatement : public SyntaxNode
         shared_ptr<SyntaxNode> expression;
 
 };
-
-SyntaxNodeReadStatement::
-SyntaxNodeReadStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_READ_STATEMENT;
-}
-
-SyntaxNodeReadStatement::
-~SyntaxNodeReadStatement()
-{
-
-}
-
-void SyntaxNodeReadStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 // --- Write Statement Syntax Node --------------------------------------------
 //
@@ -530,32 +330,14 @@ class SyntaxNodeWriteStatement : public SyntaxNode
 {
 
     public:
-        inline                  SyntaxNodeWriteStatement();
-        inline virtual         ~SyntaxNodeWriteStatement();
-        inline virtual void     accept(SyntaxNodeVisitor *visitor) override;
+                         SyntaxNodeWriteStatement();
+        virtual         ~SyntaxNodeWriteStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
         shared_ptr<SyntaxNode> location;
         vector<shared_ptr<SyntaxNode>> expressions;
 
 };
-
-SyntaxNodeWriteStatement::
-SyntaxNodeWriteStatement()
-{
-    this->node_type = Nodetype::NODE_TYPE_WRITE_STATEMENT;
-}
-
-SyntaxNodeWriteStatement::
-~SyntaxNodeWriteStatement()
-{
-
-}
-
-void SyntaxNodeWriteStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
 
 #endif

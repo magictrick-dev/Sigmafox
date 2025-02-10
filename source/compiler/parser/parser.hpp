@@ -1,34 +1,42 @@
 #ifndef SIGAMFOX_COMPILER_PARSER_PARSER_HPP
 #define SIGAMFOX_COMPILER_PARSER_PARSER_HPP
 #include <definitions.hpp>
-#include <compiler/tokenizer.hpp>
+#include <compiler/graph.hpp>
+#include <compiler/environment.hpp>
 #include <compiler/parser/node.hpp>
-#include <compiler/symbols/table.hpp>
+#include <compiler/tokenizer/tokenizer.hpp>
 
 class ParseTree 
 {
 
     public:
-                    ParseTree();
+                    ParseTree(DependencyGraph* graph, Environment* environment);
         virtual    ~ParseTree();
 
         bool        parse(string source_file);
         bool        valid() const;
 
+        shared_ptr<SyntaxNode>              get_root() const;
+        vector<shared_ptr<SyntaxNode>>      get_nodes() const;
+
     protected:
         void synchronize_to(TokenType type);
         void synchronize_up_to(TokenType type);
 
+        bool expect_current_token_as(TokenType type) const;
+        bool expect_next_token_as(TokenType type) const;
+
+        void consume_current_token_as(TokenType type, u64 sloc);
+
         template <class T, typename ...Params> std::shared_ptr<T> generate_node(Params... args);
 
         shared_ptr<SyntaxNode> match_root();
-        shared_ptr<SyntaxNode> match_module();
 
         shared_ptr<SyntaxNode> match_global_statement();
         shared_ptr<SyntaxNode> match_include_statement();
         shared_ptr<SyntaxNode> match_function_statement(bool is_global);
         shared_ptr<SyntaxNode> match_procedure_statement(bool is_global);
-        shared_ptr<SyntaxNode> match_main_statement();
+        shared_ptr<SyntaxNode> match_begin_statement();
 
         shared_ptr<SyntaxNode> match_local_statement();
         shared_ptr<SyntaxNode> match_expression_statement();
@@ -57,8 +65,12 @@ class ParseTree
         shared_ptr<SyntaxNode> match_primary();
 
     protected:
-        vector<shared_ptr<SyntaxNode>> nodes;
-        shared_ptr<SyntaxNode> root;
+        Filepath                        path;
+        DependencyGraph*                graph;
+        Environment*                    environment;
+        shared_ptr<Tokenizer>           tokenizer;
+        shared_ptr<SyntaxNode>          root;
+        vector<shared_ptr<SyntaxNode>>  nodes;
 
 };
 

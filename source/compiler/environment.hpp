@@ -1,7 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_ENVIRONMENT_HPP
 #define SIGMAFOX_COMPILER_ENVIRONMENT_HPP
 #include <definitions.hpp>
-#include <compiler/tokenizer.hpp>
+#include <compiler/tokenizer/tokenizer.hpp>
 #include <compiler/symbols/table.hpp>
 
 // --- Environment -------------------------------------------------------------
@@ -23,11 +23,6 @@
 // function and then check if it doesn't exist locally. The get/set routines only
 // allow for symbols to move into the local or global scopes, respectively. It would
 // not be possible to insert symbols into higher scopes (nor would it make sense).
-//
-// In order to validate if a certain include has been included, the environment
-// provides the necessary functionality to check if a file has already been included
-// and checks if the file is circularly included. This is done by maintaining a list
-// of included files and checking if the file is already in the list.
 //
 
 class Environment
@@ -54,9 +49,12 @@ class Environment
         void            set_symbol_locally(string identifier, Symbol symbol);
         void            set_symbol_globally(string identifier, Symbol symbol);
 
+        bool            is_begin_defined() const;
+        void            define_begin();
+
     protected:
+        bool begin_defined;
         vector<Symboltable> tables;
-        unordered_map<string, shared_ptr<Tokenizer>> tokenizers;
 
 };
 

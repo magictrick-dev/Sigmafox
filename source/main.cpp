@@ -8,12 +8,17 @@
 #include <utilities/cli.hpp>
 #include <utilities/vector.hpp>
 #include <utilities/string.hpp>
+
+#if 0
 #include <compiler/tokenizer.hpp>
 #include <compiler/parser.hpp>
 #include <compiler/syntaxtree.hpp>
 #include <compiler/visitors/reference.hpp>
 #include <compiler/visitors/generation.hpp>
 #include <compiler/symbols.hpp>
+#endif
+
+#include <compiler/compiler.hpp>
 
 int
 main(int argc, char ** argv)
@@ -77,7 +82,7 @@ main(int argc, char ** argv)
 
     } 
     
-
+#if 0
     // --- Compiler Invocation -------------------------------------------------
     //
     // Constructs the AST, and then generates the C++ code given that the parser
@@ -113,6 +118,33 @@ main(int argc, char ** argv)
         }
         
     }
+#endif
+
+    {
+        Compiler compiler(user_source_file.c_str());
+        if (!compiler.parse())
+        {
+            std::cout << "The compiler wasn't able to parse the source file." << std::endl;
+            return -1;
+        }
+        else
+        {
+            if (!compiler.validate())
+            {
+                std::cout << "The compiler wasn't able to validate the AST." << std::endl;
+                return -1;
+            }
+            else
+            {
+                if (!compiler.generate())
+                {
+                    std::cout << "The compiler wasn't able to generate the output files." << std::endl;
+                    return -1;
+                }
+            }
+        }
+    }
+
 
     // --- Runtime Statistics --------------------------------------------------
     //

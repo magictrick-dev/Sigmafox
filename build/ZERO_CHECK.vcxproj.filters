@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="17.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Development\Sigmafox\build\CMakeFiles\efb7a556aa3cd492592df656496da428\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{029D111E-5233-3D23-8123-F5B44E8F6F5F}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

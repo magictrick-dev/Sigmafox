@@ -15,7 +15,7 @@
 #include <exception>
 #include <definitions.hpp>
 #include <platform/system.hpp>
-#include <compiler/tokenizer.hpp>
+#include <compiler/tokenizer/tokenizer.hpp>
 
 // --- Syntax Exceptions -------------------------------------------------------
 
@@ -38,7 +38,7 @@ class SyntaxWarning : public SyntaxException
     public:
         inline          SyntaxWarning();
         inline virtual ~SyntaxWarning();
-        template <class... Args> inline SyntaxWarning(const Filepath& location,
+        template <class... Args> inline SyntaxWarning(u64 sloc, const Filepath& location,
                 const Token& reference, std::string format, Args... args);
 
         inline virtual const char* what() const noexcept;
@@ -61,11 +61,12 @@ SyntaxWarning::
 }
 
 template <class... Args> SyntaxWarning::
-SyntaxWarning(const Filepath& location, const Token& reference,
+SyntaxWarning(u64 sloc, const Filepath& location, const Token& reference,
         std::string format, Args... args)
 {
 
     // Probably a cleaner way to do this.
+    this->message += "[" + std::to_string(sloc) + "]: ";
     this->message += location.c_str();
     this->message += "(";
     this->message += std::to_string(reference.row);
@@ -102,7 +103,7 @@ class SyntaxError : public SyntaxException
     public:
         inline          SyntaxError();
         inline virtual ~SyntaxError();
-        template <class... Args> inline SyntaxError(const Filepath& location,
+        template <class... Args> inline SyntaxError(u64 sloc, const Filepath& location,
                 const Token& reference, std::string format, Args... args);
 
         inline const char* what() const noexcept;
@@ -126,7 +127,7 @@ SyntaxError::
 
 
 template <class... Args> SyntaxError::
-SyntaxError(const Filepath& location, const Token& reference,
+SyntaxError(u64 sloc, const Filepath& location, const Token& reference,
         std::string format, Args... args)
 {
 
