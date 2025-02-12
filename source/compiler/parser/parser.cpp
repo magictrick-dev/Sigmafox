@@ -425,6 +425,26 @@ match_function_statement(bool is_global)
         // Pop the scope.
         this->environment->pop_table();
 
+        // Check for the end function keyword.
+        this->consume_current_token_as(TokenType::TOKEN_KEYWORD_ENDFUNCTION, __LINE__);
+
+        // Semicolon.
+        this->consume_current_token_as(TokenType::TOKEN_SEMICOLON, __LINE__);
+
+        // Insert the function into the symbol table.
+        Symbol function_declaration_symbol = Symbol(identifier_token.reference,
+            Symboltype::SYMBOL_TYPE_FUNCTION,
+            Datatype::DATA_TYPE_UNKNOWN,
+            function_node, parameters.size());
+
+        this->environment->set_symbol_locally(identifier_token.reference, function_declaration_symbol);
+
+        // Fill out the function node.
+        function_node->children     = children;
+        function_node->parameters   = parameters;
+        function_node->identifier   = identifier_token.reference;
+        return function_node;
+
     }
     catch (SyntaxException& e)
     {
@@ -438,7 +458,117 @@ shared_ptr<SyntaxNode> ParseTree::
 match_procedure_statement(bool is_global)
 {
 
+    try
+    {
+
+        auto procedure_node = this->generate_node<SyntaxNodeProcedureStatement>();
+        this->consume_current_token_as(TokenType::TOKEN_KEYWORD_PROCEDURE, __LINE__);
+
+        Token identifier_token = this->tokenizer->get_current_token();
+        this->consume_current_token_as(TokenType::TOKEN_IDENTIFIER, __LINE__);
+
+        // Check if the symbol is already defined.
+        if (this->environment->symbol_exists_locally(identifier_token.reference))
+        {
+            throw new SyntaxError(__LINE__, this->path, identifier_token,
+                "Procedure declaration '%s' is already defined.",
+                identifier_token.reference.c_str());
+        }
+
+        // Collect the parameters.
+        vector<shared_ptr<SyntaxNode>> parameters;
+        while (!this->expect_current_token_as(TokenType::TOKEN_SEMICOLON))
+        {
+
+            Token parameter_token = this->tokenizer->get_current_token();
+            this->consume_current_token_as(TokenType::TOKEN_IDENTIFIER, __LINE__);
+
+            auto parameter_node = this->generate_node<SyntaxNodeParameter>();
+            parameter_node->identifier = parameter_token.reference;
+            parameters.push_back(parameter_node);
+
+        }
+
+        // Consume the semicolon.
+        this->consume_current_token_as(TokenType::TOKEN_SEMICOLON, __LINE__);
+
+        // Push the scope.
+        this->environment->push_table();
+
+        // Add the parameters to the symbol table.
+        for (auto parameter : parameters)
+        {
+
+            auto parameter_node = dynamic_pointer_cast<SyntaxNodeParameter>(parameter);
+            SF_ENSURE_PTR(parameter_node);
+
+            Symbol parameter_symbol(parameter_node->identifier, 
+                Symboltype::SYMBOL_TYPE_VARIABLE, 
+                Datatype::DATA_TYPE_UNKNOWN,
+                parameter_node);
+
+            this->environment->set_symbol_locally(parameter_node->identifier, parameter_symbol);
+
+        }
+
+        // Match all the body statements.
+        vector<shared_ptr<SyntaxNode>> children;
+        while (!this->expect_current_token_as(TokenType::TOKEN_EOF))
+        {
+
+            if (this->expect_current_token_as(TokenType::TOKEN_KEYWORD_ENDPROCEDURE)) break;
+
+            try
+            {
+
+                auto local_node = this->match_local_statement();
+                children.push_back(local_node);
+
+            }
+            catch (SyntaxException& e)
+            {
+
+                // The match_local_statement function will catch and recover most errors.
+                // If the error is not handled, throw it again and let the caller resynchronize.
+                if (e.handled == false) throw e;
+
+            }
+
+        }
+
+        // Pop the scope.
+        this->environment->pop_table();
+
+        // Check for end procedure keyword.
+        this->consume_current_token_as(TokenType::TOKEN_KEYWORD_ENDPROCEDURE, __LINE__);
+
+        // Semicolon.
+        this->consume_current_token_as(TokenType::TOKEN_SEMICOLON, __LINE__);
+
+        // NOTE(Chris): We assume that the datatype for this is void because procedures
+        //              don't return anything.
+        Symbol procedure_declaration_symbol = Symbol(identifier_token.reference,
+            Symboltype::SYMBOL_TYPE_PROCEDURE,
+            Datatype::DATA_TYPE_VOID,
+            procedure_node, parameters.size());
+
+        // Set the symbol.
+        this->environment->set_symbol_locally(identifier_token.reference, procedure_declaration_symbol);
+
+        // Fill out the procedure node.
+        procedure_node->children    = children;
+        procedure_node->parameters  = parameters;
+        procedure_node->identifier  = identifier_token.reference;
+        return procedure_node;
+
+    }
+    catch (SyntaxException& e)
+    {
+        throw e;
+    }
+
     return nullptr;
+
 }
 
 shared_ptr<SyntaxNode> ParseTree::
@@ -509,6 +639,7 @@ match_local_statement()
     }
 
     return nullptr;
+
 }
 
 shared_ptr<SyntaxNode> ParseTree::
@@ -522,7 +653,33 @@ shared_ptr<SyntaxNode> ParseTree::
 match_variable_statement()
 {
 
+    try
+    {
+
+        this->consume_current_token_as(TokenType::TOKEN_KEYWORD_VARIABLE, __LINE__);
+
+        Token identifier_token = this->tokenizer->get_current_token();
+        this->consume_current_token_as(TokenType::TOKEN_IDENTIFIER, __LINE__);
+
+        // Check if the symbol is already defined.
+        if (this->environment->symbol_exists_locally(identifier_token.reference))
+        {
+            throw new SyntaxError(__LINE__, this->path, identifier_token,
+                "Variable declaration '%s' is already defined.",
+                identifier_token.reference.c_str());
+        }
+
+        // Get the size.
+        shared_ptr<SyntaxNode> size_node = this->match_expression();
+
+    }
+    catch (SyntaxException &e)
+    {
+        throw e;
+    }
+
     return nullptr;
+
 }
 
 shared_ptr<SyntaxNode> ParseTree::
