@@ -1,4 +1,5 @@
 #include <compiler/compiler.hpp>
+#include <compiler/reference.hpp>
 #include <compiler/parser/parser.hpp>
 
 Compiler::
@@ -44,6 +45,14 @@ validate() const
 bool Compiler::
 generate() const
 {
+
+#if 1
+    // Tests and outputs the AST.
+    ReferenceVisitor visitor;
+    this->root->accept(&visitor);
+#else
+
+#endif
 
     return true;
 

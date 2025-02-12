@@ -63,6 +63,8 @@ add_executable(Sigmafox
     "source/compiler/environment.cpp"
     "source/compiler/graph.hpp"
     "source/compiler/graph.cpp"
+    "source/compiler/reference.hpp"
+    "source/compiler/reference.cpp"
     
     "source/compiler/parser/node.hpp"
     "source/compiler/parser/node.cpp"

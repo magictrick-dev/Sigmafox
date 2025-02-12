@@ -22,6 +22,8 @@ enum class Operationtype
     OPERATION_TYPE_LESS_THAN_OR_EQUAL,
     OPERATION_TYPE_GREATER_THAN,
     OPERATION_TYPE_GREATER_THAN_OR_EQUAL,
+
+    OPERATION_TYPE_NEGATION,
 };
 
 enum class Primarytype
@@ -193,6 +195,7 @@ class SyntaxNodeExtraction : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
+        Operationtype operation;
         shared_ptr<SyntaxNode> left;
         shared_ptr<SyntaxNode> right;
 
@@ -274,7 +277,7 @@ class SyntaxNodeArrayIndex : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<SyntaxNode> array;
+        string identifier;
         vector<shared_ptr<SyntaxNode>> indices;
 
 };
