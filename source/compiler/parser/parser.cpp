@@ -196,7 +196,7 @@ match_global_statement()
             }
             catch (SyntaxException& e)
             {
-                throw e;
+                throw;
             }
         } break;
 
@@ -209,7 +209,7 @@ match_global_statement()
             catch (SyntaxException& e)
             {
                 this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDPROCEDURE);
-                throw e;
+                throw;
             }
         } break;
 
@@ -222,7 +222,7 @@ match_global_statement()
             catch (SyntaxException& e)
             {
                 this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDFUNCTION);
-                throw e;
+                throw;
             }
         } break;
 
@@ -235,7 +235,7 @@ match_global_statement()
             catch (SyntaxException& e)
             {
                 this->synchronize_to(TokenType::TOKEN_KEYWORD_END);
-                throw e;
+                throw;
             }
         } break;
 
@@ -349,7 +349,7 @@ match_include_statement()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -486,7 +486,7 @@ match_function_statement(bool is_global)
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -608,7 +608,7 @@ match_procedure_statement(bool is_global)
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -689,7 +689,7 @@ match_begin_statement()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -714,7 +714,7 @@ match_local_statement()
             catch (SyntaxException& e)
             {
                 synchronize_to(TokenType::TOKEN_KEYWORD_ENDFUNCTION);
-                throw e;
+                throw;
             }
         } break;
 
@@ -727,7 +727,7 @@ match_local_statement()
             catch (SyntaxException& e)
             {
                 synchronize_to(TokenType::TOKEN_KEYWORD_ENDPROCEDURE);
-                throw e;
+                throw;
             }
         } break;
 
@@ -740,7 +740,7 @@ match_local_statement()
             }
             catch (SyntaxException& e)
             {
-                throw e;
+                throw;
             }
 
         } break;
@@ -754,7 +754,7 @@ match_local_statement()
             catch (SyntaxException& e)
             {
                 this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDSCOPE);
-                throw e;
+                throw;
             }
         } break;
 
@@ -767,7 +767,7 @@ match_local_statement()
             catch (SyntaxException& e)
             {
                 this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDWHILE);
-                throw e;
+                throw;
             }
         } break;
 
@@ -780,7 +780,7 @@ match_local_statement()
             catch (SyntaxException& e)
             {
                 this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDLOOP);
-                throw e;
+                throw;
             }
         } break;
 
@@ -793,7 +793,7 @@ match_local_statement()
             catch (SyntaxException& e)
             {
                 this->synchronize_to(TokenType::TOKEN_KEYWORD_ENDIF);
-                throw e;
+                throw;
             }
         } break;
 
@@ -806,7 +806,7 @@ match_local_statement()
             }
             catch (SyntaxException& e)
             {
-                throw e;
+                throw;
             }
 
         } break;
@@ -819,7 +819,7 @@ match_local_statement()
             }
             catch (SyntaxException& e)
             {
-                throw e;
+                throw;
             }
         } break;
 
@@ -831,7 +831,7 @@ match_local_statement()
             }
             catch (SyntaxException& e)
             {
-                throw e;
+                throw;
             }
         } break;
 
@@ -860,7 +860,7 @@ match_expression_statement()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -937,7 +937,7 @@ match_variable_statement()
     }
     catch (SyntaxException &e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1119,7 +1119,7 @@ match_assignment()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1177,7 +1177,7 @@ match_equality()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1233,7 +1233,7 @@ match_comparison()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1285,7 +1285,7 @@ match_term()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1337,7 +1337,7 @@ match_factor()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1387,7 +1387,7 @@ match_magnitude()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1438,7 +1438,7 @@ match_extraction()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1488,7 +1488,7 @@ match_derivation()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1536,7 +1536,7 @@ match_unary()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1619,7 +1619,7 @@ match_function_call()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1699,7 +1699,7 @@ match_array_index()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");
@@ -1793,7 +1793,7 @@ match_primary()
     }
     catch (SyntaxException& e)
     {
-        throw e;
+        throw;
     }
 
     SF_ASSERT(!"We should never directly return a nullptr.");

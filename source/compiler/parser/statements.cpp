@@ -87,6 +87,7 @@ SyntaxNodeParameter::
 SyntaxNodeParameter()
 {
     this->node_type = Nodetype::NODE_TYPE_PARAMETER;
+    this->signature = "int64_t";
 }
 
 SyntaxNodeParameter::

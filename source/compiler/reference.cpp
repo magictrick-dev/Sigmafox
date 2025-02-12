@@ -83,16 +83,54 @@ visit(SyntaxNodeIncludeStatement* node)
 void ReferenceVisitor::
 visit(SyntaxNodeParameter* node)
 {
+
+    std::cout << "PARAMETER " << "[TYPE: " << node->signature << "] "
+        << node->identifier;
+
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeFunctionStatement* node)
 {
+
+    this->print_tabs();
+    std::cout << "FUNCTION " << node->identifier << " ";
+    for (int i = 0; i < node->parameters.size(); ++i)
+    {
+        node->parameters[i]->accept(this);
+        if (i < node->parameters.size() - 1) std::cout << ", ";
+    }
+    std::cout << std::endl;
+
+    this->push_tabs();
+    for (auto child : node->children) child->accept(this);
+    this->pop_tabs();
+
+    this->print_tabs();
+    std::cout << "ENDFUNCTION" << std::endl;
+
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeProcedureStatement* node)
 {
+
+    this->print_tabs();
+    std::cout << "PROCEDURE " << node->identifier << " ";
+    for (int i = 0; i < node->parameters.size(); ++i)
+    {
+        node->parameters[i]->accept(this);
+        if (i < node->parameters.size() - 1) std::cout << ", ";
+    }
+    std::cout << std::endl;
+
+    this->push_tabs();
+    for (auto child : node->children) child->accept(this);
+    this->pop_tabs();
+
+    this->print_tabs();
+    std::cout << "ENDPROCEDURE" << std::endl;
+
 }
 
 void ReferenceVisitor::
