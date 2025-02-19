@@ -131,10 +131,9 @@ void ExpressionTypeVisitor::
 visit(SyntaxNodeFunctionCall* node)
 {
 
-    // TODO(Chris): Functions require return type processing as well.
-    //              For now, we won't process this case and will just return.
-
-    SF_ASSERT(!"Functions require return type processing as well.");
+    Symbol *function_symbol = this->environment->get_symbol(node->identifier);
+    SF_ENSURE_PTR(function_symbol);
+    this->evaluate(function_symbol->get_node()->get_datatype());
     return;
 
 }

@@ -79,6 +79,7 @@ main(int argc, char ** argv)
 
         printf("-- Runtime Path: %s\n", ApplicationParameters::runtime_path.c_str());
         printf("-- Output Path: %s\n", ApplicationParameters::output_path.c_str());
+        printf("-- Source File: %s\n", user_source_file.c_str());
 
     } 
     

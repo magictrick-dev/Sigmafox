@@ -927,6 +927,28 @@ match_variable_statement()
         variable_node->dimensions   = dimensions;
         variable_node->expression   = assignment_node;
 
+        if (assignment_node != nullptr)
+        {
+
+            ExpressionTypeVisitor right_type(this->environment, this->path.c_str());
+            assignment_node->accept(&right_type);
+
+            if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_UNKNOWN)
+            {
+                throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
+                    "Unknown datatype in assignment expression.");
+            }
+
+            else if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+            {
+                throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
+                    "Error in assignment expression.");
+            }
+
+            variable_node->set_datatype(right_type.get_evaluated_type());
+
+        }
+
         return variable_node;
 
     }

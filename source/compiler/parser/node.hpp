@@ -90,7 +90,6 @@ enum class Datatype
 };
 
 class SyntaxNodeVisitor;
-
 class SyntaxNode 
 {
     public:
@@ -104,9 +103,14 @@ class SyntaxNode
         virtual void    accept(SyntaxNodeVisitor* visitor) = 0;
 
     protected:
-        Nodetype nodetype;
-        Datatype datatype;
+        Nodetype nodetype = Nodetype::NODE_TYPE_UNKNOWN;
+        Datatype datatype = Datatype::DATA_TYPE_ERROR;
 
 };
+
+string nodetype_to_string(Nodetype type);
+string operationtype_to_string(Operationtype type);
+string primarytype_to_string(Primarytype type);
+string datatype_to_string(Datatype type);
 
 #endif

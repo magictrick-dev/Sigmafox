@@ -92,6 +92,8 @@ visit(SyntaxNodeParameter* node)
         case Datatype::DATA_TYPE_INTEGER:   datatype_string = "INTEGER"; break;
         case Datatype::DATA_TYPE_REAL:      datatype_string = "REAL"; break;
         case Datatype::DATA_TYPE_COMPLEX:   datatype_string = "COMPLEX"; break;
+        case Datatype::DATA_TYPE_UNKNOWN:   datatype_string = "UNKNOWN"; break;
+        case Datatype::DATA_TYPE_ERROR:     datatype_string = "ERROR"; break;
         default:
         {
             SF_ASSERT(!"Unreachable condition.");
@@ -184,6 +186,8 @@ visit(SyntaxNodeVariableStatement* node)
         case Datatype::DATA_TYPE_INTEGER:   datatype_string = "INTEGER"; break;
         case Datatype::DATA_TYPE_REAL:      datatype_string = "REAL"; break;
         case Datatype::DATA_TYPE_COMPLEX:   datatype_string = "COMPLEX"; break;
+        case Datatype::DATA_TYPE_UNKNOWN:   datatype_string = "UNKNOWN"; break;
+        case Datatype::DATA_TYPE_ERROR:     datatype_string = "ERROR"; break;
         default:
         {
             SF_ASSERT(!"Unreachable condition.");
