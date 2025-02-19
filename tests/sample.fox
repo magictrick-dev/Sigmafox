@@ -1,4 +1,10 @@
 
+function add_numbers a b;
+    add_numbers := a + b;
+endfunction;
+
 begin;
-    variable idx 4;
+    variable left 4     := 8;
+    variable right 4    := 16;
+    variable result 4   := add_numbers(left, right);
 end;

@@ -159,4 +159,6 @@ datatype_to_string(Datatype type)
         }
     }
 
+    return result;
+
 }

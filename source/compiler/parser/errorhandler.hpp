@@ -132,6 +132,7 @@ SyntaxError(u64 sloc, const Filepath& location, const Token& reference,
 {
 
     // Probably a cleaner way to do this.
+    this->message += "[" + std::to_string(sloc) + "]: ";
     this->message += location.c_str();
     this->message += "(";
     this->message += std::to_string(reference.row);

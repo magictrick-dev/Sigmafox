@@ -78,29 +78,14 @@ visit(SyntaxNodeMain* node)
 void ReferenceVisitor::
 visit(SyntaxNodeIncludeStatement* node)
 {
+
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeParameter* node)
 {
 
-    string datatype_string;
-    switch (node->get_datatype())
-    {
-        case Datatype::DATA_TYPE_VOID:      datatype_string = "VOID"; break;
-        case Datatype::DATA_TYPE_STRING:    datatype_string = "STRING"; break;
-        case Datatype::DATA_TYPE_INTEGER:   datatype_string = "INTEGER"; break;
-        case Datatype::DATA_TYPE_REAL:      datatype_string = "REAL"; break;
-        case Datatype::DATA_TYPE_COMPLEX:   datatype_string = "COMPLEX"; break;
-        case Datatype::DATA_TYPE_UNKNOWN:   datatype_string = "UNKNOWN"; break;
-        case Datatype::DATA_TYPE_ERROR:     datatype_string = "ERROR"; break;
-        default:
-        {
-            SF_ASSERT(!"Unreachable condition.");
-            break;
-        }
-    }
-
+    string datatype_string = datatype_to_string(node->get_datatype());
     std::cout << "PARAMETER " << "[TYPE: " << datatype_string << "] " << node->identifier;
 
 }
@@ -109,8 +94,11 @@ void ReferenceVisitor::
 visit(SyntaxNodeFunctionStatement* node)
 {
 
+    string datatype_string = datatype_to_string(node->get_datatype());
+
     this->print_tabs();
-    std::cout << "FUNCTION " << node->identifier << " ";
+    std::cout << "FUNCTION [TYPE: " << datatype_string << "] "
+        << node->identifier << " ";
     for (int i = 0; i < node->parameters.size(); ++i)
     {
         node->parameters[i]->accept(this);
@@ -131,8 +119,11 @@ void ReferenceVisitor::
 visit(SyntaxNodeProcedureStatement* node)
 {
 
+    string datatype_string = datatype_to_string(node->get_datatype());
+
     this->print_tabs();
-    std::cout << "PROCEDURE " << node->identifier << " ";
+    std::cout << "PROCEDURE [TYPE: " << datatype_string << "] "
+        << node->identifier << " ";
     for (int i = 0; i < node->parameters.size(); ++i)
     {
         node->parameters[i]->accept(this);

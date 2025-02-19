@@ -933,13 +933,7 @@ match_variable_statement()
             ExpressionTypeVisitor right_type(this->environment, this->path.c_str());
             assignment_node->accept(&right_type);
 
-            if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_UNKNOWN)
-            {
-                throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
-                    "Unknown datatype in assignment expression.");
-            }
-
-            else if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+            if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
             {
                 throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
                     "Error in assignment expression.");
@@ -1138,13 +1132,7 @@ match_assignment()
         right_type.evaluate(left_type.get_evaluated_type());
         right_hand_side->accept(&right_type);
 
-        if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_UNKNOWN)
-        {
-            throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
-                "Unknown datatype in assignment expression.");
-        }
-
-        else if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+        if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
         {
             throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
                 "Error in assignment expression.");
@@ -1656,6 +1644,37 @@ match_function_call()
         //              Easy. Right?
         //
         // TODO(Chris): Perform this witch craft.
+        shared_ptr<SyntaxNodeFunctionStatement> function_node = 
+            dynamic_pointer_cast<SyntaxNodeFunctionStatement>(symbol->get_node());
+
+        vector<ExpressionTypeVisitor> argument_types;
+        for (u64 i = 0; i < arguments.size(); i++)
+        {
+
+            Datatype current_type = function_node->parameters[i]->get_datatype();
+
+            ExpressionTypeVisitor argument_type(this->environment, this->path.c_str());
+            argument_type.evaluate(current_type);
+            arguments[i]->accept(&argument_type);
+            argument_types.push_back(argument_type);
+
+            if (argument_type.get_evaluated_type() == Datatype::DATA_TYPE_UNKNOWN)
+            {
+                throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
+                    "Unknown datatype in function call expression.");
+            }
+
+            else if (argument_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+            {
+                throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
+                    "Error in function call expression.");
+            }
+
+        }
+
+        // Set the argument types.
+        for (size_t i = 0; i < arguments.size(); i++)
+            function_node->parameters[i]->set_datatype(argument_types[i].get_evaluated_type());
 
         // Generate the function call node.
         auto function_call_node = this->generate_node<SyntaxNodeFunctionCall>();
