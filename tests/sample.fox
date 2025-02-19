@@ -1,17 +1,9 @@
-procedure print_statement stm;
-    { write 4 stm; }
-endprocedure;
-
-function add_numbers a b;
-    variable result 4 := a + b;
-    add_numbers := result;
-endfunction;
 
 begin;
-
-    variable idx 4 := 0;
-    { while idx < 10;
-        print_statement add_numbers(idx, 1);
-    endwhile; }
-
+    variable idx 4;
+    idx := 1;
+    idx := idx * 2.2;
+    idx := idx + 4;
+    idx := idx - 3i;
+    idx := idx + (3.14i * 2);
 end;

@@ -28,44 +28,29 @@ enum class Symboltype
     SYMBOL_TYPE_FUNCTION,
 };
 
-enum class Datatype
-{
-    DATA_TYPE_STRING,
-    DATA_TYPE_UNKNOWN,
-    DATA_TYPE_VOID,
-    DATA_TYPE_INTEGER,
-    DATA_TYPE_REAL,
-    DATA_TYPE_COMPLEX,
-};
-
 class Symbol
 {
     public:
                     Symbol();
-                    Symbol(string name, Symboltype type, Datatype datatype, shared_ptr<SyntaxNode> node, i32 arity = 0);
+                    Symbol(string name, Symboltype type, shared_ptr<SyntaxNode> node, i32 arity = 0);
         virtual    ~Symbol();
 
         void        set_name(string name);
         void        set_type(Symboltype type);
-        void        set_datatype(Datatype datatype);
         void        set_node(shared_ptr<SyntaxNode> node);
         void        set_arity(i32 arity);
 
         string                  get_name() const;
         Symboltype              get_type() const;
-        Datatype                get_datatype() const;
         shared_ptr<SyntaxNode>  get_node() const;
         i32                     get_arity() const;
 
         bool                    is_array() const;
 
-        bool        promote(Datatype type);
-
     protected:
         i32                     arity;
         string                  name;
         Symboltype              type; 
-        Datatype                datatype;
         shared_ptr<SyntaxNode>  node;
 
 };

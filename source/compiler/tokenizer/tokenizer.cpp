@@ -532,6 +532,13 @@ match_numbers()
 
         }
 
+        char peek = this->peek(0);
+        if (peek == 'i' || peek == 'I')
+        {
+            this->consume(1);
+            type = TokenType::TOKEN_COMPLEX;
+        }
+
         this->set_token(this->next_token, type);
         this->synchronize();
         return true;

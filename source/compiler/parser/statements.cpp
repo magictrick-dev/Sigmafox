@@ -6,7 +6,7 @@
 SyntaxNodeRoot::
 SyntaxNodeRoot()
 {
-    this->node_type = Nodetype::NODE_TYPE_ROOT;
+    this->nodetype = Nodetype::NODE_TYPE_ROOT;
 }
 
 SyntaxNodeRoot::
@@ -26,7 +26,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeModule::
 SyntaxNodeModule()
 {
-    this->node_type = Nodetype::NODE_TYPE_MODULE;
+    this->nodetype = Nodetype::NODE_TYPE_MODULE;
 }
 
 SyntaxNodeModule::
@@ -46,7 +46,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeMain::
 SyntaxNodeMain()
 {
-    this->node_type = Nodetype::NODE_TYPE_MAIN;
+    this->nodetype = Nodetype::NODE_TYPE_MAIN;
 }
 
 SyntaxNodeMain::
@@ -66,7 +66,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeIncludeStatement::
 SyntaxNodeIncludeStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_INCLUDE_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_INCLUDE_STATEMENT;
 }
 
 SyntaxNodeIncludeStatement::
@@ -86,8 +86,8 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeParameter::
 SyntaxNodeParameter()
 {
-    this->node_type = Nodetype::NODE_TYPE_PARAMETER;
-    this->signature = "int64_t";
+    this->nodetype = Nodetype::NODE_TYPE_PARAMETER;
+    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
 }
 
 SyntaxNodeParameter::
@@ -107,7 +107,8 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeFunctionStatement::
 SyntaxNodeFunctionStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_FUNCTION_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_FUNCTION_STATEMENT;
+    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
 }
 
 SyntaxNodeFunctionStatement::
@@ -128,8 +129,8 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeProcedureStatement::
 SyntaxNodeProcedureStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_PROCEDURE_STATEMENT;
-    this->signature = "void";
+    this->nodetype = Nodetype::NODE_TYPE_PROCEDURE_STATEMENT;
+    this->datatype = Datatype::DATA_TYPE_VOID;
 }
 
 SyntaxNodeProcedureStatement::
@@ -149,7 +150,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeExpressionStatement::
 SyntaxNodeExpressionStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_EXPRESSION_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_EXPRESSION_STATEMENT;
 }
 
 SyntaxNodeExpressionStatement::
@@ -169,7 +170,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeProcedureCallStatement::
 SyntaxNodeProcedureCallStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_PROCEDURE_CALL_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_PROCEDURE_CALL_STATEMENT;
 }
 
 SyntaxNodeProcedureCallStatement::
@@ -189,7 +190,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeWhileStatement::
 SyntaxNodeWhileStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_WHILE_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_WHILE_STATEMENT;
 }
 
 SyntaxNodeWhileStatement::
@@ -209,7 +210,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeLoopStatement::
 SyntaxNodeLoopStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_LOOP_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_LOOP_STATEMENT;
 }
 
 SyntaxNodeLoopStatement::
@@ -229,8 +230,8 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeVariableStatement::
 SyntaxNodeVariableStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_VARIABLE_STATEMENT;
-    this->signature = "int64_t";
+    this->nodetype = Nodetype::NODE_TYPE_VARIABLE_STATEMENT;
+    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
 }
 
 SyntaxNodeVariableStatement::
@@ -250,7 +251,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeScopeStatement::
 SyntaxNodeScopeStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_SCOPE_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_SCOPE_STATEMENT;
 }
 
 SyntaxNodeScopeStatement::
@@ -270,7 +271,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeConditionalStatement::
 SyntaxNodeConditionalStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_CONDITIONAL_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_CONDITIONAL_STATEMENT;
 }
 
 SyntaxNodeConditionalStatement::
@@ -290,7 +291,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeReadStatement::
 SyntaxNodeReadStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_READ_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_READ_STATEMENT;
 }
 
 SyntaxNodeReadStatement::
@@ -310,7 +311,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeWriteStatement::
 SyntaxNodeWriteStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_WRITE_STATEMENT;
+    this->nodetype = Nodetype::NODE_TYPE_WRITE_STATEMENT;
 }
 
 SyntaxNodeWriteStatement::

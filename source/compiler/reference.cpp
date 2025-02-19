@@ -84,8 +84,22 @@ void ReferenceVisitor::
 visit(SyntaxNodeParameter* node)
 {
 
-    std::cout << "PARAMETER " << "[TYPE: " << node->signature << "] "
-        << node->identifier;
+    string datatype_string;
+    switch (node->get_datatype())
+    {
+        case Datatype::DATA_TYPE_VOID:      datatype_string = "VOID"; break;
+        case Datatype::DATA_TYPE_STRING:    datatype_string = "STRING"; break;
+        case Datatype::DATA_TYPE_INTEGER:   datatype_string = "INTEGER"; break;
+        case Datatype::DATA_TYPE_REAL:      datatype_string = "REAL"; break;
+        case Datatype::DATA_TYPE_COMPLEX:   datatype_string = "COMPLEX"; break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    std::cout << "PARAMETER " << "[TYPE: " << datatype_string << "] " << node->identifier;
 
 }
 
@@ -162,8 +176,23 @@ void ReferenceVisitor::
 visit(SyntaxNodeVariableStatement* node)
 {
 
+    string datatype_string;
+    switch (node->get_datatype())
+    {
+        case Datatype::DATA_TYPE_VOID:      datatype_string = "VOID"; break;
+        case Datatype::DATA_TYPE_STRING:    datatype_string = "STRING"; break;
+        case Datatype::DATA_TYPE_INTEGER:   datatype_string = "INTEGER"; break;
+        case Datatype::DATA_TYPE_REAL:      datatype_string = "REAL"; break;
+        case Datatype::DATA_TYPE_COMPLEX:   datatype_string = "COMPLEX"; break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
     this->print_tabs();
-    std::cout << "VARIABLE " << "[TYPE: " << node->signature << "] "
+    std::cout << "VARIABLE " << "[TYPE: " << datatype_string << "] "
         << node->identifier << " ";
     node->storage->accept(this);
     std::cout << " ";
@@ -431,6 +460,8 @@ visit(SyntaxNodePrimary* node)
             std::cout << "STRING " << node->primitive; break;
         case Primarytype::PRIMARY_TYPE_IDENTIFIER:
             std::cout << "IDENTIFIER " << node->primitive; break;
+        case Primarytype::PRIMARY_TYPE_COMPLEX:
+            std::cout << "COMPLEX " << node->primitive; break;
         default:
         {
             SF_ASSERT(!"Unreachable condition.");

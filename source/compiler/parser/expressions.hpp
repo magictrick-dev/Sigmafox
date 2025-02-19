@@ -3,40 +3,6 @@
 #include <definitions.hpp>
 #include <compiler/parser/node.hpp>
 
-enum class Operationtype
-{
-    OPERATION_TYPE_UNKNOWN,
-
-    OPERATION_TYPE_ADDITION,
-    OPERATION_TYPE_SUBTRACTION,
-    OPERATION_TYPE_MULTIPLICATION,
-    OPERATION_TYPE_DIVISION,
-    OPERATION_TYPE_POWER,
-    OPERATION_TYPE_ROOT,
-    OPERATION_TYPE_EXTRACTION,
-    OPERATION_TYPE_DERIVATION,
-
-    OPERATION_TYPE_EQUALS,
-    OPERATION_TYPE_NOT_EQUALS,
-    OPERATION_TYPE_LESS_THAN,
-    OPERATION_TYPE_LESS_THAN_OR_EQUAL,
-    OPERATION_TYPE_GREATER_THAN,
-    OPERATION_TYPE_GREATER_THAN_OR_EQUAL,
-
-    OPERATION_TYPE_NEGATION,
-};
-
-enum class Primarytype
-{
-    PRIMARY_TYPE_UNKNOWN,
-
-    PRIMARY_TYPE_INTEGER,
-    PRIMARY_TYPE_REAL,
-    PRIMARY_TYPE_COMPLEX,
-    PRIMARY_TYPE_STRING,
-    PRIMARY_TYPE_IDENTIFIER,
-};
-
 // --- Expression Syntax Node ---------------------------------------------------
 //
 // Expression nodes are used to represent expressions in the syntax tree. They

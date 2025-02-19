@@ -6,7 +6,7 @@
 SyntaxNodeExpression::
 SyntaxNodeExpression()
 {
-    this->node_type = Nodetype::NODE_TYPE_EXPRESSION;
+    this->nodetype = Nodetype::NODE_TYPE_EXPRESSION;
 }
 
 SyntaxNodeExpression::
@@ -26,7 +26,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeAssignment::
 SyntaxNodeAssignment()
 {
-    this->node_type = Nodetype::NODE_TYPE_ASSIGNMENT;
+    this->nodetype = Nodetype::NODE_TYPE_ASSIGNMENT;
 }
 
 SyntaxNodeAssignment::
@@ -46,7 +46,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeEquality::
 SyntaxNodeEquality()
 {
-    this->node_type = Nodetype::NODE_TYPE_EQUALITY;
+    this->nodetype = Nodetype::NODE_TYPE_EQUALITY;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -67,7 +67,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeComparison::
 SyntaxNodeComparison()
 {
-    this->node_type = Nodetype::NODE_TYPE_COMPARISON;
+    this->nodetype = Nodetype::NODE_TYPE_COMPARISON;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -88,7 +88,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeTerm::
 SyntaxNodeTerm()
 {
-    this->node_type = Nodetype::NODE_TYPE_TERM;
+    this->nodetype = Nodetype::NODE_TYPE_TERM;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -109,7 +109,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeFactor::
 SyntaxNodeFactor()
 {
-    this->node_type = Nodetype::NODE_TYPE_FACTOR;
+    this->nodetype = Nodetype::NODE_TYPE_FACTOR;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -130,7 +130,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeMagnitude::
 SyntaxNodeMagnitude()
 {
-    this->node_type = Nodetype::NODE_TYPE_MAGNITUDE;
+    this->nodetype = Nodetype::NODE_TYPE_MAGNITUDE;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -151,7 +151,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeExtraction::
 SyntaxNodeExtraction()
 {
-    this->node_type = Nodetype::NODE_TYPE_EXTRACTION;
+    this->nodetype = Nodetype::NODE_TYPE_EXTRACTION;
 }
 
 SyntaxNodeExtraction::
@@ -171,7 +171,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeDerivation::
 SyntaxNodeDerivation()
 {
-    this->node_type = Nodetype::NODE_TYPE_DERIVATION;
+    this->nodetype = Nodetype::NODE_TYPE_DERIVATION;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -192,7 +192,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeUnary::
 SyntaxNodeUnary()
 {
-    this->node_type = Nodetype::NODE_TYPE_UNARY;
+    this->nodetype = Nodetype::NODE_TYPE_UNARY;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -213,7 +213,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeFunctionCall::
 SyntaxNodeFunctionCall()
 {
-    this->node_type = Nodetype::NODE_TYPE_FUNCTION_CALL;
+    this->nodetype = Nodetype::NODE_TYPE_FUNCTION_CALL;
 }
 
 SyntaxNodeFunctionCall::
@@ -233,7 +233,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeArrayIndex::
 SyntaxNodeArrayIndex()
 {
-    this->node_type = Nodetype::NODE_TYPE_ARRAY_INDEX;
+    this->nodetype = Nodetype::NODE_TYPE_ARRAY_INDEX;
 }
 
 SyntaxNodeArrayIndex::
@@ -253,7 +253,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodePrimary::
 SyntaxNodePrimary()
 {
-    this->node_type = Nodetype::NODE_TYPE_PRIMARY;
+    this->nodetype = Nodetype::NODE_TYPE_PRIMARY;
 }
 
 SyntaxNodePrimary::
@@ -273,7 +273,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeGrouping::
 SyntaxNodeGrouping()
 {
-    this->node_type = Nodetype::NODE_TYPE_GROUPING;
+    this->nodetype = Nodetype::NODE_TYPE_GROUPING;
 }
 
 SyntaxNodeGrouping::

@@ -29,6 +29,7 @@ enum class TokenType
 
     TOKEN_INTEGER,
     TOKEN_REAL,
+    TOKEN_COMPLEX,
     TOKEN_STRING,
     TOKEN_IDENTIFIER,
 

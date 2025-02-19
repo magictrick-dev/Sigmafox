@@ -1,6 +1,19 @@
 {
     "files.associations": {
         "xstring": "cpp",
-        "cstdint": "cpp"
+        "cstdint": "cpp",
+        "algorithm": "cpp",
+        "deque": "cpp",
+        "functional": "cpp",
+        "iomanip": "cpp",
+        "ios": "cpp",
+        "list": "cpp",
+        "ostream": "cpp",
+        "xhash": "cpp",
+        "xiosbase": "cpp",
+        "xlocmon": "cpp",
+        "xlocnum": "cpp",
+        "xutility": "cpp",
+        "*.rh": "cpp"
     }
 }

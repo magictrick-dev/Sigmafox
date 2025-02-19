@@ -3,7 +3,8 @@
 SyntaxNode::
 SyntaxNode()
 {
-    this->node_type = Nodetype::NODE_TYPE_UNKNOWN;
+    this->nodetype = Nodetype::NODE_TYPE_UNKNOWN;
+    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
 }
 
 SyntaxNode::
@@ -13,7 +14,19 @@ SyntaxNode::
 }
 
 Nodetype SyntaxNode::
-type() const
+get_nodetype() const
 {
-    return this->node_type;
+    return this->nodetype;
+}
+
+Datatype SyntaxNode::
+get_datatype() const
+{
+    return this->datatype;
+}
+
+void SyntaxNode::
+set_datatype(Datatype type)
+{
+    this->datatype = type;
 }

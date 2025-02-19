@@ -77,6 +77,9 @@ add_executable(Sigmafox
     "source/compiler/parser/visitor.hpp"
     "source/compiler/parser/visitor.cpp"
 
+    "source/compiler/parser/validators/exprtype.hpp"
+    "source/compiler/parser/validators/exprtype.cpp"
+
     "source/compiler/tokenizer/token.hpp"
     "source/compiler/tokenizer/token.cpp"
     "source/compiler/tokenizer/tokenizer.hpp"

@@ -91,7 +91,6 @@ class SyntaxNodeParameter : public SyntaxNode
 
     public:
         string identifier;
-        string signature;
 
 };
 
@@ -111,7 +110,6 @@ class SyntaxNodeFunctionStatement : public SyntaxNode
 
     public:
         string identifier;
-        string signature;
         vector<shared_ptr<SyntaxNode>> parameters;
         vector<shared_ptr<SyntaxNode>> children;
 
@@ -135,7 +133,6 @@ class SyntaxNodeProcedureStatement : public SyntaxNode
 
     public:
         string identifier;
-        string signature;
         vector<shared_ptr<SyntaxNode>> parameters;
         vector<shared_ptr<SyntaxNode>> children;
 
@@ -245,7 +242,6 @@ class SyntaxNodeVariableStatement : public SyntaxNode
 
     public:
         string identifier;
-        string signature;
         shared_ptr<SyntaxNode> storage;
         shared_ptr<SyntaxNode> expression;
         vector<shared_ptr<SyntaxNode>> dimensions;

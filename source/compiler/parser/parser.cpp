@@ -3,6 +3,7 @@
 #include <compiler/parser/statements.hpp>
 #include <compiler/parser/expressions.hpp>
 #include <compiler/parser/errorhandler.hpp>
+#include <compiler/parser/validators/exprtype.hpp>
 
 ParseTree::
 ParseTree(DependencyGraph* graph, Environment* environment)
@@ -402,7 +403,6 @@ match_function_statement(bool is_global)
         // Insert the name of the function into the symbol table.
         Symbol function_symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_DECLARED,
-            Datatype::DATA_TYPE_UNKNOWN,
             function_node);
 
         this->environment->set_symbol_locally(identifier_token.reference, function_symbol);
@@ -416,7 +416,6 @@ match_function_statement(bool is_global)
 
             Symbol parameter_symbol(parameter_node->identifier, 
                 Symboltype::SYMBOL_TYPE_VARIABLE, 
-                Datatype::DATA_TYPE_UNKNOWN,
                 parameter_node);
 
             this->environment->set_symbol_locally(parameter_node->identifier, parameter_symbol);
@@ -472,7 +471,6 @@ match_function_statement(bool is_global)
         // Insert the function into the symbol table.
         Symbol function_declaration_symbol = Symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_FUNCTION,
-            Datatype::DATA_TYPE_UNKNOWN,
             function_node, parameters.size());
 
         this->environment->set_symbol_locally(identifier_token.reference, function_declaration_symbol);
@@ -544,7 +542,6 @@ match_procedure_statement(bool is_global)
 
             Symbol parameter_symbol(parameter_node->identifier, 
                 Symboltype::SYMBOL_TYPE_VARIABLE, 
-                Datatype::DATA_TYPE_UNKNOWN,
                 parameter_node);
 
             this->environment->set_symbol_locally(parameter_node->identifier, parameter_symbol);
@@ -593,7 +590,6 @@ match_procedure_statement(bool is_global)
         //              don't return anything.
         Symbol procedure_declaration_symbol = Symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_PROCEDURE,
-            Datatype::DATA_TYPE_VOID,
             procedure_node, parameters.size());
 
         // Set the symbol.
@@ -921,7 +917,6 @@ match_variable_statement()
         // Insert the variable into the symbol table.
         Symbol variable_symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_VARIABLE,
-            Datatype::DATA_TYPE_UNKNOWN,
             variable_node);
 
         this->environment->set_symbol_locally(identifier_token.reference, variable_symbol);
@@ -1035,15 +1030,15 @@ match_assignment()
 
         shared_ptr<SyntaxNode> left_hand_side = this->match_equality();
 
-        if (left_hand_side->type() != Nodetype::NODE_TYPE_PRIMARY &&
-            left_hand_side->type() != Nodetype::NODE_TYPE_ARRAY_INDEX)
+        if (left_hand_side->get_nodetype() != Nodetype::NODE_TYPE_PRIMARY &&
+            left_hand_side->get_nodetype() != Nodetype::NODE_TYPE_ARRAY_INDEX)
         {
             return left_hand_side;
         }
 
         string identifier;
 
-        if (left_hand_side->type() == Nodetype::NODE_TYPE_PRIMARY)
+        if (left_hand_side->get_nodetype() == Nodetype::NODE_TYPE_PRIMARY)
         {
 
             shared_ptr<SyntaxNodePrimary> primary_node = 
@@ -1062,7 +1057,7 @@ match_assignment()
         this->consume_current_token_as(TokenType::TOKEN_COLON_EQUALS, __LINE__);
 
         // Validate it exists in the local symbol table.
-        if (left_hand_side->type() == Nodetype::NODE_TYPE_PRIMARY)
+        if (left_hand_side->get_nodetype() == Nodetype::NODE_TYPE_PRIMARY)
         {
 
             shared_ptr<SyntaxNodePrimary> primary_node = 
@@ -1091,7 +1086,7 @@ match_assignment()
         //              evaluator for this.
 
         // Update the primary symbol as defined. Arrays are assumed to be defined.
-        if (left_hand_side->type() == Nodetype::NODE_TYPE_PRIMARY)
+        if (left_hand_side->get_nodetype() == Nodetype::NODE_TYPE_PRIMARY)
         {
 
             shared_ptr<SyntaxNodePrimary> primary_node = 
@@ -1114,6 +1109,37 @@ match_assignment()
         auto assignment_node = this->generate_node<SyntaxNodeAssignment>();
         assignment_node->left = left_hand_side;
         assignment_node->right = right_hand_side;
+
+        ExpressionTypeVisitor left_type(this->environment, this->path.c_str());
+        ExpressionTypeVisitor right_type(this->environment, this->path.c_str());
+        left_hand_side->accept(&left_type);
+        right_type.evaluate(left_type.get_evaluated_type());
+        right_hand_side->accept(&right_type);
+
+        if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_UNKNOWN)
+        {
+            throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
+                "Unknown datatype in assignment expression.");
+        }
+
+        else if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+        {
+            throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
+                "Error in assignment expression.");
+        }
+
+        // Determine what was returned. This value will tell us how to promote the
+        // left-hand-side part of the expression.
+        Symbol *symbol = this->environment->get_symbol(identifier);
+        SF_ENSURE_PTR(symbol);
+        symbol->get_node()->set_datatype(right_type.get_evaluated_type());
+        
+        // TODO(Chris): A mechanism for nodes to be identifiable for their ability
+        //              to have a datatype associated with them would be nice. Don't
+        //              really need to translate the nodes just to set this, so we should
+        //              make this a thing in the validator OR we should make a visitor
+        //              to do this.
+
         return assignment_node;
 
     }
@@ -1715,6 +1741,7 @@ match_primary()
     {
 
         if (this->expect_current_token_as(TokenType::TOKEN_REAL) ||
+            this->expect_current_token_as(TokenType::TOKEN_COMPLEX) ||
             this->expect_current_token_as(TokenType::TOKEN_INTEGER) ||
             this->expect_current_token_as(TokenType::TOKEN_STRING))
         {
@@ -1725,6 +1752,7 @@ match_primary()
             Primarytype primary_type = Primarytype::PRIMARY_TYPE_UNKNOWN;
             switch (literal_token.type)
             {
+                case TokenType::TOKEN_COMPLEX: primary_type = Primarytype::PRIMARY_TYPE_COMPLEX; break;
                 case TokenType::TOKEN_REAL:    primary_type = Primarytype::PRIMARY_TYPE_REAL; break;
                 case TokenType::TOKEN_INTEGER: primary_type = Primarytype::PRIMARY_TYPE_INTEGER; break;
                 case TokenType::TOKEN_STRING:  primary_type = Primarytype::PRIMARY_TYPE_STRING; break;
