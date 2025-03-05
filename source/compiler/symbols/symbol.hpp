@@ -32,17 +32,17 @@ class Symbol
 {
     public:
                     Symbol();
-                    Symbol(string name, Symboltype type, shared_ptr<SyntaxNode> node, i32 arity = 0);
+                    Symbol(string name, Symboltype type, SyntaxNode* node, i32 arity = 0);
         virtual    ~Symbol();
 
         void        set_name(string name);
         void        set_type(Symboltype type);
-        void        set_node(shared_ptr<SyntaxNode> node);
+        void        set_node(SyntaxNode* node);
         void        set_arity(i32 arity);
 
         string                  get_name() const;
         Symboltype              get_type() const;
-        shared_ptr<SyntaxNode>  get_node() const;
+        SyntaxNode*             get_node() const;
         i32                     get_arity() const;
 
         bool                    is_array() const;
@@ -51,7 +51,7 @@ class Symbol
         i32                     arity;
         string                  name;
         Symboltype              type; 
-        shared_ptr<SyntaxNode>  node;
+        SyntaxNode*             node;
 
 };
 

@@ -10,7 +10,7 @@ Symbol()
 }
 
 Symbol::
-Symbol(string name, Symboltype type, shared_ptr<SyntaxNode> node, i32 arity)
+Symbol(string name, Symboltype type, SyntaxNode* node, i32 arity)
 {
     this->name = name;
     this->type = type;
@@ -36,7 +36,7 @@ set_type(Symboltype type)
 }
 
 void Symbol::
-set_node(shared_ptr<SyntaxNode> node)
+set_node(SyntaxNode* node)
 {
     this->node = node;
 }
@@ -59,7 +59,7 @@ get_type() const
     return this->type;
 }
 
-shared_ptr<SyntaxNode> Symbol::
+SyntaxNode* Symbol::
 get_node() const
 {
     return this->node;

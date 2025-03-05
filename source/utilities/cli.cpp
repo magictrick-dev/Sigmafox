@@ -441,7 +441,7 @@ header()
 {
     std::cout << "|---------------------------------------|--------------------|" << std::endl;
     std::cout << "|     Sigamfox Language Transpiler      | Version 1.0.0      |" << std::endl;
-    std::cout << "|     Northern Illinois University      | November 2024      |" << std::endl;
+    std::cout << "|     Northern Illinois University      | Feb. 2025          |" << std::endl;
     std::cout << "|---------------------------------------|--------------------|" << std::endl;
 }
 

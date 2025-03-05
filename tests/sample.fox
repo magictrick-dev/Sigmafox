@@ -1,10 +1,22 @@
 
 function add_numbers a b;
-    add_numbers := a + b;
+    variable result 4 := a + b;
+    add_numbers := result;
+endfunction;
+
+function sub_numbers a b;
+    variable result 4 := a - add_numbers(5, 3);
+    sub_numbers := result;
+endfunction;
+
+function operations a b;
+    variable constant 4 := (3.14 / 2) / 3.33;
+    variable result 4 := add_numbers(b, a) * sub_numbers(a, b * constant);
+    operations := result;
 endfunction;
 
 begin;
-    variable left 4     := 8;
-    variable right 4    := 16;
-    variable result 4   := add_numbers(left, right);
+    variable left   4 := 22 * 1 - (4 * 2.2);
+    variable right  4 := ((100 / 2) / 5.0) / 2 + 19.3i;
+    variable other  4 := operations(left, right);
 end;

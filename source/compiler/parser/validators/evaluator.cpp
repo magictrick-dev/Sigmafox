@@ -1,34 +1,37 @@
-#include <compiler/parser/validators/exprtype.hpp>
-#include <compiler/parser/errorhandler.hpp>
+#include <compiler/parser/validators/evaluator.hpp>
 
-ExpressionTypeVisitor::
-ExpressionTypeVisitor(Environment *environment, string path)
-{
-
-    this->evaluated_type    = Datatype::DATA_TYPE_UNKNOWN;
-    this->environment       = environment;
-    this->path              = path;
-
-}
-
-ExpressionTypeVisitor::
-~ExpressionTypeVisitor()
+ExpressionEvaluator::
+ExpressionEvaluator(Environment *environment)
+    : environment(environment), evaluated_type(Datatype::DATA_TYPE_UNKNOWN)
 {
 
 }
 
-Datatype ExpressionTypeVisitor::
-get_evaluated_type() const
+ExpressionEvaluator::
+ExpressionEvaluator(Environment *environment, Datatype initial_type)
+    : environment(environment), evaluated_type(initial_type)
+{
+
+}
+
+ExpressionEvaluator::
+~ExpressionEvaluator()
+{
+
+}
+
+Datatype ExpressionEvaluator::
+operator()() const
 {
 
     return this->evaluated_type;
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 evaluate(Datatype type)
 {
-
+    
     // Our error cases are handled first.
     if (type == Datatype::DATA_TYPE_ERROR)
     {
@@ -53,10 +56,13 @@ evaluate(Datatype type)
 
     else if (this->evaluated_type > Datatype::DATA_TYPE_UNKNOWN && type == Datatype::DATA_TYPE_STRING)
         this->evaluated_type = Datatype::DATA_TYPE_ERROR;
+    
 
 }
 
-void ExpressionTypeVisitor::
+// --- Visitor Routines --------------------------------------------------------
+
+void ExpressionEvaluator::
 visit(SyntaxNodeEquality* node)
 {
 
@@ -65,7 +71,7 @@ visit(SyntaxNodeEquality* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeComparison* node)
 {
 
@@ -74,7 +80,7 @@ visit(SyntaxNodeComparison* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeTerm* node)
 {
 
@@ -83,7 +89,7 @@ visit(SyntaxNodeTerm* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeFactor* node)
 {
 
@@ -92,7 +98,7 @@ visit(SyntaxNodeFactor* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeMagnitude* node)
 {
 
@@ -101,7 +107,7 @@ visit(SyntaxNodeMagnitude* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeExtraction* node)
 {
 
@@ -110,7 +116,7 @@ visit(SyntaxNodeExtraction* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeDerivation* node)
 {
 
@@ -119,7 +125,7 @@ visit(SyntaxNodeDerivation* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeUnary* node)
 {
 
@@ -127,7 +133,7 @@ visit(SyntaxNodeUnary* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeFunctionCall* node)
 {
 
@@ -138,7 +144,7 @@ visit(SyntaxNodeFunctionCall* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeArrayIndex* node)
 {
 
@@ -149,7 +155,7 @@ visit(SyntaxNodeArrayIndex* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodePrimary* node)
 {
 
@@ -183,7 +189,7 @@ visit(SyntaxNodePrimary* node)
 
 }
 
-void ExpressionTypeVisitor::
+void ExpressionEvaluator::
 visit(SyntaxNodeGrouping* node)
 {
 

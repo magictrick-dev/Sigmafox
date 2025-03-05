@@ -68,17 +68,17 @@ add_executable(Sigmafox
     
     "source/compiler/parser/node.hpp"
     "source/compiler/parser/node.cpp"
-    "source/compiler/parser/statements.hpp"
-    "source/compiler/parser/statements.cpp"
-    "source/compiler/parser/expressions.hpp"
-    "source/compiler/parser/expressions.cpp"
+    "source/compiler/parser/subnodes.hpp"
+    "source/compiler/parser/subnodes.cpp"
     "source/compiler/parser/parser.hpp"
     "source/compiler/parser/parser.cpp"
     "source/compiler/parser/visitor.hpp"
     "source/compiler/parser/visitor.cpp"
 
-    "source/compiler/parser/validators/exprtype.hpp"
-    "source/compiler/parser/validators/exprtype.cpp"
+    "source/compiler/parser/validators/evaluator.hpp"
+    "source/compiler/parser/validators/evaluator.cpp"
+    "source/compiler/parser/validators/blockvalidator.hpp"
+    "source/compiler/parser/validators/blockvalidator.cpp"
 
     "source/compiler/tokenizer/token.hpp"
     "source/compiler/tokenizer/token.cpp"

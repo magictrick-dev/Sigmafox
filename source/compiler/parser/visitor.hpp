@@ -2,8 +2,7 @@
 #define SIGMAFOX_COMPILER_PARSER_VISITOR_HPP
 #include <definitions.hpp>
 #include <compiler/parser/node.hpp>
-#include <compiler/parser/statements.hpp>
-#include <compiler/parser/expressions.hpp>
+#include <compiler/parser/subnodes.hpp>
 
 class SyntaxNodeVisitor
 {

@@ -86,6 +86,21 @@ symbol_exists_globally(string identifier)
     
 }
 
+bool Environment::
+symbol_exists_but_not_locally(string identifier)
+{
+    
+    // We don't check the last table because that's the local table.
+    for (i64 i = 0; i < this->tables.size() - 1; i++)
+    {
+        if (this->tables[i].find(identifier))
+            return true;
+    }
+    
+    return false;
+    
+}
+
 Symbol* Environment::
 get_symbol(string identifier)
 {

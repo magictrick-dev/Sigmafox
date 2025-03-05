@@ -14,6 +14,7 @@
         "xlocmon": "cpp",
         "xlocnum": "cpp",
         "xutility": "cpp",
-        "*.rh": "cpp"
+        "*.rh": "cpp",
+        "memory": "cpp"
     }
 }

@@ -1,9 +1,9 @@
 #include <platform/filesystem.hpp>
 #include <compiler/parser/parser.hpp>
-#include <compiler/parser/statements.hpp>
-#include <compiler/parser/expressions.hpp>
+#include <compiler/parser/subnodes.hpp>
 #include <compiler/parser/errorhandler.hpp>
-#include <compiler/parser/validators/exprtype.hpp>
+#include <compiler/parser/validators/evaluator.hpp>
+#include <compiler/parser/validators/blockvalidator.hpp>
 
 ParseTree::
 ParseTree(DependencyGraph* graph, Environment* environment)
@@ -403,7 +403,7 @@ match_function_statement(bool is_global)
         // Insert the name of the function into the symbol table.
         Symbol function_symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_DECLARED,
-            function_node);
+            function_node.get());
 
         this->environment->set_symbol_locally(identifier_token.reference, function_symbol);
 
@@ -416,7 +416,7 @@ match_function_statement(bool is_global)
 
             Symbol parameter_symbol(parameter_node->identifier, 
                 Symboltype::SYMBOL_TYPE_VARIABLE, 
-                parameter_node);
+                parameter_node.get());
 
             this->environment->set_symbol_locally(parameter_node->identifier, parameter_symbol);
 
@@ -471,7 +471,7 @@ match_function_statement(bool is_global)
         // Insert the function into the symbol table.
         Symbol function_declaration_symbol = Symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_FUNCTION,
-            function_node, parameters.size());
+            function_node.get(), parameters.size());
 
         this->environment->set_symbol_locally(identifier_token.reference, function_declaration_symbol);
 
@@ -542,7 +542,7 @@ match_procedure_statement(bool is_global)
 
             Symbol parameter_symbol(parameter_node->identifier, 
                 Symboltype::SYMBOL_TYPE_VARIABLE, 
-                parameter_node);
+                parameter_node.get());
 
             this->environment->set_symbol_locally(parameter_node->identifier, parameter_symbol);
 
@@ -590,7 +590,7 @@ match_procedure_statement(bool is_global)
         //              don't return anything.
         Symbol procedure_declaration_symbol = Symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_PROCEDURE,
-            procedure_node, parameters.size());
+            procedure_node.get(), parameters.size());
 
         // Set the symbol.
         this->environment->set_symbol_locally(identifier_token.reference, procedure_declaration_symbol);
@@ -917,7 +917,7 @@ match_variable_statement()
         // Insert the variable into the symbol table.
         Symbol variable_symbol(identifier_token.reference,
             Symboltype::SYMBOL_TYPE_VARIABLE,
-            variable_node);
+            variable_node.get());
 
         this->environment->set_symbol_locally(identifier_token.reference, variable_symbol);
 
@@ -930,16 +930,16 @@ match_variable_statement()
         if (assignment_node != nullptr)
         {
 
-            ExpressionTypeVisitor right_type(this->environment, this->path.c_str());
+            ExpressionEvaluator right_type = { this->environment };
             assignment_node->accept(&right_type);
 
-            if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+            if (right_type() == Datatype::DATA_TYPE_ERROR)
             {
                 throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
                     "Error in assignment expression.");
             }
 
-            variable_node->set_datatype(right_type.get_evaluated_type());
+            variable_node->set_datatype(right_type());
 
         }
 
@@ -1125,14 +1125,14 @@ match_assignment()
         auto assignment_node = this->generate_node<SyntaxNodeAssignment>();
         assignment_node->left = left_hand_side;
         assignment_node->right = right_hand_side;
+        assignment_node->identifier = identifier;
 
-        ExpressionTypeVisitor left_type(this->environment, this->path.c_str());
-        ExpressionTypeVisitor right_type(this->environment, this->path.c_str());
+        ExpressionEvaluator left_type = { this->environment };
         left_hand_side->accept(&left_type);
-        right_type.evaluate(left_type.get_evaluated_type());
+        ExpressionEvaluator right_type = { this->environment, left_type() };
         right_hand_side->accept(&right_type);
 
-        if (right_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+        if (right_type() == Datatype::DATA_TYPE_ERROR)
         {
             throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
                 "Error in assignment expression.");
@@ -1142,7 +1142,7 @@ match_assignment()
         // left-hand-side part of the expression.
         Symbol *symbol = this->environment->get_symbol(identifier);
         SF_ENSURE_PTR(symbol);
-        symbol->get_node()->set_datatype(right_type.get_evaluated_type());
+        symbol->get_node()->set_datatype(right_type());
         
         // TODO(Chris): A mechanism for nodes to be identifiable for their ability
         //              to have a datatype associated with them would be nice. Don't
@@ -1563,6 +1563,8 @@ match_unary()
             auto unary_node = this->generate_node<SyntaxNodeUnary>();
             unary_node->expression      = right_hand_side;
             unary_node->operation       = operation;
+            
+            return unary_node;
 
         }
 
@@ -1641,30 +1643,22 @@ match_function_call()
         //              function, checking the return value and promoting the function's
         //              return value once we get back.
         //
-        //              Easy. Right?
+        //              Easy. Right?              
         //
         // TODO(Chris): Perform this witch craft.
-        shared_ptr<SyntaxNodeFunctionStatement> function_node = 
-            dynamic_pointer_cast<SyntaxNodeFunctionStatement>(symbol->get_node());
+        auto function_node = (SyntaxNodeFunctionStatement*)symbol->get_node();
 
-        vector<ExpressionTypeVisitor> argument_types;
+        vector<ExpressionEvaluator> argument_types;
         for (u64 i = 0; i < arguments.size(); i++)
         {
 
             Datatype current_type = function_node->parameters[i]->get_datatype();
 
-            ExpressionTypeVisitor argument_type(this->environment, this->path.c_str());
-            argument_type.evaluate(current_type);
+            ExpressionEvaluator argument_type = { this->environment, current_type };
             arguments[i]->accept(&argument_type);
             argument_types.push_back(argument_type);
 
-            if (argument_type.get_evaluated_type() == Datatype::DATA_TYPE_UNKNOWN)
-            {
-                throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
-                    "Unknown datatype in function call expression.");
-            }
-
-            else if (argument_type.get_evaluated_type() == Datatype::DATA_TYPE_ERROR)
+            if (argument_type() == Datatype::DATA_TYPE_ERROR)
             {
                 throw SyntaxError(__LINE__, this->path, this->tokenizer->get_previous_token(),
                     "Error in function call expression.");
@@ -1674,7 +1668,33 @@ match_function_call()
 
         // Set the argument types.
         for (size_t i = 0; i < arguments.size(); i++)
-            function_node->parameters[i]->set_datatype(argument_types[i].get_evaluated_type());
+            function_node->parameters[i]->set_datatype(argument_types[i]());
+        
+        // Now validate the block by pushing the environment and simulating the block.
+        this->environment->push_table();
+        for (auto argument : function_node->parameters)
+        {
+
+            SyntaxNodeParameter *parameter = (SyntaxNodeParameter*)argument.get();
+            
+            Symbol parameter_symbol = Symbol(parameter->identifier,
+                Symboltype::SYMBOL_TYPE_VARIABLE,
+                parameter);
+            
+            this->environment->set_symbol_locally(parameter->identifier, parameter_symbol);
+        
+        }
+        
+        Symbol return_symbol = Symbol(function_node->identifier,
+            Symboltype::SYMBOL_TYPE_VARIABLE,
+            function_node);
+        
+        this->environment->set_symbol_locally(function_node->identifier, return_symbol);
+
+        BlockValidator validator(this->environment);
+        function_node->accept(&validator);
+        
+        this->environment->pop_table();
 
         // Generate the function call node.
         auto function_call_node = this->generate_node<SyntaxNodeFunctionCall>();

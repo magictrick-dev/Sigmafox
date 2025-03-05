@@ -24,104 +24,69 @@ int
 main(int argc, char ** argv)
 {
 
-    // --- Command Line Parsing ------------------------------------------------
-    //
-    // Validates and establishes the environment context based on CLI parameters.
-    //
 
-    Filepath user_source_file = Filepath::cwd();
-    if (!CLI::parse(argc, argv) || argc <= 1)
-    {
-        CLI::short_help();
-        return -1;
-    }
-    else
     {
 
-        // Check if the first argument is indeed a string argument.
-        CLIArgument *file_argument = CLI::get(1);
-        if (file_argument->get_type() != CLIArgumentType::String)
+        // --- Command Line Parsing ------------------------------------------------
+        //
+        //
+        // Validates and establishes the environment context based on CLI parameters.
+        //
+
+        Filepath user_source_file = Filepath::cwd();
+        if (!CLI::parse(argc, argv) || argc <= 1)
         {
             CLI::short_help();
-            std::cout << std::endl;
-            std::cout << "CLI Error: Expected a string argument at argument position 1." << std::endl;
             return -1;
         }
-
-        // Construct the path and canonicalize it.
-        user_source_file += "/";
-        user_source_file += file_argument->get_argument();
-        user_source_file.canonicalize();
-
-        // Check if the file exists.
-        if (!user_source_file.is_valid_file())
+        else
         {
-            CLI::short_help();
-            std::cout << std::endl;
-            std::cout << "CLI Error: Expected a valid path to a file at argument position 1." << std::endl;
-            return -1;
-        }
 
-        // Check for --warnings-as-errors, or -w.
-        if (CLI::has_parameter("warnings-as-errors") || CLI::has_flag('w'))
-        {
-            ApplicationParameters::runtime_warnings_as_errors = true;
-            std::cout << "Runtime warnings will be treated as errors." << std::endl;
-        }
+            // Check if the first argument is indeed a string argument.
+            CLIArgument *file_argument = CLI::get(1);
+            if (file_argument->get_type() != CLIArgumentType::String)
+            {
+                CLI::short_help();
+                std::cout << std::endl;
+                std::cout << "CLI Error: Expected a string argument at argument position 1." << std::endl;
+                return -1;
+            }
 
-        Filepath runtime_path = file_get_runtime_directory();
-        Filepath output_path = file_get_current_working_directory();
-        output_path += "/output";
-        output_path.canonicalize();
+            // Construct the path and canonicalize it.
+            user_source_file += "/";
+            user_source_file += file_argument->get_argument();
+            user_source_file.canonicalize();
 
-        ApplicationParameters::runtime_path = runtime_path.c_str();
-        ApplicationParameters::output_path = output_path.c_str();
+            // Check if the file exists.
+            if (!user_source_file.is_valid_file())
+            {
+                CLI::short_help();
+                std::cout << std::endl;
+                std::cout << "CLI Error: Expected a valid path to a file at argument position 1." << std::endl;
+                return -1;
+            }
 
-        printf("-- Runtime Path: %s\n", ApplicationParameters::runtime_path.c_str());
-        printf("-- Output Path: %s\n", ApplicationParameters::output_path.c_str());
-        printf("-- Source File: %s\n", user_source_file.c_str());
+            // Check for --warnings-as-errors, or -w.
+            if (CLI::has_parameter("warnings-as-errors") || CLI::has_flag('w'))
+            {
+                ApplicationParameters::runtime_warnings_as_errors = true;
+                std::cout << "Runtime warnings will be treated as errors." << std::endl;
+            }
 
-    } 
-    
-#if 0
-    // --- Compiler Invocation -------------------------------------------------
-    //
-    // Constructs the AST, and then generates the C++ code given that the parser
-    // was able to successfully parse the source file(s).
-    //
+            Filepath runtime_path = file_get_runtime_directory();
+            Filepath output_path = file_get_current_working_directory();
+            output_path += "/output";
+            output_path.canonicalize();
 
-    SyntaxTree syntax_tree;
-    if (!syntax_tree.construct_ast(user_source_file))
-    {
-        std::cout << "The AST wasn't able to be created." << std::endl;
-        return -1; // The AST wasn't able to be created.
-    }
-    else
-    {
-        std::cout << "---------------------------------------------------" << std::endl;
-        std::cout << "              AST Reference Output" << std::endl;
-        std::cout << "---------------------------------------------------" << std::endl;
-        ReferenceVisitor reference_visitor(4);
-        syntax_tree.visit_root(&reference_visitor);
+            ApplicationParameters::runtime_path = runtime_path.c_str();
+            ApplicationParameters::output_path = output_path.c_str();
 
-        std::cout << "---------------------------------------------------" << std::endl;
-        std::cout << "              C++ Generation Output" << std::endl;
-        std::cout << "---------------------------------------------------" << std::endl;
-        std::string main_absolute_path = user_source_file.c_str();
-        GenerationVisitor generation_visitor(main_absolute_path, 4);
-        syntax_tree.visit_root(&generation_visitor);
-        generation_visitor.dump_files();
-        bool result = generation_visitor.generate_files(ApplicationParameters::output_path.c_str(), true);
-        if (result == false)
-        {
-            std::cout << "The files weren't able to be generated." << std::endl;
-            return -1;
-        }
-        
-    }
-#endif
+            printf("-- Runtime Path: %s\n", ApplicationParameters::runtime_path.c_str());
+            printf("-- Output Path: %s\n", ApplicationParameters::output_path.c_str());
+            printf("-- Source File: %s\n", user_source_file.c_str());
 
-    {
+        } 
+
         Compiler compiler(user_source_file.c_str());
         if (!compiler.parse())
         {

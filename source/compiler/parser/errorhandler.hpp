@@ -8,6 +8,9 @@
 //      fixing the issue.
 //
 // -----------------------------------------------------------------------------
+
+// This will be superceded by the compiler error handler.
+
 #ifndef SIGMAFOX_COMPILER_ERROR_HANDLER_HPP
 #define SIGMAFOX_COMPILER_ERROR_HANDLER_HPP
 #include <vector>

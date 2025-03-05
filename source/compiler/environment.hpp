@@ -41,6 +41,7 @@ class Environment
         bool            symbol_exists(string identifier);
         bool            symbol_exists_locally(string identifier);
         bool            symbol_exists_globally(string identifier);
+        bool            symbol_exists_but_not_locally(string identifier);
 
         Symbol*         get_symbol(string identifier);
         Symbol*         get_symbol_locally(string identifier);
@@ -51,6 +52,10 @@ class Environment
 
         bool            is_begin_defined() const;
         void            define_begin();
+        
+    protected:
+        bool            warnings_as_errors  = false;
+        bool            pedantic_output     = false;
 
     protected:
         bool begin_defined;
