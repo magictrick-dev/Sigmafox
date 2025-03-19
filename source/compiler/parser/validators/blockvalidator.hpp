@@ -10,11 +10,10 @@ class BlockValidator : public SyntaxNodeVisitor
                         BlockValidator(Environment *environment);
         virtual        ~BlockValidator();
         
-        virtual void    visit(SyntaxNodeParameter* node) override;
         virtual void    visit(SyntaxNodeFunctionStatement* node) override;
         virtual void    visit(SyntaxNodeProcedureStatement* node) override;
         virtual void    visit(SyntaxNodeExpressionStatement* node) override;
-        virtual void    visit(SyntaxNodeProcedureCallStatement* node) override;
+        virtual void    visit(SyntaxNodeProcedureCall* node) override;
         virtual void    visit(SyntaxNodeWhileStatement* node) override;
         virtual void    visit(SyntaxNodeLoopStatement* node) override;
         virtual void    visit(SyntaxNodeVariableStatement* node) override;

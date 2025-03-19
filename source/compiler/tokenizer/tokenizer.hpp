@@ -36,9 +36,9 @@ class Tokenizer
         Token           get_current_token() const;
         Token           get_next_token() const;
 
-        b32             previous_token_is(TokenType type) const;
-        b32             current_token_is(TokenType type) const;
-        b32             next_token_is(TokenType type) const;
+        b32             previous_token_is(Tokentype type) const;
+        b32             current_token_is(Tokentype type) const;
+        b32             next_token_is(Tokentype type) const;
 
     protected:
         template <typename... Args> b32 match_set_of_characters(Args... args);
@@ -47,7 +47,7 @@ class Tokenizer
         b32             consume_whitespace();
         void            synchronize();
 
-        TokenType       check_identifier() const;
+        Tokentype       check_identifier() const;
 
         b32             is_eof() const;
         b32             is_eol() const;
@@ -59,7 +59,7 @@ class Tokenizer
         b32             match_strings();
         b32             match_identifiers();
 
-        void            set_token(Token *token, TokenType type);
+        void            set_token(Token *token, Tokentype type);
 
     protected:
         Filepath        path;

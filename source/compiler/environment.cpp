@@ -1,4 +1,5 @@
 #include <compiler/environment.hpp>
+#include <compiler/exceptions.hpp>
 
 // --- Environment -------------------------------------------------------------
 
@@ -8,6 +9,7 @@ Environment()
     
     this->tables.emplace_back(Symboltable());
     this->begin_defined = false;
+    this->valid_parse = true;
     
 }
 
@@ -105,9 +107,9 @@ Symbol* Environment::
 get_symbol(string identifier)
 {
     
-    for (auto& table : this->tables)
+    for (i64 i = this->tables.size() - 1; i >= 0; --i)
     {
-        Symbol* symbol = table.find(identifier);
+        Symbol *symbol = this->tables[i].find(identifier);
         if (symbol)
             return symbol;
     }
@@ -161,5 +163,23 @@ define_begin()
 {
     
     this->begin_defined = true;
+    
+}
+
+bool Environment::
+is_valid_parse() const
+{
+    
+    return this->valid_parse;
+    
+}
+
+bool Environment::
+handle_compiler_exception(CompilerException& e)
+{
+    
+    std::cout << e.what() << std::endl;
+    this->valid_parse = false;  
+    return true;
     
 }

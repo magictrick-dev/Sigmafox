@@ -1,6 +1,5 @@
 #include <cstdarg>
 #include <unordered_map>
-#include <environment.hpp>
 #include <compiler/tokenizer/tokenizer.hpp>
 #include <platform/filesystem.hpp>
 
@@ -8,41 +7,41 @@
 //              We are statically lazy-initializing this since we only need to
 //              reference this map later on. Marked as const because that's what
 //              John Carmack would have wanted.
-static inline const std::unordered_map<std::string, TokenType>& 
+static inline const std::unordered_map<std::string, Tokentype>& 
 get_keyword_map()
 {
 
     // The keyword map only needs to be initialized once.
-    static std::unordered_map<std::string, TokenType> map;
+    static std::unordered_map<std::string, Tokentype> map;
     static bool initialized_map = false;
 
     if (initialized_map == false)
     {
         
-        map["BEGIN"]        = TokenType::TOKEN_KEYWORD_BEGIN;
-        map["ELSEIF"]       = TokenType::TOKEN_KEYWORD_ELSEIF;
-        map["END"]          = TokenType::TOKEN_KEYWORD_END;
-        map["ENDFIT"]       = TokenType::TOKEN_KEYWORD_ENDFIT;
-        map["ENDIF"]        = TokenType::TOKEN_KEYWORD_ENDIF;
-        map["ENDFUNCTION"]  = TokenType::TOKEN_KEYWORD_ENDFUNCTION;
-        map["ENDLOOP"]      = TokenType::TOKEN_KEYWORD_ENDLOOP;
-        map["ENDPLOOP"]     = TokenType::TOKEN_KEYWORD_ENDPLOOP;
-        map["ENDPROCEDURE"] = TokenType::TOKEN_KEYWORD_ENDPROCEDURE;
-        map["ENDSCOPE"]     = TokenType::TOKEN_KEYWORD_ENDSCOPE;
-        map["ENDWHILE"]     = TokenType::TOKEN_KEYWORD_ENDWHILE;
-        map["FIT"]          = TokenType::TOKEN_KEYWORD_FIT;
-        map["FUNCTION"]     = TokenType::TOKEN_KEYWORD_FUNCTION;
-        map["IF"]           = TokenType::TOKEN_KEYWORD_IF;
-        map["INCLUDE"]      = TokenType::TOKEN_KEYWORD_INCLUDE;
-        map["LOOP"]         = TokenType::TOKEN_KEYWORD_LOOP;
-        map["PLOOP"]        = TokenType::TOKEN_KEYWORD_PLOOP;
-        map["PROCEDURE"]    = TokenType::TOKEN_KEYWORD_PROCEDURE;
-        map["READ"]         = TokenType::TOKEN_KEYWORD_READ;
-        map["SAVE"]         = TokenType::TOKEN_KEYWORD_SAVE;
-        map["SCOPE"]        = TokenType::TOKEN_KEYWORD_SCOPE;
-        map["VARIABLE"]     = TokenType::TOKEN_KEYWORD_VARIABLE;
-        map["WHILE"]        = TokenType::TOKEN_KEYWORD_WHILE;
-        map["WRITE"]        = TokenType::TOKEN_KEYWORD_WRITE;
+        map["BEGIN"]        = Tokentype::TOKEN_KEYWORD_BEGIN;
+        map["ELSEIF"]       = Tokentype::TOKEN_KEYWORD_ELSEIF;
+        map["END"]          = Tokentype::TOKEN_KEYWORD_END;
+        map["ENDFIT"]       = Tokentype::TOKEN_KEYWORD_ENDFIT;
+        map["ENDIF"]        = Tokentype::TOKEN_KEYWORD_ENDIF;
+        map["ENDFUNCTION"]  = Tokentype::TOKEN_KEYWORD_ENDFUNCTION;
+        map["ENDLOOP"]      = Tokentype::TOKEN_KEYWORD_ENDLOOP;
+        map["ENDPLOOP"]     = Tokentype::TOKEN_KEYWORD_ENDPLOOP;
+        map["ENDPROCEDURE"] = Tokentype::TOKEN_KEYWORD_ENDPROCEDURE;
+        map["ENDSCOPE"]     = Tokentype::TOKEN_KEYWORD_ENDSCOPE;
+        map["ENDWHILE"]     = Tokentype::TOKEN_KEYWORD_ENDWHILE;
+        map["FIT"]          = Tokentype::TOKEN_KEYWORD_FIT;
+        map["FUNCTION"]     = Tokentype::TOKEN_KEYWORD_FUNCTION;
+        map["IF"]           = Tokentype::TOKEN_KEYWORD_IF;
+        map["INCLUDE"]      = Tokentype::TOKEN_KEYWORD_INCLUDE;
+        map["LOOP"]         = Tokentype::TOKEN_KEYWORD_LOOP;
+        map["PLOOP"]        = Tokentype::TOKEN_KEYWORD_PLOOP;
+        map["PROCEDURE"]    = Tokentype::TOKEN_KEYWORD_PROCEDURE;
+        map["READ"]         = Tokentype::TOKEN_KEYWORD_READ;
+        map["SAVE"]         = Tokentype::TOKEN_KEYWORD_SAVE;
+        map["SCOPE"]        = Tokentype::TOKEN_KEYWORD_SCOPE;
+        map["VARIABLE"]     = Tokentype::TOKEN_KEYWORD_VARIABLE;
+        map["WHILE"]        = Tokentype::TOKEN_KEYWORD_WHILE;
+        map["WRITE"]        = Tokentype::TOKEN_KEYWORD_WRITE;
 
         initialized_map = true;
 
@@ -81,7 +80,7 @@ Tokenizer(const Filepath& path)
     // Valid initialize our tokens to EOF such that they're known values.
     for (i32 i = 0; i < 3; ++i)
     {
-        this->token_buffer[i].type      = TokenType::TOKEN_EOF;
+        this->token_buffer[i].type      = Tokentype::TOKEN_EOF;
         this->token_buffer[i].reference = "";
         this->token_buffer[i].row       = 0;
         this->token_buffer[i].column    = 0;
@@ -100,7 +99,7 @@ Tokenizer::
 }
 
 void Tokenizer::
-set_token(Token *token, TokenType type)
+set_token(Token *token, Tokentype type)
 {
 
     token->reference.clear();
@@ -173,15 +172,15 @@ is_eol() const
 
 }
 
-TokenType Tokenizer::
+Tokentype Tokenizer::
 check_identifier() const
 {
 
-    const std::unordered_map<std::string, TokenType>& keyword_map = get_keyword_map();
+    const std::unordered_map<std::string, Tokentype>& keyword_map = get_keyword_map();
     std::string identifier = this->next_token->reference;
     for (auto &c : identifier) c = toupper(c); // Simpler this way, keywords are case insensitive.
 
-    TokenType result = TokenType::TOKEN_IDENTIFIER;
+    Tokentype result = Tokentype::TOKEN_IDENTIFIER;
     auto find_iter = keyword_map.find(identifier); // The only true useful thing about auto.
     if (find_iter != keyword_map.end()) result = find_iter->second;
     return result;
@@ -216,7 +215,7 @@ consume_whitespace()
         if (this->is_eof())
         {
 
-            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOF);
+            this->set_token(this->next_token, Tokentype::TOKEN_UNDEFINED_EOF);
 
         }
 
@@ -260,7 +259,7 @@ match_newline()
     if (current == '\n')
     {
         this->consume(1);
-        this->set_token(this->next_token, TokenType::TOKEN_NEW_LINE);
+        this->set_token(this->next_token, Tokentype::TOKEN_NEW_LINE);
         this->synchronize();
         return true;
     }
@@ -285,14 +284,14 @@ match_comments()
         if (this->is_eof())
         {
 
-            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOF);
+            this->set_token(this->next_token, Tokentype::TOKEN_UNDEFINED_EOF);
 
         }
         else
         {
 
             this->consume(1); // Consume trailing '}', this isn't in the next token.
-            this->set_token(this->next_token, TokenType::TOKEN_COMMENT_BLOCK);
+            this->set_token(this->next_token, Tokentype::TOKEN_COMMENT_BLOCK);
 
         }
 
@@ -314,7 +313,7 @@ match_symbols()
         case '(':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_LEFT_PARENTHESIS);
+            this->set_token(this->next_token, Tokentype::TOKEN_LEFT_PARENTHESIS);
             this->synchronize();
             return true;
         } break;
@@ -322,7 +321,7 @@ match_symbols()
         case ')':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_RIGHT_PARENTHESIS);
+            this->set_token(this->next_token, Tokentype::TOKEN_RIGHT_PARENTHESIS);
             this->synchronize();
             return true;
         } break;
@@ -330,7 +329,7 @@ match_symbols()
         case ',':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_COMMA);
+            this->set_token(this->next_token, Tokentype::TOKEN_COMMA);
             this->synchronize();
             return true;
         } break;
@@ -338,7 +337,7 @@ match_symbols()
         case ';':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_SEMICOLON);
+            this->set_token(this->next_token, Tokentype::TOKEN_SEMICOLON);
             this->synchronize();
             return true;
         } break;
@@ -346,7 +345,7 @@ match_symbols()
         case '+':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_PLUS);
+            this->set_token(this->next_token, Tokentype::TOKEN_PLUS);
             this->synchronize();
             return true;
         } break;
@@ -354,7 +353,7 @@ match_symbols()
         case '-':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_MINUS);
+            this->set_token(this->next_token, Tokentype::TOKEN_MINUS);
             this->synchronize();
             return true;
         } break;
@@ -362,7 +361,7 @@ match_symbols()
         case '*':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_STAR);
+            this->set_token(this->next_token, Tokentype::TOKEN_STAR);
             this->synchronize();
             return true;
         } break;
@@ -370,7 +369,7 @@ match_symbols()
         case '/':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_FORWARD_SLASH);
+            this->set_token(this->next_token, Tokentype::TOKEN_FORWARD_SLASH);
             this->synchronize();
             return true;
         } break;
@@ -378,7 +377,7 @@ match_symbols()
         case '^':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_CARROT);
+            this->set_token(this->next_token, Tokentype::TOKEN_CARROT);
             this->synchronize();
             return true;
         } break;
@@ -386,7 +385,7 @@ match_symbols()
         case '=':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_EQUALS);
+            this->set_token(this->next_token, Tokentype::TOKEN_EQUALS);
             this->synchronize();
             return true;
         } break;
@@ -394,7 +393,7 @@ match_symbols()
         case '#':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_HASH);
+            this->set_token(this->next_token, Tokentype::TOKEN_HASH);
             this->synchronize();
             return true;
         } break;
@@ -402,7 +401,7 @@ match_symbols()
         case '&':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_AMPERSAND);
+            this->set_token(this->next_token, Tokentype::TOKEN_AMPERSAND);
             this->synchronize();
             return true;
         } break;
@@ -410,7 +409,7 @@ match_symbols()
         case '|':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_PIPE);
+            this->set_token(this->next_token, Tokentype::TOKEN_PIPE);
             this->synchronize();
             return true;
         } break;
@@ -418,7 +417,7 @@ match_symbols()
         case '%':
         {
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_PERCENT);
+            this->set_token(this->next_token, Tokentype::TOKEN_PERCENT);
             this->synchronize();
             return true;
         } break;
@@ -430,13 +429,13 @@ match_symbols()
             if (follower == '=')
             {
                 this->consume(2);
-                this->set_token(this->next_token, TokenType::TOKEN_LESS_THAN_EQUALS);
+                this->set_token(this->next_token, Tokentype::TOKEN_LESS_THAN_EQUALS);
                 this->synchronize();
                 return true;
             }
             
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_LESS_THAN);
+            this->set_token(this->next_token, Tokentype::TOKEN_LESS_THAN);
             this->synchronize();
             return true;
 
@@ -449,13 +448,13 @@ match_symbols()
             if (follower == '=')
             {
                 this->consume(2);
-                this->set_token(this->next_token, TokenType::TOKEN_GREATER_THAN_EQUALS);
+                this->set_token(this->next_token, Tokentype::TOKEN_GREATER_THAN_EQUALS);
                 this->synchronize();
                 return true;
             }
             
             this->consume(1);
-            this->set_token(this->next_token, TokenType::TOKEN_GREATER_THAN);
+            this->set_token(this->next_token, Tokentype::TOKEN_GREATER_THAN);
             this->synchronize();
             return true;
 
@@ -468,7 +467,7 @@ match_symbols()
             if (follower == '=')
             {
                 this->consume(2);
-                this->set_token(this->next_token, TokenType::TOKEN_COLON_EQUALS);
+                this->set_token(this->next_token, Tokentype::TOKEN_COLON_EQUALS);
                 this->synchronize();
                 return true;
             }
@@ -493,7 +492,7 @@ match_numbers()
     {
 
         this->consume(1);
-        TokenType type = TokenType::TOKEN_INTEGER;
+        Tokentype type = Tokentype::TOKEN_INTEGER;
         
         while (true)
         {
@@ -507,7 +506,7 @@ match_numbers()
                 {
 
                     this->consume(2);
-                    type = TokenType::TOKEN_REAL;
+                    type = Tokentype::TOKEN_REAL;
                     continue;
 
                 }
@@ -536,7 +535,7 @@ match_numbers()
         if (peek == 'i' || peek == 'I')
         {
             this->consume(1);
-            type = TokenType::TOKEN_COMPLEX;
+            type = Tokentype::TOKEN_COMPLEX;
         }
 
         this->set_token(this->next_token, type);
@@ -567,18 +566,18 @@ match_strings()
         // Strings potentially terminate at EOF or EOL, so we check both cases.
         if (this->is_eof())
         {
-            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOF);
+            this->set_token(this->next_token, Tokentype::TOKEN_UNDEFINED_EOF);
         }
 
         else if (this->is_eol())
         {
-            this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED_EOL);
+            this->set_token(this->next_token, Tokentype::TOKEN_UNDEFINED_EOL);
         }
 
         else
         {
 
-            this->set_token(this->next_token, TokenType::TOKEN_STRING);
+            this->set_token(this->next_token, Tokentype::TOKEN_STRING);
             this->consume(1);
 
         }
@@ -616,7 +615,7 @@ match_identifiers()
             }
         }
 
-        this->set_token(this->next_token, TokenType::TOKEN_IDENTIFIER);
+        this->set_token(this->next_token, Tokentype::TOKEN_IDENTIFIER);
 
         // Convert identifiers to keywords if they're keywords.
         this->next_token->type = this->check_identifier();
@@ -645,7 +644,7 @@ shift()
     // Check if we're at the end of file and if we are, set the token to EOF.
     if (this->is_eof())
     {
-        this->set_token(this->next_token, TokenType::TOKEN_EOF);
+        this->set_token(this->next_token, Tokentype::TOKEN_EOF);
         return;
     }
 
@@ -657,7 +656,7 @@ shift()
     
     // If we're here, we didn't match to specification, the token is undefined.
     this->consume(1);
-    this->set_token(this->next_token, TokenType::TOKEN_UNDEFINED);
+    this->set_token(this->next_token, Tokentype::TOKEN_UNDEFINED);
     this->synchronize(); // Synchronize.
     return;
 
@@ -688,7 +687,7 @@ get_next_token() const
 }
 
 b32 Tokenizer::
-previous_token_is(TokenType type) const
+previous_token_is(Tokentype type) const
 {
 
     b32 result = (this->previous_token->type == type);
@@ -697,7 +696,7 @@ previous_token_is(TokenType type) const
 }
 
 b32 Tokenizer::
-current_token_is(TokenType type) const
+current_token_is(Tokentype type) const
 {
 
     b32 result = (this->current_token->type == type);
@@ -706,7 +705,7 @@ current_token_is(TokenType type) const
 }
 
 b32 Tokenizer::
-next_token_is(TokenType type) const
+next_token_is(Tokentype type) const
 {
 
     b32 result = (this->next_token->type == type);

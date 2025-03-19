@@ -25,9 +25,9 @@ enum class Nodetype
     NODE_TYPE_CONDITIONAL_STATEMENT,
     NODE_TYPE_READ_STATEMENT,
     NODE_TYPE_WRITE_STATEMENT,
-    NODE_TYPE_PROCEDURE_CALL_STATEMENT,
 
     NODE_TYPE_EXPRESSION,
+    NODE_TYPE_PROCEDURE_CALL,
     NODE_TYPE_ASSIGNMENT,
     NODE_TYPE_EQUALITY,
     NODE_TYPE_COMPARISON,
@@ -63,6 +63,8 @@ enum class Operationtype
     OPERATION_TYPE_LESS_THAN_OR_EQUAL,
     OPERATION_TYPE_GREATER_THAN,
     OPERATION_TYPE_GREATER_THAN_OR_EQUAL,
+    
+    OPERATION_TYPE_CONCATENATE,
 
     OPERATION_TYPE_NEGATION,
 };
@@ -89,6 +91,15 @@ enum class Datatype
     DATA_TYPE_COMPLEX,
 };
 
+enum class Structuretype
+{
+    STRUCTURE_TYPE_UNKNOWN,
+    STRUCTURE_TYPE_STRING,
+    STRUCTURE_TYPE_SCALAR,
+    STRUCTURE_TYPE_VECTOR,
+    STRUCTURE_TYPE_DIFFERENTIAL,
+};
+
 class SyntaxNodeVisitor;
 class SyntaxNode 
 {
@@ -96,15 +107,12 @@ class SyntaxNode
                         SyntaxNode();
         virtual        ~SyntaxNode();
 
-        Nodetype        get_nodetype() const;
-        Datatype        get_datatype() const;
-        void            set_datatype(Datatype type);
+        Nodetype        get_nodetype() const { return this->node_type; };
 
         virtual void    accept(SyntaxNodeVisitor* visitor) = 0;
 
     protected:
-        Nodetype nodetype = Nodetype::NODE_TYPE_UNKNOWN;
-        Datatype datatype = Datatype::DATA_TYPE_ERROR;
+        Nodetype node_type = Nodetype::NODE_TYPE_UNKNOWN;
 
 };
 
@@ -112,5 +120,6 @@ string nodetype_to_string(Nodetype type);
 string operationtype_to_string(Operationtype type);
 string primarytype_to_string(Primarytype type);
 string datatype_to_string(Datatype type);
+string structuretype_to_string(Structuretype type);
 
 #endif

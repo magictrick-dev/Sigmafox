@@ -1,0 +1,116 @@
+#ifndef SIGMAFOX_COMPILER_PARSER_NODE_HPP 
+#define SIGMAFOX_COMPILER_PARSER_NODE_HPP
+#include <definitions.hpp>
+
+enum class Nodetype 
+{
+
+    NODE_TYPE_UNKNOWN,
+    NODE_TYPE_ROOT,
+    NODE_TYPE_MODULE,
+
+    NODE_TYPE_MAIN,
+
+    NODE_TYPE_PARAMETER,
+
+    NODE_TYPE_INCLUDE_STATEMENT,
+    NODE_TYPE_FUNCTION_STATEMENT,
+    NODE_TYPE_PROCEDURE_STATEMENT,
+
+    NODE_TYPE_EXPRESSION_STATEMENT,
+    NODE_TYPE_WHILE_STATEMENT,
+    NODE_TYPE_LOOP_STATEMENT,
+    NODE_TYPE_VARIABLE_STATEMENT,
+    NODE_TYPE_SCOPE_STATEMENT,
+    NODE_TYPE_CONDITIONAL_STATEMENT,
+    NODE_TYPE_READ_STATEMENT,
+    NODE_TYPE_WRITE_STATEMENT,
+    NODE_TYPE_PROCEDURE_CALL_STATEMENT,
+
+    NODE_TYPE_EXPRESSION,
+    NODE_TYPE_ASSIGNMENT,
+    NODE_TYPE_EQUALITY,
+    NODE_TYPE_COMPARISON,
+    NODE_TYPE_TERM,
+    NODE_TYPE_FACTOR,
+    NODE_TYPE_MAGNITUDE,
+    NODE_TYPE_EXTRACTION,
+    NODE_TYPE_DERIVATION,
+    NODE_TYPE_UNARY,
+    NODE_TYPE_FUNCTION_CALL,
+    NODE_TYPE_ARRAY_INDEX,
+    NODE_TYPE_PRIMARY,
+    NODE_TYPE_GROUPING,
+
+};
+
+enum class Operationtype
+{
+    OPERATION_TYPE_UNKNOWN,
+
+    OPERATION_TYPE_ADDITION,
+    OPERATION_TYPE_SUBTRACTION,
+    OPERATION_TYPE_MULTIPLICATION,
+    OPERATION_TYPE_DIVISION,
+    OPERATION_TYPE_POWER,
+    OPERATION_TYPE_ROOT,
+    OPERATION_TYPE_EXTRACTION,
+    OPERATION_TYPE_DERIVATION,
+
+    OPERATION_TYPE_EQUALS,
+    OPERATION_TYPE_NOT_EQUALS,
+    OPERATION_TYPE_LESS_THAN,
+    OPERATION_TYPE_LESS_THAN_OR_EQUAL,
+    OPERATION_TYPE_GREATER_THAN,
+    OPERATION_TYPE_GREATER_THAN_OR_EQUAL,
+
+    OPERATION_TYPE_NEGATION,
+};
+
+enum class Primarytype
+{
+    PRIMARY_TYPE_UNKNOWN,
+
+    PRIMARY_TYPE_INTEGER,
+    PRIMARY_TYPE_REAL,
+    PRIMARY_TYPE_COMPLEX,
+    PRIMARY_TYPE_STRING,
+    PRIMARY_TYPE_IDENTIFIER,
+};
+
+enum class Datatype
+{
+    DATA_TYPE_ERROR,
+    DATA_TYPE_VOID,
+    DATA_TYPE_STRING,
+    DATA_TYPE_UNKNOWN,
+    DATA_TYPE_INTEGER,
+    DATA_TYPE_REAL,
+    DATA_TYPE_COMPLEX,
+};
+
+class SyntaxNodeVisitor;
+class SyntaxNode 
+{
+    public:
+                        SyntaxNode();
+        virtual        ~SyntaxNode();
+
+        Nodetype        get_nodetype() const;
+        Datatype        get_datatype() const;
+        void            set_datatype(Datatype type);
+
+        virtual void    accept(SyntaxNodeVisitor* visitor) = 0;
+
+    protected:
+        Nodetype nodetype = Nodetype::NODE_TYPE_UNKNOWN;
+        Datatype datatype = Datatype::DATA_TYPE_ERROR;
+
+};
+
+string nodetype_to_string(Nodetype type);
+string operationtype_to_string(Operationtype type);
+string primarytype_to_string(Primarytype type);
+string datatype_to_string(Datatype type);
+
+#endif

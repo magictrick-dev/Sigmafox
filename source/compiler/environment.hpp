@@ -1,6 +1,7 @@
 #ifndef SIGMAFOX_COMPILER_ENVIRONMENT_HPP
 #define SIGMAFOX_COMPILER_ENVIRONMENT_HPP
 #include <definitions.hpp>
+#include <compiler/exceptions.hpp>
 #include <compiler/tokenizer/tokenizer.hpp>
 #include <compiler/symbols/table.hpp>
 
@@ -51,13 +52,17 @@ class Environment
         void            set_symbol_globally(string identifier, Symbol symbol);
 
         bool            is_begin_defined() const;
+        bool            is_valid_parse() const;
         void            define_begin();
+        
+        bool            handle_compiler_exception(CompilerException& e);
         
     protected:
         bool            warnings_as_errors  = false;
         bool            pedantic_output     = false;
 
     protected:
+        bool valid_parse;
         bool begin_defined;
         vector<Symboltable> tables;
 

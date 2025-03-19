@@ -43,7 +43,6 @@ endif (UNIX)
 add_executable(Sigmafox
     "source/main.cpp"
     "source/definitions.hpp"
-    "source/environment.hpp"
 
     "source/platform/filesystem.hpp"
     "source/platform/system.hpp"
@@ -52,10 +51,6 @@ add_executable(Sigmafox
     "source/utilities/path.cpp"
     "source/utilities/cli.hpp"
     "source/utilities/cli.cpp"
-    "source/utilities/string.hpp"
-    "source/utilities/vector.hpp"
-    "source/utilities/memoryalloc.hpp"
-    "source/utilities/memoryalloc.cpp"
 
     "source/compiler/compiler.hpp"
     "source/compiler/compiler.cpp"
@@ -87,8 +82,6 @@ add_executable(Sigmafox
 
     "source/compiler/symbols/symbol.hpp"
     "source/compiler/symbols/symbol.cpp"
-    "source/compiler/symbols/table.hpp"
-    "source/compiler/symbols/table.cpp"
     "source/compiler/symbols/table.hpp"
     "source/compiler/symbols/table.cpp"
 

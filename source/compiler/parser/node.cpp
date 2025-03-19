@@ -3,8 +3,7 @@
 SyntaxNode::
 SyntaxNode()
 {
-    this->nodetype = Nodetype::NODE_TYPE_UNKNOWN;
-    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
+    this->node_type = Nodetype::NODE_TYPE_UNKNOWN;
 }
 
 SyntaxNode::
@@ -12,25 +11,6 @@ SyntaxNode::
 {
 
 }
-
-Nodetype SyntaxNode::
-get_nodetype() const
-{
-    return this->nodetype;
-}
-
-Datatype SyntaxNode::
-get_datatype() const
-{
-    return this->datatype;
-}
-
-void SyntaxNode::
-set_datatype(Datatype type)
-{
-    this->datatype = type;
-}
-
 
 string 
 nodetype_to_string(Nodetype type)
@@ -55,8 +35,8 @@ nodetype_to_string(Nodetype type)
         case Nodetype::NODE_TYPE_CONDITIONAL_STATEMENT:     result = "CONDITIONAL_STATEMENT"; break;
         case Nodetype::NODE_TYPE_READ_STATEMENT:            result = "READ_STATEMENT"; break;
         case Nodetype::NODE_TYPE_WRITE_STATEMENT:           result = "WRITE_STATEMENT"; break;
-        case Nodetype::NODE_TYPE_PROCEDURE_CALL_STATEMENT:  result = "PROCEDURE_CALL_STATEMENT"; break;
         case Nodetype::NODE_TYPE_EXPRESSION:                result = "EXPRESSION"; break;
+        case Nodetype::NODE_TYPE_PROCEDURE_CALL:            result = "PROCEDURE_CALL"; break;
         case Nodetype::NODE_TYPE_ASSIGNMENT:                result = "ASSIGNMENT"; break;
         case Nodetype::NODE_TYPE_EQUALITY:                  result = "EQUALITY"; break;
         case Nodetype::NODE_TYPE_COMPARISON:                result = "COMPARISON"; break;
@@ -152,6 +132,29 @@ datatype_to_string(Datatype type)
         case Datatype::DATA_TYPE_INTEGER:   result = "INTEGER"; break;
         case Datatype::DATA_TYPE_REAL:      result = "REAL"; break;
         case Datatype::DATA_TYPE_COMPLEX:   result = "COMPLEX"; break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    return result;
+
+}
+
+string
+structuretype_to_string(Structuretype type)
+{
+
+    string result;
+    switch (type)
+    {
+        case Structuretype::STRUCTURE_TYPE_UNKNOWN:       result = "UNKNOWN"; break;
+        case Structuretype::STRUCTURE_TYPE_STRING:        result = "STRING"; break;
+        case Structuretype::STRUCTURE_TYPE_SCALAR:        result = "SCALAR"; break;
+        case Structuretype::STRUCTURE_TYPE_VECTOR:        result = "VECTOR"; break;
+        case Structuretype::STRUCTURE_TYPE_DIFFERENTIAL:  result = "DIFFERENTIAL"; break;
         default:
         {
             SF_ASSERT(!"Unreachable condition.");

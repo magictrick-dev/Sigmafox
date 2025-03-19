@@ -1,22 +1,96 @@
 
+procedure touch_parameter param;
+    while 1 < param;
+        write 4 "Hello, world.";
+    endwhile;
+endprocedure;
+
+function increment_numbers a b;
+
+    variable result 4 := a + 1 + b + 1;
+    increment_numbers := result;
+
+endfunction;
+
 function add_numbers a b;
+
     variable result 4 := a + b;
-    add_numbers := result;
+    add_numbers := result + increment_numbers(a, b);
+
 endfunction;
 
-function sub_numbers a b;
-    variable result 4 := a - add_numbers(5, 3);
-    sub_numbers := result;
+function another_layer a b;
+
+    variable result 4 := 0.0;
+
+    while b < a;
+
+        variable placeholder 4 := 0.0;
+        placeholder := add_numbers(a + 1.0i, b);
+        b := placeholder;
+
+        touch_parameter a;
+
+    endwhile;
+
+    result := increment_numbers(b, a);
+
+    another_layer := result;
+
 endfunction;
 
-function operations a b;
-    variable constant 4 := (3.14 / 2) / 3.33;
-    variable result 4 := add_numbers(b, a) * sub_numbers(a, b * constant);
-    operations := result;
-endfunction;
+procedure set_pi output;
+    variable result 4 := add_numbers(0.14, 1.0);
+    output := result;
+endprocedure;
 
 begin;
-    variable left   4 := 22 * 1 - (4 * 2.2);
-    variable right  4 := ((100 / 2) / 5.0) / 2 + 19.3i;
-    variable other  4 := operations(left, right);
+
+    scope;
+
+        variable foo 4 := 3 + 2;
+        variable bar 4 := foo * 2.0 - 3.14i;
+        variable baz 4;
+
+        read 5 baz;
+
+        variable bax 4 := foo * add_numbers(8, 16.0);
+        variable check 4 := another_layer(8, 16.0);
+
+        { Side effects not considered yet. }
+        variable my_piece_of_pi 4 := 0.0;
+        set_pi my_piece_of_pi;
+        
+        while foo < bar;
+            foo := foo + 0.1;
+            write 4 foo;
+        endwhile;
+
+        loop idx 1 10;
+            foo := foo + idx;
+        endloop;
+
+        loop idx 1 10;
+            idx := idx * 3.0;
+            foo := foo + idx;
+        endloop;
+
+        loop idx 1 10 2;
+            foo := foo + idx * 0.1i;
+        endloop;
+
+        if foo > bar;
+            bar := foo * bar;
+        endif;
+
+        if 10 < 20;
+            write 4 "10 < 20";
+        elseif 20 < 30;
+            write 4 "20 < 30";
+        elseif 1;
+            write 4 "1";
+        endif;
+
+    endscope;
+
 end;

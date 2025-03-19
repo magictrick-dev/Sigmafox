@@ -6,7 +6,7 @@
 SyntaxNodeRoot::
 SyntaxNodeRoot()
 {
-    this->nodetype = Nodetype::NODE_TYPE_ROOT;
+    this->node_type = Nodetype::NODE_TYPE_ROOT;
 }
 
 SyntaxNodeRoot::
@@ -26,7 +26,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeModule::
 SyntaxNodeModule()
 {
-    this->nodetype = Nodetype::NODE_TYPE_MODULE;
+    this->node_type = Nodetype::NODE_TYPE_MODULE;
 }
 
 SyntaxNodeModule::
@@ -46,7 +46,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeMain::
 SyntaxNodeMain()
 {
-    this->nodetype = Nodetype::NODE_TYPE_MAIN;
+    this->node_type = Nodetype::NODE_TYPE_MAIN;
 }
 
 SyntaxNodeMain::
@@ -66,7 +66,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeIncludeStatement::
 SyntaxNodeIncludeStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_INCLUDE_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_INCLUDE_STATEMENT;
 }
 
 SyntaxNodeIncludeStatement::
@@ -81,34 +81,12 @@ accept(SyntaxNodeVisitor *visitor)
     visitor->visit(this);
 }
 
-// --- Parameter Syntax Node ---------------------------------------------------
-
-SyntaxNodeParameter::
-SyntaxNodeParameter()
-{
-    this->nodetype = Nodetype::NODE_TYPE_PARAMETER;
-    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
-}
-
-SyntaxNodeParameter::
-~SyntaxNodeParameter()
-{
-
-}
-
-void SyntaxNodeParameter::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
-
 // --- Function Statement Syntax Node ------------------------------------------
 
 SyntaxNodeFunctionStatement::
 SyntaxNodeFunctionStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_FUNCTION_STATEMENT;
-    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
+    this->node_type = Nodetype::NODE_TYPE_FUNCTION_STATEMENT;
 }
 
 SyntaxNodeFunctionStatement::
@@ -129,8 +107,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeProcedureStatement::
 SyntaxNodeProcedureStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_PROCEDURE_STATEMENT;
-    this->datatype = Datatype::DATA_TYPE_VOID;
+    this->node_type = Nodetype::NODE_TYPE_PROCEDURE_STATEMENT;
 }
 
 SyntaxNodeProcedureStatement::
@@ -150,7 +127,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeExpressionStatement::
 SyntaxNodeExpressionStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_EXPRESSION_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_EXPRESSION_STATEMENT;
 }
 
 SyntaxNodeExpressionStatement::
@@ -165,32 +142,12 @@ accept(SyntaxNodeVisitor *visitor)
     visitor->visit(this);
 }
 
-// --- Procedure Call Statement Syntax Node ------------------------------------
-
-SyntaxNodeProcedureCallStatement::
-SyntaxNodeProcedureCallStatement()
-{
-    this->nodetype = Nodetype::NODE_TYPE_PROCEDURE_CALL_STATEMENT;
-}
-
-SyntaxNodeProcedureCallStatement::
-~SyntaxNodeProcedureCallStatement()
-{
-
-}
-
-void SyntaxNodeProcedureCallStatement::
-accept(SyntaxNodeVisitor *visitor)
-{
-    visitor->visit(this);
-}
-
 // --- While Statement Syntax Node ---------------------------------------------
 
 SyntaxNodeWhileStatement::
 SyntaxNodeWhileStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_WHILE_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_WHILE_STATEMENT;
 }
 
 SyntaxNodeWhileStatement::
@@ -210,7 +167,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeLoopStatement::
 SyntaxNodeLoopStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_LOOP_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_LOOP_STATEMENT;
 }
 
 SyntaxNodeLoopStatement::
@@ -230,8 +187,9 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeVariableStatement::
 SyntaxNodeVariableStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_VARIABLE_STATEMENT;
-    this->datatype = Datatype::DATA_TYPE_UNKNOWN;
+    this->node_type = Nodetype::NODE_TYPE_VARIABLE_STATEMENT;
+    this->data_type = Datatype::DATA_TYPE_UNKNOWN;
+    this->structure_type = Structuretype::STRUCTURE_TYPE_UNKNOWN;
 }
 
 SyntaxNodeVariableStatement::
@@ -251,7 +209,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeScopeStatement::
 SyntaxNodeScopeStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_SCOPE_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_SCOPE_STATEMENT;
 }
 
 SyntaxNodeScopeStatement::
@@ -271,7 +229,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeConditionalStatement::
 SyntaxNodeConditionalStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_CONDITIONAL_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_CONDITIONAL_STATEMENT;
 }
 
 SyntaxNodeConditionalStatement::
@@ -291,7 +249,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeReadStatement::
 SyntaxNodeReadStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_READ_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_READ_STATEMENT;
 }
 
 SyntaxNodeReadStatement::
@@ -311,7 +269,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeWriteStatement::
 SyntaxNodeWriteStatement()
 {
-    this->nodetype = Nodetype::NODE_TYPE_WRITE_STATEMENT;
+    this->node_type = Nodetype::NODE_TYPE_WRITE_STATEMENT;
 }
 
 SyntaxNodeWriteStatement::
@@ -331,7 +289,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeExpression::
 SyntaxNodeExpression()
 {
-    this->nodetype = Nodetype::NODE_TYPE_EXPRESSION;
+    this->node_type = Nodetype::NODE_TYPE_EXPRESSION;
 }
 
 SyntaxNodeExpression::
@@ -346,12 +304,32 @@ accept(SyntaxNodeVisitor *visitor)
     visitor->visit(this);
 }
 
+// --- Procedure Call Statement Syntax Node ------------------------------------
+
+SyntaxNodeProcedureCall::
+SyntaxNodeProcedureCall()
+{
+    this->node_type = Nodetype::NODE_TYPE_PROCEDURE_CALL;
+}
+
+SyntaxNodeProcedureCall::
+~SyntaxNodeProcedureCall()
+{
+
+}
+
+void SyntaxNodeProcedureCall::
+accept(SyntaxNodeVisitor *visitor)
+{
+    visitor->visit(this);
+}
+
 // --- Assignment Syntax Node ---------------------------------------------------
 
 SyntaxNodeAssignment::
 SyntaxNodeAssignment()
 {
-    this->nodetype = Nodetype::NODE_TYPE_ASSIGNMENT;
+    this->node_type = Nodetype::NODE_TYPE_ASSIGNMENT;
 }
 
 SyntaxNodeAssignment::
@@ -371,7 +349,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeEquality::
 SyntaxNodeEquality()
 {
-    this->nodetype = Nodetype::NODE_TYPE_EQUALITY;
+    this->node_type = Nodetype::NODE_TYPE_EQUALITY;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -392,7 +370,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeComparison::
 SyntaxNodeComparison()
 {
-    this->nodetype = Nodetype::NODE_TYPE_COMPARISON;
+    this->node_type = Nodetype::NODE_TYPE_COMPARISON;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -413,7 +391,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeTerm::
 SyntaxNodeTerm()
 {
-    this->nodetype = Nodetype::NODE_TYPE_TERM;
+    this->node_type = Nodetype::NODE_TYPE_TERM;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -434,7 +412,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeFactor::
 SyntaxNodeFactor()
 {
-    this->nodetype = Nodetype::NODE_TYPE_FACTOR;
+    this->node_type = Nodetype::NODE_TYPE_FACTOR;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -455,7 +433,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeMagnitude::
 SyntaxNodeMagnitude()
 {
-    this->nodetype = Nodetype::NODE_TYPE_MAGNITUDE;
+    this->node_type = Nodetype::NODE_TYPE_MAGNITUDE;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -476,7 +454,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeExtraction::
 SyntaxNodeExtraction()
 {
-    this->nodetype = Nodetype::NODE_TYPE_EXTRACTION;
+    this->node_type = Nodetype::NODE_TYPE_EXTRACTION;
 }
 
 SyntaxNodeExtraction::
@@ -496,7 +474,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeDerivation::
 SyntaxNodeDerivation()
 {
-    this->nodetype = Nodetype::NODE_TYPE_DERIVATION;
+    this->node_type = Nodetype::NODE_TYPE_DERIVATION;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -517,7 +495,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeUnary::
 SyntaxNodeUnary()
 {
-    this->nodetype = Nodetype::NODE_TYPE_UNARY;
+    this->node_type = Nodetype::NODE_TYPE_UNARY;
     this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
 }
 
@@ -538,7 +516,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeFunctionCall::
 SyntaxNodeFunctionCall()
 {
-    this->nodetype = Nodetype::NODE_TYPE_FUNCTION_CALL;
+    this->node_type = Nodetype::NODE_TYPE_FUNCTION_CALL;
 }
 
 SyntaxNodeFunctionCall::
@@ -558,7 +536,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeArrayIndex::
 SyntaxNodeArrayIndex()
 {
-    this->nodetype = Nodetype::NODE_TYPE_ARRAY_INDEX;
+    this->node_type = Nodetype::NODE_TYPE_ARRAY_INDEX;
 }
 
 SyntaxNodeArrayIndex::
@@ -578,7 +556,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodePrimary::
 SyntaxNodePrimary()
 {
-    this->nodetype = Nodetype::NODE_TYPE_PRIMARY;
+    this->node_type = Nodetype::NODE_TYPE_PRIMARY;
 }
 
 SyntaxNodePrimary::
@@ -598,7 +576,7 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeGrouping::
 SyntaxNodeGrouping()
 {
-    this->nodetype = Nodetype::NODE_TYPE_GROUPING;
+    this->node_type = Nodetype::NODE_TYPE_GROUPING;
 }
 
 SyntaxNodeGrouping::

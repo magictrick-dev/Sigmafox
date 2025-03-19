@@ -14,7 +14,6 @@
 #include <iostream>
 #include <string>
 #include <definitions.hpp>
-#include <environment.hpp>
 
 class Filepath
 {

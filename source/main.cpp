@@ -1,23 +1,10 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <environment.hpp>
 #include <platform/filesystem.hpp>
 #include <platform/system.hpp>
 #include <utilities/path.hpp>
 #include <utilities/cli.hpp>
-#include <utilities/vector.hpp>
-#include <utilities/string.hpp>
-
-#if 0
-#include <compiler/tokenizer.hpp>
-#include <compiler/parser.hpp>
-#include <compiler/syntaxtree.hpp>
-#include <compiler/visitors/reference.hpp>
-#include <compiler/visitors/generation.hpp>
-#include <compiler/symbols.hpp>
-#endif
-
 #include <compiler/compiler.hpp>
 
 int
@@ -66,24 +53,6 @@ main(int argc, char ** argv)
                 return -1;
             }
 
-            // Check for --warnings-as-errors, or -w.
-            if (CLI::has_parameter("warnings-as-errors") || CLI::has_flag('w'))
-            {
-                ApplicationParameters::runtime_warnings_as_errors = true;
-                std::cout << "Runtime warnings will be treated as errors." << std::endl;
-            }
-
-            Filepath runtime_path = file_get_runtime_directory();
-            Filepath output_path = file_get_current_working_directory();
-            output_path += "/output";
-            output_path.canonicalize();
-
-            ApplicationParameters::runtime_path = runtime_path.c_str();
-            ApplicationParameters::output_path = output_path.c_str();
-
-            printf("-- Runtime Path: %s\n", ApplicationParameters::runtime_path.c_str());
-            printf("-- Output Path: %s\n", ApplicationParameters::output_path.c_str());
-            printf("-- Source File: %s\n", user_source_file.c_str());
 
         } 
 
@@ -111,25 +80,6 @@ main(int argc, char ** argv)
         }
     }
 
-
-    // --- Runtime Statistics --------------------------------------------------
-    //
-    // Displays the runtime statistics.
-    //
-
-    u64 total_allocated     = ApplicationParameters::Allocator.get_total_allocated();
-    u64 total_released      = ApplicationParameters::Allocator.get_total_released();
-    u64 current_allocated   = ApplicationParameters::Allocator.get_current_allocated();
-    u64 peak_allocated      = ApplicationParameters::Allocator.get_peak_allocated();
-
-    std::cout << "---------------------------------------------------" << std::endl;
-    std::cout << "              Runtime Statistics" << std::endl;
-    std::cout << "---------------------------------------------------" << std::endl;
-    std::cout << "  Memory" << std::endl;
-    std::cout << "      Total Allocated:    " << total_allocated << " bytes." << std::endl;
-    std::cout << "      Total Released:     " << total_released << " bytes." << std::endl;
-    std::cout << "      Current Allocated:  " << current_allocated << " bytes." << std::endl;
-    std::cout << "      Peak Allocated:     " << peak_allocated << " bytes." << std::endl;
 
     return 0;
 

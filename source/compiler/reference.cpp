@@ -82,32 +82,33 @@ visit(SyntaxNodeIncludeStatement* node)
 }
 
 void ReferenceVisitor::
-visit(SyntaxNodeParameter* node)
-{
-
-    string datatype_string = datatype_to_string(node->get_datatype());
-    std::cout << "PARAMETER " << "[TYPE: " << datatype_string << "] " << node->identifier;
-
-}
-
-void ReferenceVisitor::
 visit(SyntaxNodeFunctionStatement* node)
 {
 
-    string datatype_string = datatype_to_string(node->get_datatype());
+    string datatype_string = datatype_to_string(node->variable_node->data_type);
+    string structuretype_string = structuretype_to_string(node->variable_node->structure_type);
 
     this->print_tabs();
-    std::cout << "FUNCTION [TYPE: " << datatype_string << "] "
-        << node->identifier << " ";
-    for (int i = 0; i < node->parameters.size(); ++i)
+    std::cout << "FUNCTION " << node->variable_node->identifier << " [TYPE: " 
+        << datatype_string << ":" << structuretype_string << "] ";
+
+    for (auto parameter : node->parameters)
     {
-        node->parameters[i]->accept(this);
-        if (i < node->parameters.size() - 1) std::cout << ", ";
+
+        string datatype_string = datatype_to_string(parameter->data_type);
+        string structuretype_string = structuretype_to_string(parameter->structure_type);
+        std::cout << parameter->identifier << " [TYPE: " << datatype_string << ":" << structuretype_string 
+            << "] ";
+
     }
+
     std::cout << std::endl;
 
     this->push_tabs();
-    for (auto child : node->children) child->accept(this);
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
     this->pop_tabs();
 
     this->print_tabs();
@@ -119,24 +120,34 @@ void ReferenceVisitor::
 visit(SyntaxNodeProcedureStatement* node)
 {
 
-    string datatype_string = datatype_to_string(node->get_datatype());
+    string datatype_string = datatype_to_string(node->variable_node->data_type);
+    string structuretype_string = structuretype_to_string(node->variable_node->structure_type);
 
     this->print_tabs();
-    std::cout << "PROCEDURE [TYPE: " << datatype_string << "] "
-        << node->identifier << " ";
-    for (int i = 0; i < node->parameters.size(); ++i)
+    std::cout << "PROCEDURE " << node->variable_node->identifier << " [TYPE: " 
+        << datatype_string << ":" << structuretype_string << "] ";
+
+    for (auto parameter : node->parameters)
     {
-        node->parameters[i]->accept(this);
-        if (i < node->parameters.size() - 1) std::cout << ", ";
+
+        string datatype_string = datatype_to_string(parameter->data_type);
+        string structuretype_string = structuretype_to_string(parameter->structure_type);
+        std::cout << parameter->identifier << " [TYPE: " << datatype_string << ":" << structuretype_string 
+            << "] ";
+
     }
+
     std::cout << std::endl;
 
     this->push_tabs();
-    for (auto child : node->children) child->accept(this);
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
     this->pop_tabs();
 
     this->print_tabs();
-    std::cout << "ENDPROCEDURE" << std::endl;
+    std::cout << "ENDFUNCTION" << std::endl;
 
 }
 
@@ -151,50 +162,70 @@ visit(SyntaxNodeExpressionStatement* node)
 }
 
 void ReferenceVisitor::
-visit(SyntaxNodeProcedureCallStatement* node)
-{
-}
-
-void ReferenceVisitor::
 visit(SyntaxNodeWhileStatement* node)
 {
+    
+    this->print_tabs();
+    std::cout << "WHILE ";
+    node->expression->accept(this);
+    std::cout << std::endl;
+    
+    this->push_tabs();
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
+    this->pop_tabs();
+    
+    this->print_tabs();
+    std::cout << "ENDWHILE" << std::endl;
+    
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeLoopStatement* node)
 {
+
+    this->print_tabs();
+    std::cout << "LOOP " << node->iterator << " ";
+    node->start->accept(this);
+    std::cout << " ";
+    node->end->accept(this);
+    std::cout << " ";
+    node->step->accept(this);
+    std::cout << std::endl;
+
+
+    this->push_tabs();   
+    node->variable->accept(this);
+    for (auto child : node->children) 
+    {
+        child->accept(this);
+    }
+    this->pop_tabs();
+
+    this->print_tabs();
+    std::cout << "ENDLOOP" << std::endl;
+
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeVariableStatement* node)
 {
 
-    string datatype_string;
-    switch (node->get_datatype())
-    {
-        case Datatype::DATA_TYPE_VOID:      datatype_string = "VOID"; break;
-        case Datatype::DATA_TYPE_STRING:    datatype_string = "STRING"; break;
-        case Datatype::DATA_TYPE_INTEGER:   datatype_string = "INTEGER"; break;
-        case Datatype::DATA_TYPE_REAL:      datatype_string = "REAL"; break;
-        case Datatype::DATA_TYPE_COMPLEX:   datatype_string = "COMPLEX"; break;
-        case Datatype::DATA_TYPE_UNKNOWN:   datatype_string = "UNKNOWN"; break;
-        case Datatype::DATA_TYPE_ERROR:     datatype_string = "ERROR"; break;
-        default:
-        {
-            SF_ASSERT(!"Unreachable condition.");
-            break;
-        }
-    }
+    string datatype_string = datatype_to_string(node->data_type);
+    string structuretype_string = structuretype_to_string(node->structure_type);
 
     this->print_tabs();
-    std::cout << "VARIABLE " << "[TYPE: " << datatype_string << "] "
-        << node->identifier << " ";
+    std::cout << "VARIABLE " << "[TYPE: " << datatype_string << ":" << structuretype_string
+        << "] " << node->identifier << " ";
     node->storage->accept(this);
-    std::cout << " ";
 
     for (auto dimension : node->dimensions)
     {
+        std::cout << " [";
         dimension->accept(this);
+        std::cout << "]";
     }
 
     if (node->expression != nullptr)
@@ -210,21 +241,91 @@ visit(SyntaxNodeVariableStatement* node)
 void ReferenceVisitor::
 visit(SyntaxNodeScopeStatement* node)
 {
+    
+    this->print_tabs();
+    std::cout << "SCOPE" << std::endl;
+
+    this->push_tabs();
+    for (auto child : node->children) child->accept(this);
+    this->pop_tabs();
+
+    this->print_tabs();
+    std::cout << "ENDSCOPE" << std::endl;
+    
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeConditionalStatement* node)
 {
+
+    this->print_tabs();
+    std::cout << "IF ";
+    node->expression->accept(this);
+    std::cout << std::endl;
+
+    this->push_tabs();
+    for (auto child : node->children)
+    {
+
+        child->accept(this);
+
+    }
+    this->pop_tabs();
+
+    auto current_chain = node->next;
+    while (current_chain != nullptr)
+    {
+
+        this->print_tabs();
+        std::cout << "ELSEIF ";
+        current_chain->expression->accept(this);
+        std::cout << std::endl;
+
+        this->push_tabs();
+        for (auto child : current_chain->children)
+        {
+            child->accept(this);
+        }
+        this->pop_tabs();
+
+        current_chain = current_chain->next;
+
+    }
+
+    this->print_tabs();
+    std::cout << "ENDIF" << std::endl;
+
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeReadStatement* node)
 {
+
+    this->print_tabs();
+    std::cout << "READ ";
+    node->location->accept(this);
+    std::cout << " TO " << node->identifier << ";" << std::endl;
+
+
+
 }
 
 void ReferenceVisitor::
 visit(SyntaxNodeWriteStatement* node)
 {
+    
+    this->print_tabs();
+    std::cout << "WRITE ";
+    node->location->accept(this);
+
+    for (auto current_node : node->expressions)
+    {
+        std::cout << " ";
+        current_node->accept(this);
+    }
+
+    std::cout << ";" << std::endl;
+    
 }
 
 void ReferenceVisitor::
@@ -232,6 +333,22 @@ visit(SyntaxNodeExpression* node)
 {
 
     node->expression->accept(this);
+
+}
+
+void ReferenceVisitor::
+visit(SyntaxNodeProcedureCall* node)
+{
+
+    std::cout << "PROCEDURE " << node->identifier << "(";
+
+    for (i32 i = 0; i < node->arguments.size(); ++i)
+    {
+        node->arguments[i]->accept(this);
+        if (i < node->arguments.size() - 1) std::cout << ", ";
+    }
+
+    std::cout << ")";
 
 }
 
@@ -413,7 +530,7 @@ void ReferenceVisitor::
 visit(SyntaxNodeFunctionCall* node)
 {
 
-    std::cout << node->identifier << "(";
+    std::cout << "FUNCTION " << node->identifier << "(";
 
     for (i32 i = 0; i < node->arguments.size(); ++i)
     {
@@ -445,24 +562,7 @@ void ReferenceVisitor::
 visit(SyntaxNodePrimary* node)
 {
 
-    switch (node->primary)
-    {
-        case Primarytype::PRIMARY_TYPE_REAL: 
-            std::cout << "REAL " << node->primitive; break;
-        case Primarytype::PRIMARY_TYPE_INTEGER: 
-            std::cout << "INTEGER " << node->primitive; break;
-        case Primarytype::PRIMARY_TYPE_STRING: 
-            std::cout << "STRING " << node->primitive; break;
-        case Primarytype::PRIMARY_TYPE_IDENTIFIER:
-            std::cout << "IDENTIFIER " << node->primitive; break;
-        case Primarytype::PRIMARY_TYPE_COMPLEX:
-            std::cout << "COMPLEX " << node->primitive; break;
-        default:
-        {
-            SF_ASSERT(!"Unreachable condition.");
-            break;
-        }
-    }
+    std::cout << node->primitive;
 
 }
 

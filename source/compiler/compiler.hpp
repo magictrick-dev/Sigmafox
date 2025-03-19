@@ -17,9 +17,10 @@ class Compiler
         bool        generate() const;
 
     protected:
-        DependencyGraph         graph;
-        Environment             environment;
-        shared_ptr<SyntaxNode>  root;
+        DependencyGraph             graph;
+        Environment                 environment;
+        SyntaxNode*                 root;
+        std::vector<SyntaxNode*>    nodes;
 
 };
 

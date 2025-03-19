@@ -2,7 +2,7 @@
 #define SIGMAFOX_COMPILER_TOKENIZER_TOKEN_HPP
 #include <definitions.hpp>
 
-enum class TokenType
+enum class Tokentype
 {
     TOKEN_VOID,
 
@@ -69,11 +69,11 @@ struct Token
 {
 
     std::string     reference;
-    TokenType       type;
+    Tokentype       type;
     i32             row;
     i32             column;
 
-    static std::string type_to_string(TokenType type);
+    static std::string type_to_string(Tokentype type);
         
 };
 

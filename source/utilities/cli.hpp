@@ -26,7 +26,6 @@
 #define SIGAMFOX_UTILITIES_CLI_H
 #include <string>
 #include <vector>
-#include <environment.hpp>
 #include <definitions.hpp>
 
 class CLI;

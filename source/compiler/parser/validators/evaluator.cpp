@@ -139,8 +139,9 @@ visit(SyntaxNodeFunctionCall* node)
 
     Symbol *function_symbol = this->environment->get_symbol(node->identifier);
     SF_ENSURE_PTR(function_symbol);
-    this->evaluate(function_symbol->get_node()->get_datatype());
-    return;
+
+    SyntaxNodeFunctionStatement *function_node = (SyntaxNodeFunctionStatement*)function_symbol->get_node();
+    this->evaluate(function_node->variable_node->data_type);
 
 }
 
@@ -151,9 +152,12 @@ visit(SyntaxNodeArrayIndex* node)
     Symbol *array_symbol = this->environment->get_symbol(node->identifier);
     SF_ENSURE_PTR(array_symbol);
     SF_ASSERT(array_symbol->is_array());
-    this->evaluate(array_symbol->get_node()->get_datatype());
-
+    
+    SyntaxNodeVariableStatement *array_node = (SyntaxNodeVariableStatement*)array_symbol->get_node();
+    this->evaluate(array_node->data_type);
+    
 }
+    
 
 void ExpressionEvaluator::
 visit(SyntaxNodePrimary* node)
@@ -161,7 +165,7 @@ visit(SyntaxNodePrimary* node)
 
     Datatype current_type = Datatype::DATA_TYPE_UNKNOWN;
 
-    switch (node->primary)
+    switch (node->primarytype)
     {
         case Primarytype::PRIMARY_TYPE_REAL: 
             current_type = Datatype::DATA_TYPE_REAL; break;
@@ -175,7 +179,8 @@ visit(SyntaxNodePrimary* node)
         {
             Symbol *symbol = this->environment->get_symbol(node->primitive);
             SF_ENSURE_PTR(symbol);
-            current_type = symbol->get_node()->get_datatype();
+            SyntaxNodeVariableStatement *variable_node = (SyntaxNodeVariableStatement*)symbol->get_node();
+            current_type = variable_node->data_type;
             break;
         }
         default:

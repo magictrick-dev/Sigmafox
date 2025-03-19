@@ -38,6 +38,9 @@ typedef void*       vptr;
 #define SF_ENSURE_PTR(ptr)  (assert((ptr != NULL)))
 #define SF_NO_IMPL(msg)     (assert(!(msg)))
 
+#define SF_MEMORY_ALLOC(size)   (malloc(size))
+#define SF_MEMORY_FREE(ptr)     (free(ptr))
+
 using std::shared_ptr;
 using std::make_shared;
 using std::string;

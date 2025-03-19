@@ -1,6 +1,5 @@
 #include <compiler/parser/validators/blockvalidator.hpp>
 #include <compiler/parser/validators/evaluator.hpp>
-#include <compiler/parser/errorhandler.hpp>
 
 BlockValidator::
 BlockValidator(Environment *environment)
@@ -16,26 +15,9 @@ BlockValidator::
 }
 
 void BlockValidator::
-visit(SyntaxNodeParameter* node)
-{
-    
-}
-
-void BlockValidator::
 visit(SyntaxNodeFunctionStatement* node)
 {
-    
-    // Check for recursion.
-    if (std::find(this->call_stack.begin(), this->call_stack.end(), node->identifier) != this->call_stack.end())
-    {
-        
-        std::cout << "-- Uncaught recursion error in block validator." << std::endl;
-        return;
-
-    }
-
-    this->call_stack.push_back(node->identifier);
-    
+      
     for (auto child : node->children)
     {
         child->accept(this);
@@ -46,6 +28,11 @@ visit(SyntaxNodeFunctionStatement* node)
 void BlockValidator::
 visit(SyntaxNodeProcedureStatement* node)
 {
+
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
     
 }
 
@@ -58,75 +45,102 @@ visit(SyntaxNodeExpressionStatement* node)
 }
 
 void BlockValidator::
-visit(SyntaxNodeProcedureCallStatement* node)
-{
-    
-}
-
-void BlockValidator::
 visit(SyntaxNodeWhileStatement* node)
 {
+
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
     
 }
 
 void BlockValidator::
 visit(SyntaxNodeLoopStatement* node)
 {
+
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
     
 }
 
 void BlockValidator::
 visit(SyntaxNodeVariableStatement* node)
 {
-    
-    // We need to visit this expression in order for any of the function calls to be validated.
-    node->expression->accept(this);
-    
-    ExpressionEvaluator evaluator(this->environment);
-    node->expression->accept(&evaluator);
-    
-    if (evaluator() == Datatype::DATA_TYPE_ERROR)
+
+    // First, if the variable has a given expression type, we need to
+    // descend it, then we need evaluate the type.
+    if (node->expression != nullptr)
     {
-        std::cout << "-- Uncaught error in block validator." << std::endl;
-        return;
-    }
-      
-    node->set_datatype(evaluator());
-    
-    Symbol variable_symbol = Symbol(node->identifier,
-        Symboltype::SYMBOL_TYPE_VARIABLE,
-        node);
-    
-    if (this->environment->symbol_exists_locally(node->identifier))
-    {
-        std::cout << "-- Uncaught error for variable pre-existing, this shouldn't happen." << std::endl;
+
+        node->expression->accept(this);
+
+        ExpressionEvaluator expression_evaluator(this->environment);
+        node->expression->accept(&expression_evaluator);
+
+        node->data_type = expression_evaluator();
+        
     }
 
+    Symbol variable_symbol(node->identifier, Symboltype::SYMBOL_TYPE_VARIABLE, 
+            node, node->dimensions.size());
+
     this->environment->set_symbol_locally(node->identifier, variable_symbol);
-    
+
+
+     
 }
 
 void BlockValidator::
 visit(SyntaxNodeScopeStatement* node)
 {
+
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
     
 }
 
 void BlockValidator::
 visit(SyntaxNodeConditionalStatement* node)
 {
+
+    for (auto child : node->children)
+    {
+        child->accept(this);
+    }
+
+    auto next_conditional = node->next;
+    while (next_conditional != nullptr)
+    {
+
+        for (auto child : next_conditional->children)
+        {
+            child->accept(this);
+        }
+
+        next_conditional = next_conditional->next;
+
+    }
     
 }
 
 void BlockValidator::
 visit(SyntaxNodeReadStatement* node)
 {
+
+    return; // No evaluation required.
     
 }
 
 void BlockValidator::
 visit(SyntaxNodeWriteStatement* node)
 {
+
+    return; // No evaluation required.
     
 }
 
@@ -139,42 +153,88 @@ visit(SyntaxNodeExpression* node)
 }
 
 void BlockValidator::
+visit(SyntaxNodeProcedureCall* node)
+{
+
+    auto procedure_node = (SyntaxNodeProcedureStatement*)
+        this->environment->get_symbol(node->identifier)->get_node();
+
+    // Evaluate the parameters.
+    for (u64 idx = 0; idx < node->arguments.size(); ++idx)
+    {
+
+        ExpressionEvaluator expression_evaluator(this->environment);
+        procedure_node->parameters[idx]->accept(&expression_evaluator);
+        node->arguments[idx]->accept(&expression_evaluator);
+
+        procedure_node->parameters[idx]->data_type = expression_evaluator();
+    
+    }
+
+    // We need to push the scope, and then evaluate the function call deeper.
+    // Setup is the same in the parser.
+    this->environment->push_table();
+
+    // Insert the return variable.
+    this->environment->set_symbol_locally(procedure_node->variable_node->identifier, 
+            Symbol(procedure_node->variable_node->identifier, 
+            Symboltype::SYMBOL_TYPE_VARIABLE, procedure_node));
+
+    // Parameters.
+    for (auto parameter : procedure_node->parameters)
+    {
+
+        this->environment->set_symbol_locally(parameter->identifier, Symbol(parameter->identifier,
+            Symboltype::SYMBOL_TYPE_VARIABLE, parameter));
+
+    }
+
+    procedure_node->accept(this);
+
+    this->environment->pop_table();
+    
+}
+
+void BlockValidator::
 visit(SyntaxNodeAssignment* node)
 {
+
+    node->left->accept(this);
+    node->right->accept(this);
     
-    ExpressionEvaluator left(this->environment);
-    node->left->accept(&left);
-    
-    ExpressionEvaluator right(this->environment, left());
-    node->right->accept(&right);
-    
-    if (right() == Datatype::DATA_TYPE_ERROR)
-    {
-        std::cout << "-- Uncaught error in block validator." << std::endl;
-        return;
-    }
-    
+    ExpressionEvaluator type_evaluator(this->environment);
+    node->left->accept(&type_evaluator);
+    node->right->accept(&type_evaluator);
+
     string identifier;
-    if (node->left->get_nodetype() == Nodetype::NODE_TYPE_PRIMARY)
+    Nodetype left_node_type = node->left->get_nodetype();
+    switch (left_node_type)
     {
-        SyntaxNodePrimary *primary = (SyntaxNodePrimary*)node->left.get();
-        identifier = primary->primitive;
+
+        case Nodetype::NODE_TYPE_PRIMARY:
+        {
+            SyntaxNodePrimary *primary = (SyntaxNodePrimary*)node->left;
+            identifier = primary->primitive;
+        } break;
+
+        case Nodetype::NODE_TYPE_ARRAY_INDEX:
+        {
+            SyntaxNodeArrayIndex *array_index = (SyntaxNodeArrayIndex*)node->left;
+            identifier = array_index->identifier;
+        } break;
+
+        default:
+        {
+            SF_ASSERT(!"Unimplemented node type conditional.");
+        } break;
+
     }
-    
-    else if (node->left->get_nodetype() == Nodetype::NODE_TYPE_ARRAY_INDEX)
-    {
-        SyntaxNodeArrayIndex *array_index = (SyntaxNodeArrayIndex*)node->left.get();
-        identifier = array_index->identifier;
-    }
-    
+
     Symbol *symbol = this->environment->get_symbol(identifier);
-    if (symbol == nullptr)
-    {
-        std::cout << "-- Uncaught error in block validator." << std::endl;
-        return;
-    }
-    
-    symbol->get_node()->set_datatype(right());
+    SF_ENSURE_PTR(symbol);
+
+    SyntaxNodeVariableStatement *variable_node = (SyntaxNodeVariableStatement*)symbol->get_node();
+    variable_node->data_type = type_evaluator();
     
 }
 
@@ -252,72 +312,55 @@ visit(SyntaxNodeUnary* node)
 void BlockValidator::
 visit(SyntaxNodeFunctionCall* node)
 {
-    
+
     auto function_node = (SyntaxNodeFunctionStatement*)
         this->environment->get_symbol(node->identifier)->get_node();
-    
-    vector<ExpressionEvaluator> argument_types;
-    for (u64 i = 0; i < node->arguments.size(); i++)
-    {
-        
-        Datatype current_type = function_node->parameters[i]->get_datatype();
-        
-        ExpressionEvaluator argument_type = { this->environment, current_type };
-        node->arguments[i]->accept(&argument_type);
-        argument_types.push_back(argument_type);
-        
-        if (argument_type() == Datatype::DATA_TYPE_ERROR)
-        {
-            std::cout << "-- Uncaught error in block validator." << std::endl;
-            return;
-        }
-        
-    }
-    
-    // Set the argument types.
-    for (size_t i = 0; i < node->arguments.size(); i++)
-        function_node->parameters[i]->set_datatype(argument_types[i]());
 
-    // Now validate the block by pushing the environment and simulating the block.
+    // Evaluate the parameters.
+    for (u64 idx = 0; idx < node->arguments.size(); ++idx)
+    {
+
+        ExpressionEvaluator expression_evaluator(this->environment);
+        function_node->parameters[idx]->accept(&expression_evaluator);
+        node->arguments[idx]->accept(&expression_evaluator);
+
+        function_node->parameters[idx]->data_type = expression_evaluator();
+    
+    }
+
+    // We need to push the scope, and then evaluate the function call deeper.
+    // Setup is the same in the parser.
     this->environment->push_table();
 
-    for (auto argument : function_node->parameters)
+    // Insert the return variable.
+    this->environment->set_symbol_locally(function_node->variable_node->identifier, 
+            Symbol(function_node->variable_node->identifier, Symboltype::SYMBOL_TYPE_VARIABLE, function_node));
+
+    // Parameters.
+    for (auto parameter : function_node->parameters)
     {
-        
-        SyntaxNodeParameter *parameter = (SyntaxNodeParameter*)argument.get();
-        
-        Symbol parameter_symbol = Symbol(parameter->identifier,
-            Symboltype::SYMBOL_TYPE_VARIABLE,
-            parameter);
-        
-        this->environment->set_symbol_locally(parameter->identifier, parameter_symbol);
-        
+
+        this->environment->set_symbol_locally(parameter->identifier, Symbol(parameter->identifier,
+            Symboltype::SYMBOL_TYPE_VARIABLE, parameter));
+
     }
 
-    Symbol return_symbol = Symbol(function_node->identifier,
-        Symboltype::SYMBOL_TYPE_VARIABLE,
-        function_node);
-
-    this->environment->set_symbol_locally(function_node->identifier, return_symbol);
-
-    BlockValidator validator(this->environment);
-    function_node->accept(&validator);
+    function_node->accept(this);
 
     this->environment->pop_table();
-    
+
 }
 
 void BlockValidator::
 visit(SyntaxNodeArrayIndex* node)
 {
-    
+    return;
 }
 
 void BlockValidator::
 visit(SyntaxNodePrimary* node)
 {
-    
-    
+    return;
 }
 
 void BlockValidator::

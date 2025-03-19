@@ -28,10 +28,12 @@ class CompilerSyntaxError : public CompilerException
 
     public:
         template <typename ...Args> 
-        CompilerSyntaxError(u64 line_location, u64 line, u64 column, std::string path, Args... args)
+        CompilerSyntaxError(u64 line_location, u64 line, u64 column, std::string path,
+            std::string format, Args... args)
         {
             
-            message += "[" + line_location + "]: " + path + "(" + line + ", " + column + ")(Error): ";
+            message += "[" + std::to_string(line_location) 
+                + "]: " + path + "(" + std::to_string(line) + ", " + std::to_string(column) + ")(Error): ";
             
             // TODO(Chris): Clearly, there is a better way to do this, right? Primary candidate
             //              for a custom intrinsic.
@@ -54,6 +56,11 @@ class CompilerSyntaxError : public CompilerException
 
         }
         
+        ccptr what() const noexcept override
+        {
+            return message.c_str();
+        }
+        
     protected:
         string message;
 
@@ -64,10 +71,12 @@ class CompilerSyntaxWarning : public CompilerException
 
     public:
         template <typename ...Args> 
-        CompilerSyntaxWarning(u64 line_location, u64 line, u64 column, std::string path, Args... args)
+        CompilerSyntaxWarning(u64 line_location, u64 line, u64 column, std::string path,
+            std::string format, Args... args)
         {
             
-            message += "[" + line_location + "]: " + path + "(" + line + ", " + column + ")(Warning): ";
+            message += "[" + std::to_string(line_location) 
+                + "]: " + path + "(" + std::to_string(line) + ", " + std::to_string(column) + ")(Warning): ";
             
             // TODO(Chris): Clearly, there is a better way to do this, right? Primary candidate
             //              for a custom intrinsic.
@@ -89,6 +98,14 @@ class CompilerSyntaxWarning : public CompilerException
             message += formatted_message;
 
         }
+
+        ccptr what() const noexcept override
+        {
+            return message.c_str();
+        }
+        
+    protected:
+        string message;
 
 };
 
@@ -97,10 +114,12 @@ class CompilerSyntaxInformation : public CompilerException
 
     public:
         template <typename ...Args> 
-        CompilerSyntaxInformation(u64 line_location, u64 line, u64 column, std::string path, Args... args)
+        CompilerSyntaxInformation(u64 line_location, u64 line, u64 column, 
+            std::string path, std::string format, Args... args)
         {
             
-            message += "[" + line_location + "]: " + path + "(" + line + ", " + column + ")(Info): ";
+            message += "[" + std::to_string(line_location) 
+                + "]: " + path + "(" + std::to_string(line) + ", " + std::to_string(column) + ")(Error): ";
             
             // TODO(Chris): Clearly, there is a better way to do this, right? Primary candidate
             //              for a custom intrinsic.
@@ -122,6 +141,14 @@ class CompilerSyntaxInformation : public CompilerException
             message += formatted_message;
 
         }
+
+        ccptr what() const noexcept override
+        {
+            return message.c_str();
+        }
+        
+    protected:
+        string message;
 
 };
 

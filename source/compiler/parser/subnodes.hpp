@@ -16,7 +16,7 @@ class SyntaxNodeRoot : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        vector<shared_ptr<SyntaxNode>> children;
+        vector<SyntaxNode*> children;
 };
 
 // --- Module Syntax Node ------------------------------------------------------
@@ -35,7 +35,7 @@ class SyntaxNodeModule : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        vector<shared_ptr<SyntaxNode>> children;
+        vector<SyntaxNode*> children;
 };
 
 // --- Main Syntax Node --------------------------------------------------------
@@ -53,7 +53,7 @@ class SyntaxNodeMain : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        vector<shared_ptr<SyntaxNode>> children;
+        vector<SyntaxNode*> children;
 };
 
 // --- Include Statement Syntax Node -------------------------------------------
@@ -71,153 +71,10 @@ class SyntaxNodeIncludeStatement : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<SyntaxNode> module;
+        SyntaxNode* module;
         string absolute_path;
         string relative_path;
         string user_path;
-};
-
-// --- Parameter Syntax Node ---------------------------------------------------
-//
-// Represents a parameter in a function or procedure definition.
-//
-
-class SyntaxNodeParameter : public SyntaxNode
-{
-    public:
-                         SyntaxNodeParameter();
-        virtual         ~SyntaxNodeParameter();
-        virtual void     accept(SyntaxNodeVisitor *visitor) override;
-
-    public:
-        string identifier;
-
-};
-
-// --- Function Statement Syntax Node ------------------------------------------
-//
-// Function statements are occurrences of function definitions in the source code.
-// These may occur either in the global scope or in the scope of other body scopes.
-//
-
-class SyntaxNodeFunctionStatement : public SyntaxNode
-{
-
-    public:
-                         SyntaxNodeFunctionStatement();
-        virtual         ~SyntaxNodeFunctionStatement();
-        virtual void     accept(SyntaxNodeVisitor *visitor) override;
-
-    public:
-        string identifier;
-        vector<shared_ptr<SyntaxNode>> parameters;
-        vector<shared_ptr<SyntaxNode>> children;
-
-};
-
-// --- Procedure Statement Syntax Node -----------------------------------------
-//
-// Procedure statements are occurrences of procedure definitions in the source code.
-// These may occur either in the global scope or in the scope of other body scopes.
-// Unlike functions, procedures do not return anything and are used entirely for
-// side-effects.
-//
-
-class SyntaxNodeProcedureStatement : public SyntaxNode
-{
-
-    public:
-                         SyntaxNodeProcedureStatement();
-        virtual         ~SyntaxNodeProcedureStatement();
-        virtual void     accept(SyntaxNodeVisitor *visitor) override;
-
-    public:
-        string identifier;
-        vector<shared_ptr<SyntaxNode>> parameters;
-        vector<shared_ptr<SyntaxNode>> children;
-
-};
-
-// --- Expression Statement Syntax Node ----------------------------------------
-//
-// Expression statements are the most common type of statement in the language.
-// They are used to evaluate expressions and perform operations on the data.
-//
-
-class SyntaxNodeExpressionStatement : public SyntaxNode
-{
-
-    public:
-                         SyntaxNodeExpressionStatement();
-        virtual         ~SyntaxNodeExpressionStatement();
-        virtual void     accept(SyntaxNodeVisitor *visitor) override;
-
-    public:
-        shared_ptr<SyntaxNode> expression;
-
-};
-
-// --- Procedure Call Statement Syntax Node ------------------------------------
-//
-// For procedure call invocations.
-//
-
-class SyntaxNodeProcedureCallStatement : public SyntaxNode
-{
-
-    public:
-                         SyntaxNodeProcedureCallStatement();
-        virtual         ~SyntaxNodeProcedureCallStatement();
-        virtual void     accept(SyntaxNodeVisitor *visitor) override;
-
-    public:
-        string identifier;
-        vector<shared_ptr<SyntaxNode>> arguments;
-
-};
-
-// --- While Statement Syntax Node ---------------------------------------------
-//
-// While statements are used to create loops in the program. They evaluate an
-// expression and, if the expression is true, execute the body of the loop.
-//
-
-class SyntaxNodeWhileStatement : public SyntaxNode
-{
-
-    public:
-                         SyntaxNodeWhileStatement();
-        virtual         ~SyntaxNodeWhileStatement();
-        virtual void     accept(SyntaxNodeVisitor *visitor) override;
-
-    public:
-        shared_ptr<SyntaxNode> expression;
-        vector<shared_ptr<SyntaxNode>> children;
-
-};
-
-// --- Loop Statement Syntax Node ----------------------------------------------
-//
-// Loop statements are used to create basic for-loops pretty typical of most
-// languages. The original COSY specification ensured that the iterator remains
-// constant through the loop, however we will not enforce this requirement.
-// 
-
-class SyntaxNodeLoopStatement : public SyntaxNode
-{
-
-    public:
-                         SyntaxNodeLoopStatement();
-        virtual         ~SyntaxNodeLoopStatement();
-        virtual void     accept(SyntaxNodeVisitor *visitor) override;
-
-    public:
-        string iterator;
-        shared_ptr<SyntaxNode> start;
-        shared_ptr<SyntaxNode> end;
-        shared_ptr<SyntaxNode> step;
-        vector<shared_ptr<SyntaxNode>> children;
-
 };
 
 // --- Variable Statement Syntax Node -----------------------------------------
@@ -242,9 +99,123 @@ class SyntaxNodeVariableStatement : public SyntaxNode
 
     public:
         string identifier;
-        shared_ptr<SyntaxNode> storage;
-        shared_ptr<SyntaxNode> expression;
-        vector<shared_ptr<SyntaxNode>> dimensions;
+        SyntaxNode* storage;
+        SyntaxNode* expression;
+        vector<SyntaxNode*> dimensions;
+
+        Datatype data_type;
+        Structuretype structure_type;
+
+};
+
+// --- Function Statement Syntax Node ------------------------------------------
+//
+// Function statements are occurrences of function definitions in the source code.
+// These may occur either in the global scope or in the scope of other body scopes.
+//
+
+class SyntaxNodeFunctionStatement : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodeFunctionStatement();
+        virtual         ~SyntaxNodeFunctionStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        bool is_global;
+        SyntaxNodeVariableStatement *variable_node;
+        vector<SyntaxNodeVariableStatement*> parameters;
+        vector<SyntaxNode*> children;
+
+};
+
+// --- Procedure Statement Syntax Node -----------------------------------------
+//
+// Procedure statements are occurrences of procedure definitions in the source code.
+// These may occur either in the global scope or in the scope of other body scopes.
+// Unlike functions, procedures do not return anything and are used entirely for
+// side-effects.
+//
+
+class SyntaxNodeProcedureStatement : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodeProcedureStatement();
+        virtual         ~SyntaxNodeProcedureStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        bool is_global;
+        SyntaxNodeVariableStatement *variable_node;
+        vector<SyntaxNodeVariableStatement*> parameters;
+        vector<SyntaxNode*> children;
+
+};
+
+// --- Expression Statement Syntax Node ----------------------------------------
+//
+// Expression statements are the most common type of statement in the language.
+// They are used to evaluate expressions and perform operations on the data.
+//
+
+class SyntaxNodeExpressionStatement : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodeExpressionStatement();
+        virtual         ~SyntaxNodeExpressionStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        SyntaxNode* expression;
+
+};
+
+// --- While Statement Syntax Node ---------------------------------------------
+//
+// While statements are used to create loops in the program. They evaluate an
+// expression and, if the expression is true, execute the body of the loop.
+//
+
+class SyntaxNodeWhileStatement : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodeWhileStatement();
+        virtual         ~SyntaxNodeWhileStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        SyntaxNode* expression;
+        vector<SyntaxNode*> children;
+
+};
+
+// --- Loop Statement Syntax Node ----------------------------------------------
+//
+// Loop statements are used to create basic for-loops pretty typical of most
+// languages. The original COSY specification ensured that the iterator remains
+// constant through the loop, however we will not enforce this requirement.
+// 
+
+class SyntaxNodeLoopStatement : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodeLoopStatement();
+        virtual         ~SyntaxNodeLoopStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        string iterator;
+
+        SyntaxNode* variable;
+        SyntaxNode* start;
+        SyntaxNode* end;
+        SyntaxNode* step;
+        vector<SyntaxNode*> children;
 
 };
 
@@ -268,7 +239,7 @@ class SyntaxNodeScopeStatement : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        vector<shared_ptr<SyntaxNode>> children;
+        vector<SyntaxNode*> children;
 
 };
 
@@ -289,9 +260,9 @@ class SyntaxNodeConditionalStatement : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<SyntaxNode> expression;
-        shared_ptr<SyntaxNode> next;
-        vector<shared_ptr<SyntaxNode>> children;
+        SyntaxNode* expression;
+        SyntaxNodeConditionalStatement* next;
+        vector<SyntaxNode*> children;
 
 };
 
@@ -311,8 +282,7 @@ class SyntaxNodeReadStatement : public SyntaxNode
 
     public:
         string identifier;
-        shared_ptr<SyntaxNode> location;
-        shared_ptr<SyntaxNode> expression;
+        SyntaxNode* location;
 
 };
 
@@ -331,8 +301,8 @@ class SyntaxNodeWriteStatement : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<SyntaxNode> location;
-        vector<shared_ptr<SyntaxNode>> expressions;
+        SyntaxNode* location;
+        vector<SyntaxNode*> expressions;
 
 };
 
@@ -351,7 +321,26 @@ class SyntaxNodeExpression : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<SyntaxNode> expression;
+        SyntaxNode* expression;
+
+};
+
+// --- Procedure Call Syntax Node ----------------------------------------------
+//
+// For procedure call invocations.
+//
+
+class SyntaxNodeProcedureCall : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodeProcedureCall();
+        virtual         ~SyntaxNodeProcedureCall();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        string identifier;
+        vector<SyntaxNode*> arguments;
 
 };
 
@@ -371,8 +360,8 @@ class SyntaxNodeAssignment : public SyntaxNode
 
     public:
         string identifier;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -392,8 +381,8 @@ class SyntaxNodeEquality : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -413,8 +402,8 @@ class SyntaxNodeComparison : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -434,8 +423,8 @@ class SyntaxNodeTerm : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -455,8 +444,8 @@ class SyntaxNodeFactor : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -476,8 +465,8 @@ class SyntaxNodeMagnitude : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -497,8 +486,8 @@ class SyntaxNodeExtraction : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -518,8 +507,8 @@ class SyntaxNodeDerivation : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> left;
-        shared_ptr<SyntaxNode> right;
+        SyntaxNode* left;
+        SyntaxNode* right;
 
 };
 
@@ -539,7 +528,7 @@ class SyntaxNodeUnary : public SyntaxNode
 
     public:
         Operationtype operation;
-        shared_ptr<SyntaxNode> expression;
+        SyntaxNode* expression;
 
 };
 
@@ -559,7 +548,7 @@ class SyntaxNodeFunctionCall : public SyntaxNode
 
     public:
         string identifier;
-        vector<shared_ptr<SyntaxNode>> arguments;
+        vector<SyntaxNode*> arguments;
 
 };
 
@@ -579,7 +568,7 @@ class SyntaxNodeArrayIndex : public SyntaxNode
 
     public:
         string identifier;
-        vector<shared_ptr<SyntaxNode>> indices;
+        vector<SyntaxNode*> indices;
 
 };
 
@@ -598,7 +587,7 @@ class SyntaxNodePrimary : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        Primarytype primary;
+        Primarytype primarytype;
         string primitive;
 
 };
@@ -618,7 +607,7 @@ class SyntaxNodeGrouping : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        shared_ptr<SyntaxNode> expression;
+        SyntaxNode* expression;
 
 };
 
