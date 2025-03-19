@@ -17,11 +17,16 @@ BlockValidator::
 void BlockValidator::
 visit(SyntaxNodeFunctionStatement* node)
 {
+
+    // TODO(Chris): There is some additional nesting that we need to do here
+    //              since procedures can be defined internally.
       
+    this->environment->push_table();
     for (auto child : node->children)
     {
         child->accept(this);
     }
+    this->environment->pop_table();
     
 }
 
@@ -29,10 +34,15 @@ void BlockValidator::
 visit(SyntaxNodeProcedureStatement* node)
 {
 
+    // TODO(Chris): There is some additional nesting that we need to do here
+    //              since procedures can be defined internally.
+
+    this->environment->push_table();
     for (auto child : node->children)
     {
         child->accept(this);
     }
+    this->environment->pop_table();
     
 }
 
@@ -48,21 +58,28 @@ void BlockValidator::
 visit(SyntaxNodeWhileStatement* node)
 {
 
+    this->environment->push_table();
     for (auto child : node->children)
     {
         child->accept(this);
     }
+    this->environment->pop_table();
     
 }
 
 void BlockValidator::
 visit(SyntaxNodeLoopStatement* node)
 {
+    
+    // TODO(Chris): There is some additional nesting that we need to do here
+    //              since procedures can be defined internally.
 
+    this->environment->push_table();
     for (auto child : node->children)
     {
         child->accept(this);
     }
+    this->environment->pop_table();
     
 }
 
@@ -97,10 +114,12 @@ void BlockValidator::
 visit(SyntaxNodeScopeStatement* node)
 {
 
+    this->environment->push_table();
     for (auto child : node->children)
     {
         child->accept(this);
     }
+    this->environment->pop_table();
     
 }
 
@@ -108,19 +127,23 @@ void BlockValidator::
 visit(SyntaxNodeConditionalStatement* node)
 {
 
+    this->environment->push_table();
     for (auto child : node->children)
     {
         child->accept(this);
     }
+    this->environment->pop_table();
 
     auto next_conditional = node->next;
     while (next_conditional != nullptr)
     {
 
+        this->environment->push_table();
         for (auto child : next_conditional->children)
         {
             child->accept(this);
         }
+        this->environment->pop_table();
 
         next_conditional = next_conditional->next;
 

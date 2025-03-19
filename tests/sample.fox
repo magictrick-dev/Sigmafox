@@ -15,7 +15,7 @@ endfunction;
 function add_numbers a b;
 
     variable result 4 := a + b;
-    add_numbers := result + increment_numbers(a, b);
+    add_numbers := result + increment_numbers(a, b * (3.12 - (4.1i + 2.0)));
 
 endfunction;
 
@@ -54,7 +54,7 @@ begin;
 
         read 5 baz;
 
-        variable bax 4 := foo * add_numbers(8, 16.0);
+        variable bax 4 := foo * add_numbers(8, 16.0 * (1.8i - 4.0));
         variable check 4 := another_layer(8, 16.0);
 
         { Side effects not considered yet. }
