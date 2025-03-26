@@ -75,6 +75,11 @@ add_executable(Sigmafox
     "source/compiler/parser/validators/blockvalidator.hpp"
     "source/compiler/parser/validators/blockvalidator.cpp"
 
+    "source/compiler/generation/sourcefile.hpp"
+    "source/compiler/generation/sourcefile.cpp"
+    "source/compiler/generation/generator.hpp"
+    "source/compiler/generation/generator.cpp"
+
     "source/compiler/tokenizer/token.hpp"
     "source/compiler/tokenizer/token.cpp"
     "source/compiler/tokenizer/tokenizer.hpp"

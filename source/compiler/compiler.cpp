@@ -1,6 +1,7 @@
 #include <compiler/compiler.hpp>
 #include <compiler/reference.hpp>
 #include <compiler/parser/parser.hpp>
+#include <compiler/generation/generator.hpp>
 
 Compiler::
 Compiler(string entry_file)
@@ -14,8 +15,7 @@ Compiler::
 ~Compiler()
 {
     
-    for (auto node : this->nodes)
-        delete node;
+    //for (auto node : this->nodes) delete node;
 
 }
 
@@ -46,7 +46,7 @@ parse()
     
     // Move the nodes out so when the parser goes out of scope it doesn't
     // clear our nodes with it.
-    std::vector<SyntaxNode*>& nodes = parser.get_nodes();
+    std::vector<shared_ptr<SyntaxNode>>& nodes = parser.get_nodes();
     this->nodes.insert(this->nodes.end(), 
         std::make_move_iterator(nodes.begin()),
         std::make_move_iterator(nodes.end()));
@@ -73,6 +73,10 @@ generate() const
     // Tests and outputs the AST.
     ReferenceVisitor visitor;
     this->root->accept(&visitor);
+
+    TranspileCPPGenerator generator;
+    this->root->accept(&generator);
+    generator.dump_output();
 #else
 
 #endif

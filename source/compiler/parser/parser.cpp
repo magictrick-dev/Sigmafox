@@ -20,8 +20,7 @@ ParseTree::
 ~ParseTree()
 {
     
-    for (auto node : this->nodes)
-        delete node;
+    //for (auto node : this->nodes) delete node;
 
 }
 
@@ -60,7 +59,7 @@ get_root()
 
 }
 
-vector<SyntaxNode*>& ParseTree::
+vector<shared_ptr<SyntaxNode>>& ParseTree::
 get_nodes()
 {
 
@@ -146,7 +145,7 @@ generate_node(Params... args)
 {
 
     T* raw_node = new T(args...);
-    this->nodes.push_back(raw_node);
+    this->nodes.push_back(shared_ptr<SyntaxNode>(raw_node));
     return raw_node;
 
 }
@@ -381,7 +380,9 @@ match_function_statement(bool is_global)
     for (auto parameter : parameters)
     {
 
-        SyntaxNodeVariableStatement *parameter_node = (SyntaxNodeVariableStatement*)parameter;
+        //SyntaxNodeVariableStatement *parameter_node = (SyntaxNodeVariableStatement*)parameter;
+        SyntaxNodeVariableStatement *parameter_node = dynamic_cast<SyntaxNodeVariableStatement*>(parameter);
+        SF_ENSURE_PTR(parameter_node);
         this->environment->set_symbol_locally(parameter_node->identifier, Symbol(parameter_node->identifier,
             Symboltype::SYMBOL_TYPE_VARIABLE, parameter_node));
 
@@ -525,7 +526,9 @@ match_procedure_statement(bool is_global)
     for (auto parameter : parameters)
     {
 
-        SyntaxNodeVariableStatement *parameter_node = (SyntaxNodeVariableStatement*)parameter;
+        //SyntaxNodeVariableStatement *parameter_node = (SyntaxNodeVariableStatement*)parameter;
+        SyntaxNodeVariableStatement *parameter_node = dynamic_cast<SyntaxNodeVariableStatement*>(parameter);
+        SF_ENSURE_PTR(parameter_node);
         this->environment->set_symbol_locally(parameter_node->identifier, Symbol(parameter_node->identifier,
             Symboltype::SYMBOL_TYPE_VARIABLE, parameter_node));
 
@@ -881,6 +884,8 @@ match_variable_statement()
     // Construct the symbol and put it in the table.
     Symboltype symbol_type = Symboltype::SYMBOL_TYPE_DECLARED;
     if (initializer_expression != nullptr)
+        symbol_type = Symboltype::SYMBOL_TYPE_VARIABLE;
+    else if (array_dimensions.size() != 0)
         symbol_type = Symboltype::SYMBOL_TYPE_VARIABLE;
     
     Symbol variable_symbol(identifier, symbol_type, node, array_dimensions.size());
@@ -1267,7 +1272,7 @@ match_write_statement()
     children.push_back(initial_write);
     
     // Additional expressions.
-    while (this->expect_current_token_as(Tokentype::TOKEN_EOF))
+    while (!this->expect_current_token_as(Tokentype::TOKEN_EOF))
     {
 
         if (this->expect_current_token_as(Tokentype::TOKEN_SEMICOLON)) break;
@@ -1323,6 +1328,17 @@ match_procedure_call()
     }
 
     // Is this a procedure?
+    if (!this->environment->symbol_exists(identifier))
+    {
+
+        throw CompilerSyntaxError(__LINE__,
+            this->tokenizer->get_previous_token().row,
+            this->tokenizer->get_previous_token().column,
+            this->path.c_str(),
+            "Identifier '%s' is undeclared and undefined.", identifier.c_str());
+
+    }
+
     Symbol *procedure_symbol = this->environment->get_symbol(identifier);
     if (procedure_symbol->get_type() != Symboltype::SYMBOL_TYPE_PROCEDURE)
     {
@@ -1467,6 +1483,17 @@ match_assignment()
     auto right_hand_side = this->match_equality();    
     
     // Fetch the type of the symbol.
+    if (!this->environment->symbol_exists(identifier))
+    {
+
+        throw CompilerSyntaxError(__LINE__,
+            this->tokenizer->get_previous_token().row,
+            this->tokenizer->get_previous_token().column,
+            this->path.c_str(),
+            "Identifier '%s' is undeclared and undefined.", identifier.c_str());
+
+    }
+
     Symbol *assignment_symbol = this->environment->get_symbol(identifier);
     auto variable = dynamic_cast<SyntaxNodeVariableStatement*>(assignment_symbol->get_node());
     
@@ -1486,13 +1513,14 @@ match_assignment()
             identifier.c_str());
     }
     
-    variable->data_type = type_deduction;
+    variable->data_type         = type_deduction;
+    variable->structure_type    = Structuretype::STRUCTURE_TYPE_SCALAR;
     assignment_symbol->set_type(Symboltype::SYMBOL_TYPE_VARIABLE);
     
     auto assignment_node = this->generate_node<SyntaxNodeAssignment>();
-    assignment_node->identifier = identifier;
-    assignment_node->left = left_hand_side;
-    assignment_node->right = right_hand_side;
+    assignment_node->identifier     = identifier;
+    assignment_node->left           = left_hand_side;
+    assignment_node->right          = right_hand_side;
     
     return assignment_node;
 
@@ -1937,6 +1965,17 @@ match_function_call()
     }
 
     // Is this a function?
+    if (!this->environment->symbol_exists(identifier))
+    {
+
+        throw CompilerSyntaxError(__LINE__,
+            this->tokenizer->get_previous_token().row,
+            this->tokenizer->get_previous_token().column,
+            this->path.c_str(),
+            "Identifier '%s' is undeclared and undefined.", identifier.c_str());
+
+    }
+
     Symbol *function_symbol = this->environment->get_symbol(identifier);
     if (function_symbol->get_type() != Symboltype::SYMBOL_TYPE_FUNCTION)
     {
@@ -1991,8 +2030,8 @@ match_function_call()
 
     }
 
-    SyntaxNodeFunctionStatement *function_node = 
-        (SyntaxNodeFunctionStatement*)function_symbol->get_node();
+    SyntaxNodeFunctionStatement *function_node = dynamic_cast<SyntaxNodeFunctionStatement*>(function_symbol->get_node());
+    SF_ENSURE_PTR(function_node);
 
     // Okay, arity matches, now we need to discern our types.
     this->environment->push_table();
@@ -2003,9 +2042,7 @@ match_function_call()
 
         auto argument = function_node->parameters[idx];
 
-        Symbol parameter_symbol = Symbol(argument->identifier,
-            Symboltype::SYMBOL_TYPE_VARIABLE,
-            argument);
+        Symbol parameter_symbol = Symbol(argument->identifier, Symboltype::SYMBOL_TYPE_VARIABLE, argument);
 
         // Evaluate the parameter with the provided arguments.
         ExpressionEvaluator argument_evaluation(this->environment);
@@ -2037,8 +2074,103 @@ SyntaxNode* ParseTree::
 match_array_index()
 {
 
-    // TODO(Chris): Implement this.
-    return this->match_primary();
+    auto *left_hand_side = this->match_primary();
+
+    // Check if primary (could be grouping).
+    Nodetype node_type = left_hand_side->get_nodetype();
+    if (node_type != Nodetype::NODE_TYPE_PRIMARY) 
+        return left_hand_side;
+
+    SyntaxNodePrimary *primary_node = dynamic_cast<SyntaxNodePrimary*>(left_hand_side);
+    SF_ENSURE_PTR(primary_node);
+
+    // Check if it is a primary identifier node.
+    Primarytype primary_type = primary_node->primarytype;
+    if (primary_type != Primarytype::PRIMARY_TYPE_IDENTIFIER)
+        return left_hand_side;
+
+    // Is it an array index?
+    if (!this->expect_current_token_as(Tokentype::TOKEN_LEFT_PARENTHESIS))
+        return left_hand_side;
+
+    string identifier = primary_node->primitive;
+
+    // Does the identifier exist?
+    if (!this->environment->symbol_exists(identifier))
+    {
+
+        throw CompilerSyntaxError(__LINE__,
+            this->tokenizer->get_previous_token().row,
+            this->tokenizer->get_previous_token().column,
+            this->path.c_str(),
+            "Identifier '%s' is undeclared and undefined.", identifier.c_str());
+
+    }
+
+    Symbol *array_symbol = this->environment->get_symbol(identifier);
+    SF_ENSURE_PTR(array_symbol);
+
+    if (array_symbol->get_type() != Symboltype::SYMBOL_TYPE_VARIABLE)
+        return left_hand_side;
+
+    if (array_symbol->get_arity() == 0)
+        return left_hand_side;
+
+    this->consume_current_token_as(Tokentype::TOKEN_LEFT_PARENTHESIS, __LINE__);
+
+    // Collect the indices.
+    vector<SyntaxNode*> array_index_expressions;
+    while (!this->expect_current_token_as(Tokentype::TOKEN_EOF))
+    {
+
+        if (this->expect_current_token_as(Tokentype::TOKEN_RIGHT_PARENTHESIS)) break;
+
+        auto expression = this->match_expression();
+        array_index_expressions.push_back(expression);
+
+        if (this->expect_current_token_as(Tokentype::TOKEN_COMMA))
+        {
+
+            this->consume_current_token_as(Tokentype::TOKEN_COMMA, __LINE__);
+            if (this->expect_current_token_as(Tokentype::TOKEN_RIGHT_PARENTHESIS))
+            {
+
+                throw CompilerSyntaxError(__LINE__,
+                    this->tokenizer->get_current_token().row,
+                    this->tokenizer->get_current_token().column,
+                    this->path.c_str(),
+                    "Expected expression in parameter list, encountered '%s'.", 
+                    identifier.c_str());
+
+            }
+
+        }
+
+    }
+
+    this->consume_current_token_as(Tokentype::TOKEN_RIGHT_PARENTHESIS, __LINE__);
+
+    // Variable symbol cast.
+    SyntaxNodeVariableStatement *array_variable = 
+        dynamic_cast<SyntaxNodeVariableStatement*>(array_symbol->get_node());
+    SF_ENSURE_PTR(array_variable);
+
+    if (array_symbol->get_arity() != array_index_expressions.size())
+    {
+
+        throw CompilerSyntaxError(__LINE__,
+            this->tokenizer->get_previous_token().row,
+            this->tokenizer->get_previous_token().column,
+            this->path.c_str(),
+            "Array '%s' dimensions are mismatched, expected %i, received %i.",
+            identifier.c_str(), array_symbol->get_arity(), array_index_expressions.size());
+
+    }
+
+    auto array_index_node = this->generate_node<SyntaxNodeArrayIndex>();
+    array_index_node->identifier    = identifier;
+    array_index_node->indices       = array_index_expressions;
+    return array_index_node;
 
 }
 

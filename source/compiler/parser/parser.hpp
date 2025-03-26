@@ -19,8 +19,8 @@ class ParseTree
         bool        parse(string source_file);
         bool        valid() const;
 
-        SyntaxNode*             get_root();
-        vector<SyntaxNode*>&    get_nodes();
+        SyntaxNode*                         get_root();
+        vector<shared_ptr<SyntaxNode>>&     get_nodes();
 
     protected:
         void synchronize_to(Tokentype type);
@@ -76,7 +76,7 @@ class ParseTree
     protected:
         Filepath                        path;
         SyntaxNode*                     root;
-        vector<SyntaxNode*>             nodes;
+        vector<shared_ptr<SyntaxNode>>  nodes;
 
 };
 

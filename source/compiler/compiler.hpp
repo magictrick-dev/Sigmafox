@@ -20,7 +20,7 @@ class Compiler
         DependencyGraph             graph;
         Environment                 environment;
         SyntaxNode*                 root;
-        std::vector<SyntaxNode*>    nodes;
+        std::vector<shared_ptr<SyntaxNode>> nodes;
 
 };
 

@@ -6,6 +6,7 @@
 #include <utilities/path.hpp>
 #include <utilities/cli.hpp>
 #include <compiler/compiler.hpp>
+#include <compiler/generation/sourcefile.hpp>
 
 int
 main(int argc, char ** argv)
@@ -56,6 +57,39 @@ main(int argc, char ** argv)
 
         } 
 
+#if 0
+        GeneratableSourcefile test_source("test", "test.cpp");
+        test_source
+            .insert_line("Hello world.")
+            .insert_line("Foo.")
+            .push_tabs()
+            .insert_line_with_tabs("Bar.")
+            .pop_tabs()
+            .insert_line("Hello ")
+            .append_to_current_line("world.");
+        std::cout << test_source.get_source() << std::endl;
+#endif
+
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+#define SF_REPITITION_TEST 0
+#define SF_REPITITION_COUNT (4*1024)
+#if SF_REPITITION_TEST == 1
+        for (int i = 0; i < SF_REPITITION_COUNT; ++i)
+        {
+#endif
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+
         Compiler compiler(user_source_file.c_str());
         if (!compiler.parse())
         {
@@ -78,6 +112,21 @@ main(int argc, char ** argv)
                 }
             }
         }
+
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+#if SF_REPITITION_TEST == 1
+        }
+#endif
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+// CPU BURNER 9000
+
     }
 
 
