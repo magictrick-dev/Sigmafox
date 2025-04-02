@@ -44,17 +44,20 @@ begin;
 
         loop i 0 10 1;
             
-            write 4 i;
+            variable test 4 := i * add_pair(i + 2.0, 13.0 * 4.0i);
+            write 4 test;
 
         endloop;
 
         if idx < 100;
 
+            variable test 4 := idx * mul_pair(idx + 2.0, 13.0 * 4.0i);
             write 4 "Basic if.";
 
         elseif idx > 100;
 
             write 4 "Chained elseif.";
+            example idx + 4.0i;
 
         elseif 1 = 1;
 
