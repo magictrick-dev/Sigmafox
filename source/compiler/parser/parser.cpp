@@ -34,7 +34,19 @@ parse(string source_file)
     this->path = source_file;
 
     this->tokenizer = make_shared<Tokenizer>(source_file);
-    SyntaxNode *root = this->match_root();
+    SyntaxNodeRoot *root = dynamic_cast<SyntaxNodeRoot*>(this->match_root());
+    SF_ENSURE_PTR(root);
+
+    root->absolute_path = source_file;
+
+    // We need to construct a path relative to the CWD since this is our output
+    // reference point that we need to ensure complete uniqueness.
+    Filepath cwd = Filepath::cwd();
+    string current_working_directory = cwd.c_str();
+    string relative_base = source_file.substr(current_working_directory.length() + 1);
+    root->relative_base = relative_base;
+
+
     if (root == nullptr)
         return false;
 
@@ -290,8 +302,130 @@ SyntaxNode* ParseTree::
 match_include_statement()
 {
 
-    SF_ASSERT(!"We should never directly return a nullptr.");
-    return nullptr;
+    this->consume_current_token_as(Tokentype::TOKEN_KEYWORD_INCLUDE, __LINE__);
+
+    // Grab the include token.
+    Token include_token = this->tokenizer->get_current_token();
+    this->consume_current_token_as(Tokentype::TOKEN_STRING, __LINE__);
+
+    // The file we need to add.
+    string user_include = include_token.reference;
+
+    // Canonicalize the absolute path.
+    Filepath include_path = this->path.root_directory();
+    include_path += user_include.c_str();
+    include_path.canonicalize();
+
+    // Get the relative base (which may be the same as the user include.
+    string relative_real_path = this->path.root_directory().c_str();
+    string absolute_real_path = include_path.c_str();
+    string relative_base = absolute_real_path.substr(relative_real_path.length());
+
+    // Now we need to get the file, create a parser, and parse it.
+    bool dependency_is_new = !this->graph->dependency_exists(absolute_real_path);
+    DependencyResult result = this->graph->add_dependency(this->path.c_str(), absolute_real_path);
+    switch (result)
+    {
+
+        case DependencyResult::DEPENDENCY_SUCCESS:
+        {
+
+            // Do nothing?
+
+        } break;
+
+        case DependencyResult::DEPENDENCY_PARENT_NOT_FOUND:
+        {
+
+            throw CompilerSyntaxError(__LINE__,
+                include_token.row,
+                include_token.column,
+                this->path.c_str(),
+                "Parent include file was not found for %s.",
+                include_token.reference.c_str());
+            
+        } break;
+
+        case DependencyResult::DEPENDENCY_SELF_INCLUDED:
+        {
+
+            throw CompilerSyntaxError(__LINE__,
+                include_token.row,
+                include_token.column,
+                this->path.c_str(),
+                "Parent include file is included file: %s.",
+                include_token.reference.c_str());
+            
+        } break;
+
+        case DependencyResult::DEPENDENCY_ALREADY_INCLUDED:
+        {
+
+            throw CompilerSyntaxError(__LINE__,
+                include_token.row,
+                include_token.column,
+                this->path.c_str(),
+                "Include file is already included: %s.",
+                include_token.reference.c_str());
+            
+        } break;
+
+        case DependencyResult::DEPENDENCY_IS_CIRCULAR:
+        {
+
+            throw CompilerSyntaxError(__LINE__,
+                include_token.row,
+                include_token.column,
+                this->path.c_str(),
+                "Circular dependency detected for: %s.",
+                include_token.reference.c_str());
+            
+        } break;
+
+    }
+
+    // Oh boy, recursion on steroids.
+    SyntaxNodeModule *module_node = nullptr;
+    if (dependency_is_new == true)
+    {
+
+        // Now we gotta create a parser.
+        ParseTree dependency_tree(this->graph, this->environment);
+        if (!dependency_tree.parse(absolute_real_path))
+        {
+            throw CompilerSyntaxError(__LINE__,
+                include_token.row,
+                include_token.column,
+                this->path.c_str(),
+                "Source file failed to parse: %s.",
+                include_token.reference.c_str());
+        }
+
+        SyntaxNode *root_node = dependency_tree.get_root();
+        auto nodes_list = dependency_tree.get_nodes();
+
+        // Yoink the nodes and add it to the nodes list.
+        for (auto node : nodes_list) this->nodes.push_back(node);
+
+        module_node = this->generate_node<SyntaxNodeModule>();
+        module_node->absolute_path  = include_path.c_str();
+        module_node->relative_path  = relative_base.c_str();
+        module_node->user_path      = user_include.c_str();
+        module_node->root           = root_node;
+
+
+    }
+
+    this->consume_current_token_as(Tokentype::TOKEN_SEMICOLON, __LINE__);
+
+    // Construct the include statement.
+    auto include_node = this->generate_node<SyntaxNodeIncludeStatement>();
+    include_node->module        = module_node;
+    include_node->absolute_path = include_path.c_str();
+    include_node->relative_path = relative_base.c_str();
+    include_node->user_path     = user_include.c_str();
+
+    return include_node;
 
 }
 
@@ -345,7 +479,7 @@ match_function_statement(bool is_global)
 
         auto parameter_node = this->generate_node<SyntaxNodeVariableStatement>();
         parameter_node->identifier      = parameter_identifier; 
-        parameter_node->data_type       = Datatype::DATA_TYPE_UNKNOWN;
+        parameter_node->data_type       = Datatype::DATA_TYPE_INTEGER;
         parameter_node->structure_type  = Structuretype::STRUCTURE_TYPE_SCALAR;
         parameter_node->storage         = parameter_storage;
         parameter_node->expression      = nullptr;

@@ -82,6 +82,7 @@ add_dependency(string parent, string child)
         child_node->parent = parent_node;
         
         this->nodes[child] = child_node;
+        this->nodes[parent]->children.push_back(child_node);
         
     }
     else
@@ -111,4 +112,13 @@ has_dependency(string parent, string child)
     
     return false;
     
+}
+
+bool DependencyGraph::
+dependency_exists(string dependency)
+{
+
+    return (this->nodes.find(dependency) != this->nodes.end());
+    
+
 }

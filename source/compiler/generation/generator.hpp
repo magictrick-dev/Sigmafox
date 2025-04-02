@@ -45,10 +45,11 @@ class TranspileCPPGenerator : public SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeGrouping* node)                 override;
 
     protected:
-        vector<GeneratableSourcefile> source_files;
-        GeneratableSourcefile *main_file;
-        GeneratableSourcefile *current_file;
-        i32 source_stack_index;
+        vector<shared_ptr<GeneratableSourcefile>> source_files;
+        shared_ptr<GeneratableSourcefile> main_file;
+        shared_ptr<GeneratableSourcefile> current_file;
+        shared_ptr<GeneratableSourcefile> cmake_file;
+        stack<shared_ptr<GeneratableSourcefile>> source_stack;
     
 };
 

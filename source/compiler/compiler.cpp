@@ -7,6 +7,7 @@ Compiler::
 Compiler(string entry_file)
 {
 
+    std::cout << "Root file is: " << entry_file.c_str() << std::endl;
     this->graph.set_root(entry_file);
 
 }
@@ -69,15 +70,18 @@ bool Compiler::
 generate() const
 {
 
-#if 1
+#if 0
     // Tests and outputs the AST.
+    ReferenceVisitor visitor;
+    this->root->accept(&visitor);
+
+#else
     ReferenceVisitor visitor;
     this->root->accept(&visitor);
 
     TranspileCPPGenerator generator;
     this->root->accept(&generator);
     generator.dump_output();
-#else
 
 #endif
 

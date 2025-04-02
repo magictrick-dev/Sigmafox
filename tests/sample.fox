@@ -1,3 +1,5 @@
+include "includes/math.fox";
+{ include "deptest.fox"; }
 
 procedure print_statement stm;
     write 4 stm;
@@ -39,6 +41,26 @@ begin;
             write 4 idx;
     
         endwhile;
+
+        loop i 0 10 1;
+            
+            write 4 i;
+
+        endloop;
+
+        if idx < 100;
+
+            write 4 "Basic if.";
+
+        elseif idx > 100;
+
+            write 4 "Chained elseif.";
+
+        elseif 1 = 1;
+
+            write 4 "Fall back case.";
+
+        endif;
 
     endscope;
 

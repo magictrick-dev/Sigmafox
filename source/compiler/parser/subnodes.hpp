@@ -17,6 +17,9 @@ class SyntaxNodeRoot : public SyntaxNode
 
     public:
         vector<SyntaxNode*> children;
+        string absolute_path;
+        string relative_base;
+
 };
 
 // --- Module Syntax Node ------------------------------------------------------
@@ -35,7 +38,10 @@ class SyntaxNodeModule : public SyntaxNode
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:
-        vector<SyntaxNode*> children;
+        SyntaxNode* root;
+        string absolute_path;
+        string relative_path;
+        string user_path;
 };
 
 // --- Main Syntax Node --------------------------------------------------------
@@ -211,7 +217,7 @@ class SyntaxNodeLoopStatement : public SyntaxNode
     public:
         string iterator;
 
-        SyntaxNode* variable;
+        SyntaxNodeVariableStatement* variable;
         SyntaxNode* start;
         SyntaxNode* end;
         SyntaxNode* step;
@@ -569,6 +575,7 @@ class SyntaxNodeArrayIndex : public SyntaxNode
     public:
         string identifier;
         vector<SyntaxNode*> indices;
+        vector<SyntaxNode*> dimensions; // Need this information from the variable.
 
 };
 

@@ -44,12 +44,14 @@ void ReferenceVisitor::
 visit(SyntaxNodeRoot* node)
 {
 
-    std::cout << "ROOT" << std::endl;
+    this->print_tabs();
+    std::cout << "ROOT " << node->relative_base << std::endl;
 
     this->push_tabs();
     for (auto child : node->children) child->accept(this);
     this->pop_tabs();
 
+    this->print_tabs();
     std::cout << "ENDROOT" << std::endl;
 
 }
@@ -57,6 +59,17 @@ visit(SyntaxNodeRoot* node)
 void ReferenceVisitor::
 visit(SyntaxNodeModule* node)
 {
+
+    this->print_tabs();
+    std::cout << "MODULE " << node->relative_path << std::endl;
+    this->push_tabs();
+
+    node->root->accept(this);
+
+    this->pop_tabs();
+    this->print_tabs();
+    std::cout << "ENDMODULE" << std::endl;
+
 }
 
 void ReferenceVisitor::
@@ -78,6 +91,17 @@ visit(SyntaxNodeMain* node)
 void ReferenceVisitor::
 visit(SyntaxNodeIncludeStatement* node)
 {
+
+    this->print_tabs();
+    std::cout << "INCLUDE ";
+    std::cout << node->relative_path << std::endl;
+
+    if (node->module != nullptr)
+    {
+        node->module->accept(this);
+    }
+
+    return;
 
 }
 

@@ -1,5 +1,7 @@
 #include <iostream>
+#include <algorithm>
 #include <compiler/generation/generator.hpp>
+#include <utilities/path.hpp>
 
 // --- Core Transpiler Routines ------------------------------------------------
 
@@ -7,11 +9,6 @@ TranspileCPPGenerator::
 TranspileCPPGenerator()
 {
 
-    this->source_files.emplace_back("main.cpp", "main.cpp");
-    this->main_file             = &this->source_files[0];
-    this->current_file          = &this->source_files[0];
-    this->source_stack_index    = 0;
-    
 }
 
 TranspileCPPGenerator::
@@ -27,7 +24,10 @@ dump_output()
     for (auto file : this->source_files)
     {
         
-        std::cout << file.get_source() << std::endl;
+        std::cout << "------------------------------------------------------------------" << std::endl;
+        std::cout << file->get_file_path() << std::endl;
+        std::cout << "------------------------------------------------------------------" << std::endl;
+        std::cout << file->get_source() << std::endl;
 
     }
 
@@ -47,7 +47,101 @@ void TranspileCPPGenerator::
 visit(SyntaxNodeRoot* node)
 {
 
+    bool is_entry = false;
+    if (this->source_files.empty())
+    {
+
+        string output_name = node->relative_base;
+        string extension = ".cpp";
+        output_name.replace(output_name.find(".fox"), extension.length(), extension);
+
+        Filepath absolute_file_path = node->absolute_path.c_str();
+        Filepath absolute_root = absolute_file_path.root_directory();
+        absolute_root += "./CMakeLists.txt";
+        absolute_root.canonicalize();
+
+        string cmake_path = absolute_root.c_str();
+
+        this->source_files.push_back(std::make_shared<GeneratableSourcefile>(cmake_path, cmake_path));
+        this->cmake_file = this->source_files[this->source_files.size()-1];
+        this->current_file = this->cmake_file;
+
+        this->current_file->push_region_as_head();
+        this->current_file->insert_line_with_tabs("CMAKE_MINIMUM_REQUIRED(VERSION 3.21)");
+        this->current_file->insert_blank_line();
+        this->current_file->insert_line_with_tabs("PROJECT(cosyproject)");
+        this->current_file->insert_blank_line();
+        this->current_file->insert_line_with_tabs("SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"../bin\")");
+        this->current_file->insert_line_with_tabs("SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)");
+        this->current_file->insert_line_with_tabs("SET(CMAKE_BUILD_TYPE Debug)");
+        this->current_file->insert_blank_line();
+        this->current_file->insert_line_with_tabs("ADD_EXECUTABLE(cosyproject");
+        this->current_file->pop_region();
+
+        this->current_file->push_region_as_body();
+        this->current_file->push_tabs();
+        this->current_file->insert_line_with_tabs("\"");
+        this->current_file->append_to_current_line(output_name);
+        this->current_file->append_to_current_line("\"");
+        this->current_file->pop_tabs();
+        this->current_file->pop_region();
+
+        this->current_file->push_region_as_foot();
+        this->current_file->insert_line_with_tabs(")");
+        this->current_file->pop_region();
+        
+        this->source_files.push_back(std::make_shared<GeneratableSourcefile>(output_name, output_name));
+        this->main_file             = this->source_files[this->source_files.size()-1];
+        this->current_file          = this->source_files[this->source_files.size()-1];
+        this->source_stack.push(this->current_file);
+        is_entry = true;
+
+    }
+
+    else
+    {
+
+        string output_name = node->relative_base;
+        string extension = ".hpp";
+        output_name.replace(output_name.find(".fox"), extension.length(), extension);
+
+        this->current_file = this->cmake_file;
+        this->current_file->push_region_as_body();
+        this->current_file->push_tabs();
+        this->current_file->insert_line_with_tabs("\"");
+        this->current_file->append_to_current_line(output_name);
+        this->current_file->append_to_current_line("\"");
+        this->current_file->pop_tabs();
+        this->current_file->pop_region();
+
+
+        this->source_files.push_back(std::make_shared<GeneratableSourcefile>(output_name, output_name));
+        this->current_file = this->source_files[this->source_files.size() - 1];
+        this->source_stack.push(this->current_file);
+
+    }
+
+    // Create a header guard.
     this->current_file->push_region_as_head();
+    if (!is_entry)
+    {
+
+        std::string header_guard = node->relative_base;
+        std::replace(header_guard.begin(), header_guard.end(), '/', '_');
+        std::replace(header_guard.begin(), header_guard.end(), '\\', '_');
+        std::replace(header_guard.begin(), header_guard.end(), '.', '_');
+        std::transform(header_guard.begin(), header_guard.end(), header_guard.begin(), ::toupper);
+
+        // Header guards.
+        this->current_file->insert_line("#ifndef ");
+        this->current_file->append_to_current_line(header_guard);
+        this->current_file->insert_line("#define ");
+        this->current_file->append_to_current_line(header_guard);
+
+    }
+
+
+
     this->current_file->insert_line("#include <iostream>");
     this->current_file->insert_line("#include <complex>");
     this->current_file->insert_line("#include <vector>");
@@ -66,6 +160,19 @@ visit(SyntaxNodeRoot* node)
 
     }
 
+    if (!is_entry)
+    {
+        // Closing header guard.
+        this->current_file->push_region_as_foot();
+        this->current_file->insert_line("#endif");
+        this->current_file->pop_region();
+    }
+
+    SF_ASSERT(!this->source_stack.empty());
+    this->source_stack.pop();
+    if (this->source_stack.empty()) return;
+    this->current_file = this->source_stack.top();
+
     return;
 }
 
@@ -73,7 +180,7 @@ void TranspileCPPGenerator::
 visit(SyntaxNodeModule* node)
 {
 
-    SF_NO_IMPL("Not yet.");
+    node->root->accept(this);
 
     return;
 }
@@ -83,6 +190,7 @@ visit(SyntaxNodeMain* node)
 {
 
     this->current_file->push_region_as_body();
+    this->current_file->insert_blank_line();
     this->current_file->insert_line("int");
     this->current_file->insert_line("main(int argc, char **argv)");
     this->current_file->insert_line("{");
@@ -109,7 +217,16 @@ void TranspileCPPGenerator::
 visit(SyntaxNodeIncludeStatement* node)
 {
 
-    SF_NO_IMPL(!"Not yet.");
+    string output_name = node->relative_path;
+    string extension = ".hpp";
+    output_name.replace(output_name.find(".fox"), extension.length(), extension);
+
+    this->current_file->insert_line_with_tabs("#include \"");
+    this->current_file->append_to_current_line(output_name);
+    this->current_file->append_to_current_line("\"");
+    this->current_file->insert_blank_line();
+
+    if (node->module != nullptr) node->module->accept(this);
 
     return;
 }
@@ -126,7 +243,7 @@ visit(SyntaxNodeFunctionStatement* node)
         SF_ENSURE_PTR(variable_node);
 
         this->current_file->push_region_as_head();
-        this->current_file->insert_line_with_tabs("static inline ");
+        this->current_file->insert_line_with_tabs("inline ");
 
         Datatype function_datatype = variable_node->data_type;
         switch (function_datatype)
@@ -376,6 +493,63 @@ void TranspileCPPGenerator::
 visit(SyntaxNodeLoopStatement* node)
 {
 
+    this->current_file->insert_line_with_tabs("for (");
+
+    Datatype data_type = node->variable->data_type;
+    switch (data_type)
+    {
+
+        case Datatype::DATA_TYPE_STRING:
+        {
+            this->current_file->append_to_current_line("std::string ");
+        } break;
+
+        case Datatype::DATA_TYPE_INTEGER:
+        {
+            this->current_file->append_to_current_line("int64_t ");
+        } break;
+
+        case Datatype::DATA_TYPE_REAL:
+        {
+            this->current_file->append_to_current_line("double ");
+        } break;
+
+        case Datatype::DATA_TYPE_COMPLEX:
+        {
+            this->current_file->append_to_current_line("std::complex<double> ");
+        } break;
+
+        default:
+        {
+            SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+        };
+
+    }
+    
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" = ");
+    node->start->accept(this);
+    this->current_file->append_to_current_line("; ");
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" < ");
+    node->end->accept(this);
+    this->current_file->append_to_current_line("; ");
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" += ");
+    node->step->accept(this);
+    this->current_file->append_to_current_line(")");
+
+    this->current_file->insert_line_with_tabs("{");
+    this->current_file->insert_blank_line();
+    this->current_file->push_tabs();
+
+    for (auto child : node->children) child->accept(this);
+
+    this->current_file->pop_tabs();
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line_with_tabs("}");
+    this->current_file->insert_blank_line();
+
     return;
 }
 
@@ -452,6 +626,42 @@ visit(SyntaxNodeScopeStatement* node)
 void TranspileCPPGenerator::    
 visit(SyntaxNodeConditionalStatement* node)
 {
+
+    this->current_file->insert_line_with_tabs("if (");
+    node->expression->accept(this);
+    this->current_file->append_to_current_line(")");
+    this->current_file->insert_line_with_tabs("{");
+    this->current_file->insert_blank_line();
+
+    this->current_file->push_tabs();
+    for (auto child : node->children) child->accept(this);
+    this->current_file->pop_tabs();
+
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line_with_tabs("}");
+
+    SyntaxNodeConditionalStatement *current = node->next;
+    while (current != nullptr)
+    {
+
+        
+        this->current_file->insert_line_with_tabs("else if (");
+        current->expression->accept(this);
+        this->current_file->append_to_current_line(")");
+        this->current_file->insert_line_with_tabs("{");
+        this->current_file->insert_blank_line();
+        this->current_file->push_tabs();
+        for (auto child : current->children) child->accept(this);
+        this->current_file->pop_tabs();
+
+        this->current_file->insert_blank_line();
+        this->current_file->insert_line_with_tabs("}");
+
+        current = current->next;
+
+    }
+
+    this->current_file->insert_blank_line();
 
     return;
 }
@@ -753,6 +963,14 @@ visit(SyntaxNodeFunctionCall* node)
 void TranspileCPPGenerator::    
 visit(SyntaxNodeArrayIndex* node)
 {
+
+    // Multidimensional indexing is kinda weird.
+    // TODO(Chris): z * (y*x) + y * (x) + x eg. for third dimensionals.
+    //              We will need to do this later, for now assume single dimension.
+    this->current_file->append_to_current_line(node->identifier);
+    this->current_file->append_to_current_line("[");
+    for (auto child : node->indices) child->accept(this);
+    this->current_file->append_to_current_line("]");
 
     return;
 }

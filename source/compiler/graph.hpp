@@ -27,8 +27,9 @@ class DependencyGraph
         void            set_root(string path);
         string          get_root_path() const;
 
-        DependencyResult add_dependency(string parent, string child);
-        bool            has_dependency(string parent, string child);
+        DependencyResult    add_dependency(string parent, string child);
+        bool                has_dependency(string parent, string child);
+        bool                dependency_exists(string dependency);
 
     protected:
         unordered_map<string, shared_ptr<DependencyNode>> nodes;
