@@ -75,6 +75,8 @@ add_executable(Sigmafox
     "source/compiler/parser/validators/blockvalidator.hpp"
     "source/compiler/parser/validators/blockvalidator.cpp"
 
+    "source/compiler/generation/sourcetree.hpp"
+    "source/compiler/generation/sourcetree.cpp"
     "source/compiler/generation/sourcefile.hpp"
     "source/compiler/generation/sourcefile.cpp"
     "source/compiler/generation/generator.hpp"
