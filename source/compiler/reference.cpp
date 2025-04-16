@@ -207,6 +207,33 @@ visit(SyntaxNodeWhileStatement* node)
 }
 
 void ReferenceVisitor::
+visit(SyntaxNodePloopStatement* node)
+{
+
+    this->print_tabs();
+    std::cout << "PLOOP " << node->iterator << " ";
+    node->start->accept(this);
+    std::cout << " ";
+    node->end->accept(this);
+    std::cout << " ";
+    node->step->accept(this);
+    std::cout << std::endl;
+
+
+    this->push_tabs();   
+    node->variable->accept(this);
+    for (auto child : node->children) 
+    {
+        child->accept(this);
+    }
+    this->pop_tabs();
+
+    this->print_tabs();
+    std::cout << "ENDPLOOP SHARING " << node->share_name << std::endl;
+
+}
+
+void ReferenceVisitor::
 visit(SyntaxNodeLoopStatement* node)
 {
 

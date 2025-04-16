@@ -47,6 +47,7 @@ class ParseTree
         SyntaxNode* match_scope_statement();
         SyntaxNode* match_while_statement();
         SyntaxNode* match_loop_statement();
+        SyntaxNode* match_ploop_statement();
         SyntaxNode* match_conditional_if_statement();
         SyntaxNode* match_conditional_elseif_statement();
         SyntaxNode* match_read_statement();

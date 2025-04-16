@@ -81,7 +81,8 @@ generate() const
 
     TranspileCPPGenerator generator;
     this->root->accept(&generator);
-    generator.dump_output();
+    //generator.dump_output();
+    generator.generate_files();
 
 #endif
 

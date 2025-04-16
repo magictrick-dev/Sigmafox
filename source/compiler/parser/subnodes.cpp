@@ -162,6 +162,26 @@ accept(SyntaxNodeVisitor *visitor)
     visitor->visit(this);
 }
 
+// --- Ploop Statement Syntax Node ---------------------------------------------
+
+SyntaxNodePloopStatement::
+SyntaxNodePloopStatement()
+{
+    this->node_type = Nodetype::NODE_TYPE_PLOOP_STATEMENT;
+}
+
+SyntaxNodePloopStatement::
+~SyntaxNodePloopStatement()
+{
+
+}
+
+void SyntaxNodePloopStatement::
+accept(SyntaxNodeVisitor *visitor)
+{
+    visitor->visit(this);
+}
+
 // --- Loop Statement Syntax Node ----------------------------------------------
 
 SyntaxNodeLoopStatement::

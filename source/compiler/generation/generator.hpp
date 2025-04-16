@@ -3,11 +3,13 @@
 #include <definitions.hpp>
 #include <compiler/parser/visitor.hpp>
 #include <compiler/generation/sourcefile.hpp>
+#include <compiler/generation/sourcetree.hpp>
 
 class TranspileCPPGenerator : public SyntaxNodeVisitor
 {
     public:
                         TranspileCPPGenerator();
+                        TranspileCPPGenerator(string output);
         virtual        ~TranspileCPPGenerator();
 
         void            dump_output();
@@ -22,6 +24,7 @@ class TranspileCPPGenerator : public SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeProcedureStatement* node)       override;
         virtual void    visit(SyntaxNodeExpressionStatement* node)      override;
         virtual void    visit(SyntaxNodeWhileStatement* node)           override;
+        virtual void    visit(SyntaxNodePloopStatement* node)           override;
         virtual void    visit(SyntaxNodeLoopStatement* node)            override;
         virtual void    visit(SyntaxNodeVariableStatement* node)        override;
         virtual void    visit(SyntaxNodeScopeStatement* node)           override;
@@ -45,6 +48,7 @@ class TranspileCPPGenerator : public SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeGrouping* node)                 override;
 
     protected:
+        string output;
         vector<shared_ptr<GeneratableSourcefile>> source_files;
         shared_ptr<GeneratableSourcefile> main_file;
         shared_ptr<GeneratableSourcefile> current_file;

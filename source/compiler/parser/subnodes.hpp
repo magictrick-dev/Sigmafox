@@ -225,6 +225,32 @@ class SyntaxNodeLoopStatement : public SyntaxNode
 
 };
 
+// --- Ploop Statement Syntax Node ---------------------------------------------
+//
+// Ploops are parallel computation loops that degrade to normal loops when
+// distributed computation is turned off.
+// 
+
+class SyntaxNodePloopStatement : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodePloopStatement();
+        virtual         ~SyntaxNodePloopStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        string iterator;
+        string share_name;
+
+        SyntaxNodeVariableStatement* variable;
+        SyntaxNode* start;
+        SyntaxNode* end;
+        SyntaxNode* step;
+        vector<SyntaxNode*> children;
+
+};
+
 // --- Scope Statement Syntax Node --------------------------------------------
 //
 // Scope statements are used to create new scopes in the program. They are used

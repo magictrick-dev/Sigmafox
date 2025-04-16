@@ -18,6 +18,7 @@ class SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeProcedureStatement* node);
         virtual void    visit(SyntaxNodeExpressionStatement* node);
         virtual void    visit(SyntaxNodeWhileStatement* node);
+        virtual void    visit(SyntaxNodePloopStatement* node);
         virtual void    visit(SyntaxNodeLoopStatement* node);
         virtual void    visit(SyntaxNodeVariableStatement* node);
         virtual void    visit(SyntaxNodeScopeStatement* node);

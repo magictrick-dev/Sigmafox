@@ -9,6 +9,16 @@ TranspileCPPGenerator::
 TranspileCPPGenerator()
 {
 
+    this->output = "./output";
+
+}
+
+TranspileCPPGenerator::
+TranspileCPPGenerator(string output)
+{
+
+    this->output = output;
+
 }
 
 TranspileCPPGenerator::
@@ -37,6 +47,24 @@ void TranspileCPPGenerator::
 generate_files()
 {
 
+    Sourcetree source_tree(this->output);
+    for (auto source : this->source_files)
+    {
+        if (!source_tree.insert_source(source.get()))
+        {
+            std::cout << "-- Unable to insert source file: " << source->get_file_name() << std::endl;
+        }
+    }
+
+    if (source_tree.commit())
+    {
+        std::cout << "-- Generation complete." << std::endl;
+    }
+    else
+    {
+        std::cout << "-- Generation failed." << std::endl;
+    }
+
     return;
 
 }
@@ -54,13 +82,9 @@ visit(SyntaxNodeRoot* node)
         string output_name = node->relative_base;
         string extension = ".cpp";
         output_name.replace(output_name.find(".fox"), extension.length(), extension);
+        std::replace(output_name.begin(), output_name.end(), '\\', '/');
 
-        Filepath absolute_file_path = node->absolute_path.c_str();
-        Filepath absolute_root = absolute_file_path.root_directory();
-        absolute_root += "./CMakeLists.txt";
-        absolute_root.canonicalize();
-
-        string cmake_path = absolute_root.c_str();
+        string cmake_path = "./CMakeLists.txt";
 
         this->source_files.push_back(std::make_shared<GeneratableSourcefile>(cmake_path, cmake_path));
         this->cmake_file = this->source_files[this->source_files.size()-1];
@@ -71,7 +95,7 @@ visit(SyntaxNodeRoot* node)
         this->current_file->insert_blank_line();
         this->current_file->insert_line_with_tabs("PROJECT(cosyproject)");
         this->current_file->insert_blank_line();
-        this->current_file->insert_line_with_tabs("SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"../bin\")");
+        this->current_file->insert_line_with_tabs("SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"./bin\")");
         this->current_file->insert_line_with_tabs("SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)");
         this->current_file->insert_line_with_tabs("SET(CMAKE_BUILD_TYPE Debug)");
         this->current_file->insert_blank_line();
@@ -104,6 +128,7 @@ visit(SyntaxNodeRoot* node)
         string output_name = node->relative_base;
         string extension = ".hpp";
         output_name.replace(output_name.find(".fox"), extension.length(), extension);
+        std::replace(output_name.begin(), output_name.end(), '\\', '/');
 
         this->current_file = this->cmake_file;
         this->current_file->push_region_as_body();
@@ -220,6 +245,7 @@ visit(SyntaxNodeIncludeStatement* node)
     string output_name = node->relative_path;
     string extension = ".hpp";
     output_name.replace(output_name.find(".fox"), extension.length(), extension);
+    std::replace(output_name.begin(), output_name.end(), '\\', '/');
 
     this->current_file->insert_line_with_tabs("#include \"");
     this->current_file->append_to_current_line(output_name);
@@ -276,7 +302,8 @@ visit(SyntaxNodeFunctionStatement* node)
 
         }
         
-        this->current_file->insert_line_with_tabs(variable_node->identifier);
+        this->current_file->insert_line_with_tabs("fn_");
+        this->current_file->append_to_current_line(variable_node->identifier);
         this->current_file->append_to_current_line("(");
 
         for (int i = 0; i < node->parameters.size(); ++i)
@@ -330,12 +357,52 @@ visit(SyntaxNodeFunctionStatement* node)
 
         this->current_file->insert_line_with_tabs("{");
         this->current_file->insert_blank_line();
-
         this->current_file->push_tabs();
+
+        switch (function_datatype)
+        {
+
+            case Datatype::DATA_TYPE_STRING:
+            {
+                this->current_file->insert_line_with_tabs("std::string ");
+            } break;
+
+            case Datatype::DATA_TYPE_INTEGER:
+            {
+                this->current_file->insert_line_with_tabs("int64_t ");
+            } break;
+
+            case Datatype::DATA_TYPE_REAL:
+            {
+                this->current_file->insert_line_with_tabs("double ");
+            } break;
+
+            case Datatype::DATA_TYPE_COMPLEX:
+            {
+                this->current_file->insert_line_with_tabs("std::complex<double> ");
+            } break;
+
+            default:
+            {
+                SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+            };
+
+        }
+
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(";");
+        this->current_file->insert_blank_line();
+
         for (auto child : node->children) child->accept(this);
-        this->current_file->pop_tabs();
 
         this->current_file->insert_blank_line();
+
+        this->current_file->insert_line_with_tabs("return ");
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(";");
+        this->current_file->insert_blank_line();
+        this->current_file->pop_tabs();
+
         this->current_file->insert_line_with_tabs("}");
         this->current_file->insert_blank_line();
 
@@ -482,6 +549,71 @@ visit(SyntaxNodeWhileStatement* node)
     for (auto child : node->children) child->accept(this);
     this->current_file->pop_tabs();
 
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line_with_tabs("}");
+    this->current_file->insert_blank_line();
+
+    return;
+}
+
+void TranspileCPPGenerator::    
+visit(SyntaxNodePloopStatement* node)
+{
+
+    this->current_file->insert_line_with_tabs("// This is a ploop statement, but ploop is not supported.");
+    this->current_file->insert_line_with_tabs("for (");
+
+    Datatype data_type = node->variable->data_type;
+    switch (data_type)
+    {
+
+        case Datatype::DATA_TYPE_STRING:
+        {
+            this->current_file->append_to_current_line("std::string ");
+        } break;
+
+        case Datatype::DATA_TYPE_INTEGER:
+        {
+            this->current_file->append_to_current_line("int64_t ");
+        } break;
+
+        case Datatype::DATA_TYPE_REAL:
+        {
+            this->current_file->append_to_current_line("double ");
+        } break;
+
+        case Datatype::DATA_TYPE_COMPLEX:
+        {
+            this->current_file->append_to_current_line("std::complex<double> ");
+        } break;
+
+        default:
+        {
+            SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+        };
+
+    }
+    
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" = ");
+    node->start->accept(this);
+    this->current_file->append_to_current_line("; ");
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" < ");
+    node->end->accept(this);
+    this->current_file->append_to_current_line("; ");
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" += ");
+    node->step->accept(this);
+    this->current_file->append_to_current_line(")");
+
+    this->current_file->insert_line_with_tabs("{");
+    this->current_file->insert_blank_line();
+    this->current_file->push_tabs();
+
+    for (auto child : node->children) child->accept(this);
+
+    this->current_file->pop_tabs();
     this->current_file->insert_blank_line();
     this->current_file->insert_line_with_tabs("}");
     this->current_file->insert_blank_line();
@@ -940,6 +1072,7 @@ void TranspileCPPGenerator::
 visit(SyntaxNodeFunctionCall* node)
 {
 
+    this->current_file->append_to_current_line("fn_");
     this->current_file->append_to_current_line(node->identifier);
     this->current_file->append_to_current_line("(");
 
