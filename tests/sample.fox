@@ -1,0 +1,33 @@
+
+function add_concat_numbers a b c;
+
+    variable result 4 := a + b & c;
+    add_concat_numbers := result;
+
+endfunction;
+
+begin;
+
+    procedure print_stm stm;
+
+        write 4 stm "\n";
+
+    endprocedure;
+
+    function sub_concat_numbers a b c;
+
+        variable result 4 := a - b & c;
+        sub_concat_numbers := result;
+
+    endfunction;
+
+    variable foo 4 := 8;
+    variable bar 4 := 16;
+    variable baz 4 := 2 & 3 & 4;
+
+    variable output 4 := add_concat_numbers(foo, bar, baz);
+    variable another 4 := sub_concat_numbers(4*2, 8*2, output);
+    print_stm output;
+    print_stm another;
+
+end;

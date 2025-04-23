@@ -1,0 +1,17 @@
+include "intrinsics.fox";
+
+procedure example a;
+
+    variable idx 4 := a;
+    while idx <= 10;
+        idx := idx + 1;
+    endwhile;
+
+endprocedure;
+
+{
+    function add_pair a b;
+        variable result 4 := a + b;
+        add_pair := result;
+    endfunction;
+}

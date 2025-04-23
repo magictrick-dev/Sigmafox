@@ -1,0 +1,11 @@
+
+begin;
+
+    variable foo 4;
+    variable bar 4;
+    foo := 8;
+    bar := 16;
+
+    variable baz 4 := foo + bar;
+
+end;

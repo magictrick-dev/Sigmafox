@@ -1,0 +1,1 @@
+./bin/Sigmafox ./tests/example.fox

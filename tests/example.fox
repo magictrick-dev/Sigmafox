@@ -1,0 +1,21 @@
+include "includes/math.fox";
+include "includes/intrinsics.fox";
+
+procedure testNumbers a b;
+
+    if (a < b);
+        write 4 "A is less than B." " " "Expression checked.";
+    elseif (a = b);
+        write 4 "A is equal to B." " " "Expression checked.";
+    elseif (1);
+        write 4 "B is less than A." " " "Expression checked.";
+    endif;
+
+endprocedure;
+
+begin;
+
+    variable foo 4 := add_pair(10, 20);
+    testNumbers 4 foo;
+
+end;

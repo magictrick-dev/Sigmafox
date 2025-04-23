@@ -1,1 +1,0 @@
-./comp/Debug/perfanalysis.exe
