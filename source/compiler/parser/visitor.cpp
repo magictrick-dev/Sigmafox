@@ -139,81 +139,61 @@ visit(SyntaxNodeConcatenation* node)
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeTerm* node)                     
-void SyntaxNodeVisitor::
-visit(SyntaxNodeTerm* node)                     
+visit(SyntaxNodeTerm* node)                                       
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeFactor* node)                   
-void SyntaxNodeVisitor::
-visit(SyntaxNodeFactor* node)                   
+visit(SyntaxNodeFactor* node)                                    
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeMagnitude* node)                
-void SyntaxNodeVisitor::
-visit(SyntaxNodeMagnitude* node)                
+visit(SyntaxNodeMagnitude* node)                             
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeExtraction* node)               
-void SyntaxNodeVisitor::
-visit(SyntaxNodeExtraction* node)               
+visit(SyntaxNodeExtraction* node)                           
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeDerivation* node)               
-void SyntaxNodeVisitor::
-visit(SyntaxNodeDerivation* node)               
+visit(SyntaxNodeDerivation* node)                        
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeUnary* node)                    
-void SyntaxNodeVisitor::
-visit(SyntaxNodeUnary* node)                    
+visit(SyntaxNodeUnary* node)                           
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeFunctionCall* node)             
-void SyntaxNodeVisitor::
-visit(SyntaxNodeFunctionCall* node)             
+visit(SyntaxNodeFunctionCall* node)                     
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeArrayIndex* node)               
-void SyntaxNodeVisitor::
-visit(SyntaxNodeArrayIndex* node)               
+visit(SyntaxNodeArrayIndex* node)                          
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodePrimary* node)                  
-void SyntaxNodeVisitor::
-visit(SyntaxNodePrimary* node)                  
+visit(SyntaxNodePrimary* node)                              
 { 
     return; 
 }
 
 void SyntaxNodeVisitor::
-visit(SyntaxNodeGrouping* node)                 
-void SyntaxNodeVisitor::
-visit(SyntaxNodeGrouping* node)                 
+visit(SyntaxNodeGrouping* node)                        
 { 
     return; 
 }
