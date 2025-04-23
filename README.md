@@ -241,12 +241,16 @@ may translate to lambdas outside of the global scope.
 
 # Documentation
 
-### [CLI Parsing System](./documentation/CLI.md)
-### [Symbols](./documentation/Symbols.md)
-### [Table](./documentation/Table.md)
-### [Environment](./documentation/Environment.md)
-### [Graph](./documentation/Graph.md)
-### [Compiler](./documentation/Compiler.md)
+- [CLI Parsing System](./documentation/CLI.md)
+- [Symbols](./documentation/Symbols.md)
+- [Table](./documentation/Table.md)
+- [Environment](./documentation/Environment.md)
+- [Graph](./documentation/Graph.md)
+- [Compiler](./documentation/Compiler.md)
+- [Token](./documentation/Token.md)
+- [Tokenizer](./documentation/Tokenizer.md)
+- [Parser](./documentation/Parser.md)
+
 
 # License
 
