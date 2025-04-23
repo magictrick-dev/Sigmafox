@@ -18,6 +18,7 @@ class ReferenceVisitor : public SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeProcedureStatement* node)       override;
         virtual void    visit(SyntaxNodeExpressionStatement* node)      override;
         virtual void    visit(SyntaxNodeWhileStatement* node)           override;
+        virtual void    visit(SyntaxNodePloopStatement* node)            override;
         virtual void    visit(SyntaxNodeLoopStatement* node)            override;
         virtual void    visit(SyntaxNodeVariableStatement* node)        override;
         virtual void    visit(SyntaxNodeScopeStatement* node)           override;
@@ -29,6 +30,7 @@ class ReferenceVisitor : public SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeAssignment* node)               override;
         virtual void    visit(SyntaxNodeEquality* node)                 override;
         virtual void    visit(SyntaxNodeComparison* node)               override;
+        virtual void    visit(SyntaxNodeConcatenation* node)            override;
         virtual void    visit(SyntaxNodeTerm* node)                     override;
         virtual void    visit(SyntaxNodeFactor* node)                   override;
         virtual void    visit(SyntaxNodeMagnitude* node)                override;

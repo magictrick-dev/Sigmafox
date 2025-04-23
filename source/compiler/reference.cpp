@@ -111,18 +111,20 @@ visit(SyntaxNodeFunctionStatement* node)
 
     string datatype_string = datatype_to_string(node->variable_node->data_type);
     string structuretype_string = structuretype_to_string(node->variable_node->structure_type);
+    i32 structure_length = node->variable_node->structure_length;
 
     this->print_tabs();
     std::cout << "FUNCTION " << node->variable_node->identifier << " [TYPE: " 
-        << datatype_string << ":" << structuretype_string << "] ";
+        << datatype_string << ":" << structuretype_string << ":" << structure_length << "] ";
 
     for (auto parameter : node->parameters)
     {
 
         string datatype_string = datatype_to_string(parameter->data_type);
         string structuretype_string = structuretype_to_string(parameter->structure_type);
+        i32 structure_length = parameter->structure_length;
         std::cout << parameter->identifier << " [TYPE: " << datatype_string << ":" << structuretype_string 
-            << "] ";
+            << ":" << structure_length << "] ";
 
     }
 
@@ -146,18 +148,20 @@ visit(SyntaxNodeProcedureStatement* node)
 
     string datatype_string = datatype_to_string(node->variable_node->data_type);
     string structuretype_string = structuretype_to_string(node->variable_node->structure_type);
+    i32 structure_length = node->variable_node->structure_length;
 
     this->print_tabs();
     std::cout << "PROCEDURE " << node->variable_node->identifier << " [TYPE: " 
-        << datatype_string << ":" << structuretype_string << "] ";
+        << datatype_string << ":" << structuretype_string << ":" << structure_length << "] ";
 
     for (auto parameter : node->parameters)
     {
 
         string datatype_string = datatype_to_string(parameter->data_type);
         string structuretype_string = structuretype_to_string(parameter->structure_type);
+        i32 structure_length = parameter->structure_length;
         std::cout << parameter->identifier << " [TYPE: " << datatype_string << ":" << structuretype_string 
-            << "] ";
+            << ":" << structure_length << "] ";
 
     }
 
@@ -207,6 +211,33 @@ visit(SyntaxNodeWhileStatement* node)
 }
 
 void ReferenceVisitor::
+visit(SyntaxNodePloopStatement* node)
+{
+
+    this->print_tabs();
+    std::cout << "PLOOP " << node->iterator << " ";
+    node->start->accept(this);
+    std::cout << " ";
+    node->end->accept(this);
+    std::cout << " ";
+    node->step->accept(this);
+    std::cout << std::endl;
+
+
+    this->push_tabs();   
+    node->variable->accept(this);
+    for (auto child : node->children) 
+    {
+        child->accept(this);
+    }
+    this->pop_tabs();
+
+    this->print_tabs();
+    std::cout << "ENDPLOOP SHARING " << node->share_name << std::endl;
+
+}
+
+void ReferenceVisitor::
 visit(SyntaxNodeLoopStatement* node)
 {
 
@@ -242,7 +273,7 @@ visit(SyntaxNodeVariableStatement* node)
 
     this->print_tabs();
     std::cout << "VARIABLE " << "[TYPE: " << datatype_string << ":" << structuretype_string
-        << "] " << node->identifier << " ";
+        << ":" << node->structure_length << "] " << node->identifier << " ";
     node->storage->accept(this);
 
     for (auto dimension : node->dimensions)
@@ -419,6 +450,26 @@ visit(SyntaxNodeComparison* node)
         case Operationtype::OPERATION_TYPE_LESS_THAN_OR_EQUAL: std::cout << " <= "; break;
         case Operationtype::OPERATION_TYPE_GREATER_THAN: std::cout << " > "; break;
         case Operationtype::OPERATION_TYPE_GREATER_THAN_OR_EQUAL: std::cout << " >= "; break;
+        default:
+        {
+            SF_ASSERT(!"Unreachable condition.");
+            break;
+        }
+    }
+
+    node->right->accept(this);
+
+}
+
+void ReferenceVisitor::
+visit(SyntaxNodeConcatenation* node)
+{
+
+    node->left->accept(this);
+
+    switch (node->operation)
+    {
+        case Operationtype::OPERATION_TYPE_CONCATENATE: std::cout << " & "; break;
         default:
         {
             SF_ASSERT(!"Unreachable condition.");

@@ -630,7 +630,7 @@ match_procedure_statement(bool is_global)
 
         auto parameter_node = this->generate_node<SyntaxNodeVariableStatement>();
         parameter_node->identifier      = parameter_identifier; 
-        parameter_node->data_type       = Datatype::DATA_TYPE_UNKNOWN;
+        parameter_node->data_type       = Datatype::DATA_TYPE_INTEGER;
         parameter_node->structure_type  = Structuretype::STRUCTURE_TYPE_SCALAR;
         parameter_node->storage         = parameter_storage;
         parameter_node->expression      = nullptr;
@@ -827,7 +827,7 @@ match_local_statement()
             try
             {
                 
-                return this->match_function_statement(false);
+                return this->match_procedure_statement(false);
                 
             }
 
@@ -873,6 +873,25 @@ match_local_statement()
             {
                 
                 this->synchronize_to(Tokentype::TOKEN_KEYWORD_ENDLOOP);
+                throw;
+                
+            }
+            
+        }
+
+        case Tokentype::TOKEN_KEYWORD_PLOOP:
+        {
+            
+            try
+            {
+                
+                return this->match_ploop_statement();
+                
+            }
+            catch (CompilerException &e)
+            {
+                
+                this->synchronize_to(Tokentype::TOKEN_KEYWORD_ENDPLOOP);
                 throw;
                 
             }
@@ -1010,8 +1029,9 @@ match_variable_statement()
         ExpressionEvaluator evaluator(this->environment);
         initializer_expression->accept(&evaluator);
 
-        node->data_type = evaluator();
-        node->structure_type = Structuretype::STRUCTURE_TYPE_SCALAR;
+        node->data_type = evaluator.get_data_type();
+        node->structure_type = evaluator.get_structure_type();
+        node->structure_length = evaluator.get_structure_length();
         
     }
 
@@ -1114,6 +1134,117 @@ match_while_statement()
     while_node->children = children;
     
     return while_node;
+
+}
+
+SyntaxNode* ParseTree::
+match_ploop_statement()
+{
+
+    this->consume_current_token_as(Tokentype::TOKEN_KEYWORD_PLOOP, __LINE__);
+    
+    // Ensure that we have an identifier.
+    Token identifier_token = this->tokenizer->get_current_token();
+    this->consume_current_token_as(Tokentype::TOKEN_IDENTIFIER, __LINE__);
+    string identifier = identifier_token.reference;
+
+    // Our starting and ending values.
+    SyntaxNode *initial_value = this->match_expression();
+    SyntaxNode *ending_value = this->match_expression();
+    SyntaxNode *step_value = nullptr;
+
+    // The ploop statement has a step of one, always.
+    auto *node = this->generate_node<SyntaxNodePrimary>();
+    node->primarytype   = Primarytype::PRIMARY_TYPE_INTEGER; 
+    node->primitive     = "1";
+    step_value = node;
+
+    // Create a variable node for the iterator.
+    auto iterator_size = this->generate_node<SyntaxNodePrimary>();
+    iterator_size->primarytype      = Primarytype::PRIMARY_TYPE_INTEGER;
+    iterator_size->primitive        = "4";
+
+    auto iterator_variable = this->generate_node<SyntaxNodeVariableStatement>();
+    iterator_variable->identifier       = identifier;
+    iterator_variable->storage          = iterator_size; 
+    iterator_variable->expression       = initial_value;
+    iterator_variable->data_type        = Datatype::DATA_TYPE_INTEGER;
+    iterator_variable->structure_type   = Structuretype::STRUCTURE_TYPE_SCALAR;
+
+    ExpressionEvaluator value_type(this->environment);
+    initial_value->accept(&value_type);
+    ending_value->accept(&value_type);
+
+    Datatype evaluated_type = value_type();
+    iterator_variable->data_type = evaluated_type;
+
+    // Consume the semicolon.
+    this->consume_current_token_as(Tokentype::TOKEN_SEMICOLON, __LINE__);
+
+
+    // Push the table and collect the internal statements.
+    this->environment->push_table();
+    this->environment->set_symbol_locally(identifier, Symbol(identifier, 
+                Symboltype::SYMBOL_TYPE_VARIABLE, iterator_variable));
+
+    vector<SyntaxNode*> children;
+    while (!this->expect_current_token_as(Tokentype::TOKEN_EOF))
+    {
+
+        if (this->expect_current_token_as(Tokentype::TOKEN_KEYWORD_ENDPLOOP)) break;
+
+        try
+        {
+
+            SyntaxNode *current_node = this->match_local_statement();
+            SF_ENSURE_PTR(current_node);
+            children.push_back(current_node);
+
+        }
+        catch (CompilerException &e)
+        {
+
+            this->environment->handle_compiler_exception(e);
+            this->synchronize_to(Tokentype::TOKEN_SEMICOLON);
+
+        }
+
+    }
+
+    this->environment->pop_table();
+
+    this->consume_current_token_as(Tokentype::TOKEN_KEYWORD_ENDPLOOP, __LINE__);
+
+    Token share_token = this->tokenizer->get_current_token();
+    this->consume_current_token_as(Tokentype::TOKEN_IDENTIFIER, __LINE__);
+    this->consume_current_token_as(Tokentype::TOKEN_SEMICOLON, __LINE__);
+
+    string share_identifier = share_token.reference;
+
+    // Check if the share token exists in the symbol table.
+    if (!this->environment->symbol_exists(share_identifier))
+    {
+
+        throw CompilerSyntaxError(
+            __LINE__,
+            share_token.row,
+            share_token.column,
+            this->path.c_str(),
+            "The identifier %s does not exist in the current scope for ploop statement.",
+            share_token.reference.c_str());
+
+    }
+
+    auto ploop_node = this->generate_node<SyntaxNodePloopStatement>();
+    ploop_node->iterator    = identifier;   
+    ploop_node->share_name  = share_identifier;
+    ploop_node->variable    = iterator_variable;
+    ploop_node->start       = initial_value;
+    ploop_node->end         = ending_value;
+    ploop_node->step        = step_value;
+    ploop_node->children    = children;
+
+    return ploop_node;
 
 }
 
@@ -1523,7 +1654,9 @@ match_procedure_call()
         // Evaluate the parameter with the provided arguments.
         ExpressionEvaluator argument_evaluation(this->environment);
         parameters[idx]->accept(&argument_evaluation);
-        argument->data_type = argument_evaluation();
+        argument->data_type = argument_evaluation.get_data_type();
+        argument->structure_type = argument_evaluation.get_structure_type();
+        argument->structure_length = argument_evaluation.get_structure_length();
         
         this->environment->set_symbol_locally(argument->identifier, Symbol(argument->identifier,
             Symboltype::SYMBOL_TYPE_VARIABLE, argument));
@@ -1635,7 +1768,10 @@ match_assignment()
     ExpressionEvaluator evaluator(this->environment, variable->data_type);
     right_hand_side->accept(&evaluator);
 
-    Datatype type_deduction = evaluator();
+    Datatype type_deduction = evaluator.get_data_type();
+    Structuretype structure_type = evaluator.get_structure_type();
+    i32 structure_length = evaluator.get_structure_length();
+
     if (type_deduction == Datatype::DATA_TYPE_ERROR)
     {
         throw CompilerSyntaxError(
@@ -1648,7 +1784,8 @@ match_assignment()
     }
     
     variable->data_type         = type_deduction;
-    variable->structure_type    = Structuretype::STRUCTURE_TYPE_SCALAR;
+    variable->structure_type    = structure_type;
+    variable->structure_length  = structure_length;
     assignment_symbol->set_type(Symboltype::SYMBOL_TYPE_VARIABLE);
     
     auto assignment_node = this->generate_node<SyntaxNodeAssignment>();
@@ -1798,7 +1935,7 @@ match_concatenation()
                 
         }
         
-        auto *node = this->generate_node<SyntaxNodeTerm>();
+        auto *node = this->generate_node<SyntaxNodeConcatenation>();
         node->left              = left_hand_side;
         node->right             = right_hand_side;
         node->operation         = operation_type;
@@ -2181,7 +2318,9 @@ match_function_call()
         // Evaluate the parameter with the provided arguments.
         ExpressionEvaluator argument_evaluation(this->environment);
         parameters[idx]->accept(&argument_evaluation);
-        argument->data_type = argument_evaluation();
+        argument->data_type             = argument_evaluation.get_data_type();
+        argument->structure_type        = argument_evaluation.get_structure_type();
+        argument->structure_length      = argument_evaluation.get_structure_length();
         
         this->environment->set_symbol_locally(argument->identifier, Symbol(argument->identifier,
             Symboltype::SYMBOL_TYPE_VARIABLE, argument));

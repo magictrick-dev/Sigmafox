@@ -18,6 +18,7 @@ class SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeProcedureStatement* node);
         virtual void    visit(SyntaxNodeExpressionStatement* node);
         virtual void    visit(SyntaxNodeWhileStatement* node);
+        virtual void    visit(SyntaxNodePloopStatement* node);
         virtual void    visit(SyntaxNodeLoopStatement* node);
         virtual void    visit(SyntaxNodeVariableStatement* node);
         virtual void    visit(SyntaxNodeScopeStatement* node);
@@ -29,6 +30,7 @@ class SyntaxNodeVisitor
         virtual void    visit(SyntaxNodeAssignment* node);
         virtual void    visit(SyntaxNodeEquality* node);
         virtual void    visit(SyntaxNodeComparison* node);
+        virtual void    visit(SyntaxNodeConcatenation* node);
         virtual void    visit(SyntaxNodeTerm* node);
         virtual void    visit(SyntaxNodeFactor* node);
         virtual void    visit(SyntaxNodeMagnitude* node);

@@ -111,6 +111,7 @@ class SyntaxNodeVariableStatement : public SyntaxNode
 
         Datatype data_type;
         Structuretype structure_type;
+        u32 structure_length;
 
 };
 
@@ -216,6 +217,32 @@ class SyntaxNodeLoopStatement : public SyntaxNode
 
     public:
         string iterator;
+
+        SyntaxNodeVariableStatement* variable;
+        SyntaxNode* start;
+        SyntaxNode* end;
+        SyntaxNode* step;
+        vector<SyntaxNode*> children;
+
+};
+
+// --- Ploop Statement Syntax Node ---------------------------------------------
+//
+// Ploops are parallel computation loops that degrade to normal loops when
+// distributed computation is turned off.
+// 
+
+class SyntaxNodePloopStatement : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodePloopStatement();
+        virtual         ~SyntaxNodePloopStatement();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        string iterator;
+        string share_name;
 
         SyntaxNodeVariableStatement* variable;
         SyntaxNode* start;
@@ -404,6 +431,27 @@ class SyntaxNodeComparison : public SyntaxNode
     public:
                          SyntaxNodeComparison();
         virtual         ~SyntaxNodeComparison();
+        virtual void     accept(SyntaxNodeVisitor *visitor) override;
+
+    public:
+        Operationtype operation;
+        SyntaxNode* left;
+        SyntaxNode* right;
+
+};
+
+// --- Concatenation Syntax Node ---------------------------------------------------------
+//
+// Concatenation nodes are used to represent term operations in the syntax tree. They are
+// used to evaluate terms and perform operations on the data.
+//
+
+class SyntaxNodeConcatenation : public SyntaxNode
+{
+
+    public:
+                         SyntaxNodeConcatenation();
+        virtual         ~SyntaxNodeConcatenation();
         virtual void     accept(SyntaxNodeVisitor *visitor) override;
 
     public:

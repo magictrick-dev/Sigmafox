@@ -1,156 +1,199 @@
 #include <compiler/parser/visitor.hpp>
 
-SyntaxNodeVisitor::SyntaxNodeVisitor()                                  
+SyntaxNodeVisitor::
+SyntaxNodeVisitor()                                  
 { 
     return; 
 }
 
-SyntaxNodeVisitor::~SyntaxNodeVisitor()                                 
+SyntaxNodeVisitor::
+~SyntaxNodeVisitor()                                 
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeRoot* node)                     
+void SyntaxNodeVisitor::
+visit(SyntaxNodeRoot* node)                     
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeModule* node)                   
+void SyntaxNodeVisitor::
+visit(SyntaxNodeModule* node)                   
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeMain* node)                     
+void SyntaxNodeVisitor::
+visit(SyntaxNodeMain* node)                     
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeIncludeStatement* node)         
+void SyntaxNodeVisitor::
+visit(SyntaxNodeIncludeStatement* node)         
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeFunctionStatement* node)        
+void SyntaxNodeVisitor::
+visit(SyntaxNodeFunctionStatement* node)        
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeProcedureStatement* node)       
+void SyntaxNodeVisitor::
+visit(SyntaxNodeProcedureStatement* node)       
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeExpressionStatement* node)      
+void SyntaxNodeVisitor::
+visit(SyntaxNodeExpressionStatement* node)      
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeWhileStatement* node)           
+void SyntaxNodeVisitor::
+visit(SyntaxNodeWhileStatement* node)           
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeLoopStatement* node)            
+void SyntaxNodeVisitor::
+visit(SyntaxNodePloopStatement* node)            
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeVariableStatement* node)        
+void SyntaxNodeVisitor::
+visit(SyntaxNodeLoopStatement* node)            
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeScopeStatement* node)           
+void SyntaxNodeVisitor::
+visit(SyntaxNodeVariableStatement* node)        
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeConditionalStatement* node)     
+void SyntaxNodeVisitor::
+visit(SyntaxNodeScopeStatement* node)           
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeReadStatement* node)            
+void SyntaxNodeVisitor::
+visit(SyntaxNodeConditionalStatement* node)     
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeWriteStatement* node)           
+void SyntaxNodeVisitor::
+visit(SyntaxNodeReadStatement* node)            
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeExpression* node)               
+void SyntaxNodeVisitor::
+visit(SyntaxNodeWriteStatement* node)           
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeProcedureCall* node)   
+void SyntaxNodeVisitor::
+visit(SyntaxNodeExpression* node)               
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeAssignment* node)               
+void SyntaxNodeVisitor::
+visit(SyntaxNodeProcedureCall* node)   
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeEquality* node)                 
+void SyntaxNodeVisitor::
+visit(SyntaxNodeAssignment* node)               
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeComparison* node)               
+void SyntaxNodeVisitor::
+visit(SyntaxNodeEquality* node)                 
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeTerm* node)                     
+void SyntaxNodeVisitor::
+visit(SyntaxNodeComparison* node)               
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeFactor* node)                   
+void SyntaxNodeVisitor::
+visit(SyntaxNodeConcatenation* node)                     
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeMagnitude* node)                
+void SyntaxNodeVisitor::
+visit(SyntaxNodeTerm* node)                     
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeExtraction* node)               
+void SyntaxNodeVisitor::
+visit(SyntaxNodeFactor* node)                   
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeDerivation* node)               
+void SyntaxNodeVisitor::
+visit(SyntaxNodeMagnitude* node)                
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeUnary* node)                    
+void SyntaxNodeVisitor::
+visit(SyntaxNodeExtraction* node)               
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeFunctionCall* node)             
+void SyntaxNodeVisitor::
+visit(SyntaxNodeDerivation* node)               
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeArrayIndex* node)               
+void SyntaxNodeVisitor::
+visit(SyntaxNodeUnary* node)                    
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodePrimary* node)                  
+void SyntaxNodeVisitor::
+visit(SyntaxNodeFunctionCall* node)             
 { 
     return; 
 }
 
-void SyntaxNodeVisitor::visit(SyntaxNodeGrouping* node)                 
+void SyntaxNodeVisitor::
+visit(SyntaxNodeArrayIndex* node)               
+{ 
+    return; 
+}
+
+void SyntaxNodeVisitor::
+visit(SyntaxNodePrimary* node)                  
+{ 
+    return; 
+}
+
+void SyntaxNodeVisitor::
+visit(SyntaxNodeGrouping* node)                 
 { 
     return; 
 }

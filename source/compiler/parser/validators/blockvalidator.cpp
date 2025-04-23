@@ -97,7 +97,9 @@ visit(SyntaxNodeVariableStatement* node)
         ExpressionEvaluator expression_evaluator(this->environment);
         node->expression->accept(&expression_evaluator);
 
-        node->data_type = expression_evaluator();
+        node->data_type = expression_evaluator.get_data_type();
+        node->structure_type = expression_evaluator.get_structure_type();
+        node->structure_length = expression_evaluator.get_structure_length();
         
     }
 
@@ -190,7 +192,9 @@ visit(SyntaxNodeProcedureCall* node)
         procedure_node->parameters[idx]->accept(&expression_evaluator);
         node->arguments[idx]->accept(&expression_evaluator);
 
-        procedure_node->parameters[idx]->data_type = expression_evaluator();
+        procedure_node->parameters[idx]->data_type = expression_evaluator.get_data_type();
+        procedure_node->parameters[idx]->structure_type = expression_evaluator.get_structure_type();
+        procedure_node->parameters[idx]->structure_length = expression_evaluator.get_structure_length();
     
     }
 
@@ -267,7 +271,9 @@ visit(SyntaxNodeAssignment* node)
 
     SyntaxNodeVariableStatement *variable_node = dynamic_cast<SyntaxNodeVariableStatement*>(symbol->get_node());
     SF_ENSURE_PTR(variable_node);
-    variable_node->data_type = type_evaluator();
+    variable_node->data_type = type_evaluator.get_data_type();
+    variable_node->structure_type = type_evaluator.get_structure_type();
+    variable_node->structure_length = type_evaluator.get_structure_length();
     
 }
 
@@ -403,7 +409,9 @@ visit(SyntaxNodeFunctionCall* node)
         ExpressionEvaluator expression_evaluator(this->environment);
         function_node->parameters[idx]->accept(&expression_evaluator);
         node->arguments[idx]->accept(&expression_evaluator);
-        function_node->parameters[idx]->data_type = expression_evaluator();
+        function_node->parameters[idx]->data_type = expression_evaluator.get_data_type();
+        function_node->parameters[idx]->structure_type = expression_evaluator.get_structure_type();
+        function_node->parameters[idx]->structure_length = expression_evaluator.get_structure_length();
     }
 
     // We need to push the scope, and then evaluate the function call deeper.

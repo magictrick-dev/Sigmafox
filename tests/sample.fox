@@ -1,73 +1,17 @@
-include "includes/math.fox";
-{ include "deptest.fox"; }
 
-procedure print_statement stm;
-    write 4 stm;
-endprocedure;
+function add_concat_numbers a b c;
 
-function add_numbers a b;
-
-    variable result 4 := a + b;
-    add_numbers := result;
+    variable result 4 := a + b & c;
+    add_concat_numbers := result;
 
 endfunction;
 
 begin;
 
-    variable foo 4 := 8 + 16 - 26 + 10^2;
-    variable bar 4 := 16.0 / (2 + 2) * (2^(1 + 1));
-    variable baz 4 := 32 - 16 + 4.0 * 26.0i;
+    variable foo 4 := 8;
+    variable bar 4 := 16;
+    variable baz 4 := 2 & 3 & 4;
 
-    write 4 foo bar baz "\n";
-    variable user_input 4;
-    read 5 user_input;
-    write 4 user_input;
-
-    scope;
-
-        variable foo 4 := 8 + 16 - 26 + 10^2;
-        variable bar 4 := 16.0 / (2 + 2) * (2^(1 + 1));
-        variable baz 4 := 32 - 16 + 4.0 * 26.0i;
-
-        write 4 foo bar baz "\n";
-        variable user_input 4;
-        read 5 user_input;
-        write 4 user_input;
-
-        variable idx 4 := 0;
-        while idx <= 1024;
-        
-            idx := idx + 1;
-            write 4 idx;
-    
-        endwhile;
-
-        loop i 0 10 1;
-            
-            variable test 4 := i * add_pair(i + 2.0, 13.0 * 4.0i);
-            write 4 test;
-
-        endloop;
-
-        if idx < 100;
-
-            variable test 4 := idx * mul_pair(idx + 2.0, 13.0 * 4.0i);
-            write 4 "Basic if.";
-
-        elseif idx > 100;
-
-            write 4 "Chained elseif.";
-            example idx + 4.0i;
-
-        elseif 1 = 1;
-
-            write 4 "Fall back case.";
-
-        endif;
-
-    endscope;
-
-    foo := add_numbers(bar, baz);
-    print_statement foo;
+    variable output 4 := add_concat_numbers(foo, bar, baz);
 
 end;

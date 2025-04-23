@@ -152,4 +152,45 @@ class CompilerSyntaxInformation : public CompilerException
 
 };
 
+class CompilerEvaluatorError : public CompilerException
+{
+
+    public:
+        template <typename ...Args> 
+        CompilerEvaluatorError(u64 line_location, std::string format, Args... args)
+        {
+
+            message += "[" + std::to_string(line_location) + "]: ";
+           
+            // TODO(Chris): Clearly, there is a better way to do this, right? Primary candidate
+            //              for a custom intrinsic.
+#           if defined(__linux__)
+#           pragma GCC diagnostic push
+#           pragma GCC diagnostic ignored "-Wformat-security"
+            i32 size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
+            string formatted_message(size_s, ' ');
+            std::snprintf(formatted_message.data(), size_s, format.c_str(), args...);
+            formatted_message.pop_back();
+#           pragma GCC diagnostic pop
+#           else
+            i32 size_s = std::snprintf(nullptr, 0, format.c_str(), args...) + 1;
+            string formatted_message(size_s, ' ');
+            std::snprintf(formatted_message.data(), size_s, format.c_str(), args...);
+            formatted_message.pop_back();
+#           endif
+            
+            message += formatted_message;
+
+        }
+        
+        ccptr what() const noexcept override
+        {
+            return message.c_str();
+        }
+        
+    protected:
+        string message;
+
+};
+
 #endif

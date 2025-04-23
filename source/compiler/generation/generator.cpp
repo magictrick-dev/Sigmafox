@@ -9,6 +9,16 @@ TranspileCPPGenerator::
 TranspileCPPGenerator()
 {
 
+    this->output = "./output";
+
+}
+
+TranspileCPPGenerator::
+TranspileCPPGenerator(string output)
+{
+
+    this->output = output;
+
 }
 
 TranspileCPPGenerator::
@@ -37,6 +47,24 @@ void TranspileCPPGenerator::
 generate_files()
 {
 
+    Sourcetree source_tree(this->output);
+    for (auto source : this->source_files)
+    {
+        if (!source_tree.insert_source(source.get()))
+        {
+            std::cout << "-- Unable to insert source file: " << source->get_file_name() << std::endl;
+        }
+    }
+
+    if (source_tree.commit())
+    {
+        std::cout << "-- Generation complete." << std::endl;
+    }
+    else
+    {
+        std::cout << "-- Generation failed." << std::endl;
+    }
+
     return;
 
 }
@@ -54,13 +82,9 @@ visit(SyntaxNodeRoot* node)
         string output_name = node->relative_base;
         string extension = ".cpp";
         output_name.replace(output_name.find(".fox"), extension.length(), extension);
+        std::replace(output_name.begin(), output_name.end(), '\\', '/');
 
-        Filepath absolute_file_path = node->absolute_path.c_str();
-        Filepath absolute_root = absolute_file_path.root_directory();
-        absolute_root += "./CMakeLists.txt";
-        absolute_root.canonicalize();
-
-        string cmake_path = absolute_root.c_str();
+        string cmake_path = "./CMakeLists.txt";
 
         this->source_files.push_back(std::make_shared<GeneratableSourcefile>(cmake_path, cmake_path));
         this->cmake_file = this->source_files[this->source_files.size()-1];
@@ -71,7 +95,7 @@ visit(SyntaxNodeRoot* node)
         this->current_file->insert_blank_line();
         this->current_file->insert_line_with_tabs("PROJECT(cosyproject)");
         this->current_file->insert_blank_line();
-        this->current_file->insert_line_with_tabs("SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"../bin\")");
+        this->current_file->insert_line_with_tabs("SET(CMAKE_RUNTIME_OUTPUT_DIRECTORY \"./bin\")");
         this->current_file->insert_line_with_tabs("SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)");
         this->current_file->insert_line_with_tabs("SET(CMAKE_BUILD_TYPE Debug)");
         this->current_file->insert_blank_line();
@@ -104,6 +128,7 @@ visit(SyntaxNodeRoot* node)
         string output_name = node->relative_base;
         string extension = ".hpp";
         output_name.replace(output_name.find(".fox"), extension.length(), extension);
+        std::replace(output_name.begin(), output_name.end(), '\\', '/');
 
         this->current_file = this->cmake_file;
         this->current_file->push_region_as_body();
@@ -220,6 +245,7 @@ visit(SyntaxNodeIncludeStatement* node)
     string output_name = node->relative_path;
     string extension = ".hpp";
     output_name.replace(output_name.find(".fox"), extension.length(), extension);
+    std::replace(output_name.begin(), output_name.end(), '\\', '/');
 
     this->current_file->insert_line_with_tabs("#include \"");
     this->current_file->append_to_current_line(output_name);
@@ -246,27 +272,155 @@ visit(SyntaxNodeFunctionStatement* node)
         this->current_file->insert_line_with_tabs("inline ");
 
         Datatype function_datatype = variable_node->data_type;
+        Structuretype function_structure_type = variable_node->structure_type;
+        i32 function_structure_length = variable_node->structure_length;
+        if (function_structure_type == Structuretype::STRUCTURE_TYPE_SCALAR ||
+            function_structure_type == Structuretype::STRUCTURE_TYPE_STRING)
+        {
+            switch (function_datatype)
+            {
+
+                case Datatype::DATA_TYPE_STRING:
+                {
+                    this->current_file->append_to_current_line("std::string ");
+                } break;
+
+                case Datatype::DATA_TYPE_INTEGER:
+                {
+                    this->current_file->append_to_current_line("int64_t ");
+                } break;
+
+                case Datatype::DATA_TYPE_REAL:
+                {
+                    this->current_file->append_to_current_line("double ");
+                } break;
+
+                case Datatype::DATA_TYPE_COMPLEX:
+                {
+                    this->current_file->append_to_current_line("std::complex<double> ");
+                } break;
+
+                case Datatype::DATA_TYPE_UNKNOWN:
+                {
+                    this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                } break;
+
+                default:
+                {
+                    this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                    //SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+                };
+
+            }
+        }
+        else
+        {
+
+            this->current_file->append_to_current_line("dvector<double, ");
+            this->current_file->append_to_current_line(std::to_string(function_structure_length));
+            this->current_file->append_to_current_line("> ");
+
+        }
+
+        
+        this->current_file->insert_line_with_tabs("fn_");
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line("(");
+
+        for (int i = 0; i < node->parameters.size(); ++i)
+        {
+
+            SyntaxNodeVariableStatement *parameter_variable_node = 
+                dynamic_cast<SyntaxNodeVariableStatement*>(node->parameters[i]);
+            SF_ENSURE_PTR(parameter_variable_node);
+
+            Datatype parameter_datatype = parameter_variable_node->data_type;
+            Structuretype parameter_structure_type = parameter_variable_node->structure_type;
+            i32 parameter_structure_length = parameter_variable_node->structure_length;
+            if (parameter_structure_type == Structuretype::STRUCTURE_TYPE_SCALAR ||
+                parameter_structure_type == Structuretype::STRUCTURE_TYPE_STRING)
+            {
+                switch (parameter_datatype)
+                {
+
+                    case Datatype::DATA_TYPE_STRING:
+                    {
+                        this->current_file->append_to_current_line("std::string ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_INTEGER:
+                    {
+                        this->current_file->append_to_current_line("int64_t ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_REAL:
+                    {
+                        this->current_file->append_to_current_line("double ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_COMPLEX:
+                    {
+                        this->current_file->append_to_current_line("std::complex<double> ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_UNKNOWN:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                    } break;
+
+                    default:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                        //SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+                    };
+
+                }
+            }
+            else
+            {
+
+                this->current_file->append_to_current_line("dvector<double, ");
+                this->current_file->append_to_current_line(std::to_string(parameter_structure_length));
+                this->current_file->append_to_current_line("> ");
+
+            }
+
+            this->current_file->append_to_current_line(parameter_variable_node->identifier);
+            if (i < node->parameters.size() - 1)
+            {
+                this->current_file->append_to_current_line(", ");
+
+            }
+
+        }
+
+        this->current_file->append_to_current_line(")");
+
+        this->current_file->insert_line_with_tabs("{");
+        this->current_file->insert_blank_line();
+        this->current_file->push_tabs();
+
         switch (function_datatype)
         {
 
             case Datatype::DATA_TYPE_STRING:
             {
-                this->current_file->append_to_current_line("std::string ");
+                this->current_file->insert_line_with_tabs("std::string ");
             } break;
 
             case Datatype::DATA_TYPE_INTEGER:
             {
-                this->current_file->append_to_current_line("int64_t ");
+                this->current_file->insert_line_with_tabs("int64_t ");
             } break;
 
             case Datatype::DATA_TYPE_REAL:
             {
-                this->current_file->append_to_current_line("double ");
+                this->current_file->insert_line_with_tabs("double ");
             } break;
 
             case Datatype::DATA_TYPE_COMPLEX:
             {
-                this->current_file->append_to_current_line("std::complex<double> ");
+                this->current_file->insert_line_with_tabs("std::complex<double> ");
             } break;
 
             default:
@@ -275,8 +429,46 @@ visit(SyntaxNodeFunctionStatement* node)
             };
 
         }
-        
-        this->current_file->insert_line_with_tabs(variable_node->identifier);
+
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(";");
+        this->current_file->insert_blank_line();
+
+        for (auto child : node->children) child->accept(this);
+
+        this->current_file->insert_blank_line();
+
+        this->current_file->insert_line_with_tabs("return ");
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(";");
+        this->current_file->insert_blank_line();
+        this->current_file->pop_tabs();
+
+        this->current_file->insert_line_with_tabs("}");
+        this->current_file->insert_blank_line();
+
+        this->current_file->pop_region();
+
+    }
+    else
+    {
+
+        SyntaxNodeVariableStatement *variable_node =
+            dynamic_cast<SyntaxNodeVariableStatement*>(node->variable_node);
+        SF_ENSURE_PTR(variable_node);
+
+/*
+auto myLambda = [](int x, int y) -> double {
+    return x + 0.5 * y;
+};
+*/
+        //
+//
+
+        this->current_file->insert_line_with_tabs("auto ");
+        this->current_file->append_to_current_line("fn_");
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(" = []");
         this->current_file->append_to_current_line("(");
 
         for (int i = 0; i < node->parameters.size(); ++i)
@@ -326,25 +518,111 @@ visit(SyntaxNodeFunctionStatement* node)
 
         }
 
-        this->current_file->append_to_current_line(")");
+        this->current_file->append_to_current_line(") -> ");
+
+        Datatype function_datatype = variable_node->data_type;
+        Structuretype function_structure_type = variable_node->structure_type;
+        i32 function_structure_length = variable_node->structure_length;
+        if (function_structure_type == Structuretype::STRUCTURE_TYPE_SCALAR ||
+            function_structure_type == Structuretype::STRUCTURE_TYPE_STRING)
+        {
+            switch (function_datatype)
+            {
+
+                case Datatype::DATA_TYPE_STRING:
+                {
+                    this->current_file->append_to_current_line("std::string ");
+                } break;
+
+                case Datatype::DATA_TYPE_INTEGER:
+                {
+                    this->current_file->append_to_current_line("int64_t ");
+                } break;
+
+                case Datatype::DATA_TYPE_REAL:
+                {
+                    this->current_file->append_to_current_line("double ");
+                } break;
+
+                case Datatype::DATA_TYPE_COMPLEX:
+                {
+                    this->current_file->append_to_current_line("std::complex<double> ");
+                } break;
+
+                case Datatype::DATA_TYPE_UNKNOWN:
+                {
+                    this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                } break;
+
+                default:
+                {
+                    this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                    //SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+                };
+
+            }
+        }
+        else
+        {
+
+            this->current_file->append_to_current_line("dvector<double, ");
+            this->current_file->append_to_current_line(std::to_string(function_structure_length));
+            this->current_file->append_to_current_line("> ");
+
+        }
+
 
         this->current_file->insert_line_with_tabs("{");
         this->current_file->insert_blank_line();
-
         this->current_file->push_tabs();
+
+        switch (function_datatype)
+        {
+
+            case Datatype::DATA_TYPE_STRING:
+            {
+                this->current_file->insert_line_with_tabs("std::string ");
+            } break;
+
+            case Datatype::DATA_TYPE_INTEGER:
+            {
+                this->current_file->insert_line_with_tabs("int64_t ");
+            } break;
+
+            case Datatype::DATA_TYPE_REAL:
+            {
+                this->current_file->insert_line_with_tabs("double ");
+            } break;
+
+            case Datatype::DATA_TYPE_COMPLEX:
+            {
+                this->current_file->insert_line_with_tabs("std::complex<double> ");
+            } break;
+
+            default:
+            {
+                SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+            };
+
+        }
+
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(";");
+        this->current_file->insert_blank_line();
+
         for (auto child : node->children) child->accept(this);
+
+        this->current_file->insert_blank_line();
+
+        this->current_file->insert_line_with_tabs("return ");
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(";");
+        this->current_file->insert_blank_line();
         this->current_file->pop_tabs();
 
-        this->current_file->insert_blank_line();
-        this->current_file->insert_line_with_tabs("}");
+        this->current_file->insert_line_with_tabs("};");
         this->current_file->insert_blank_line();
 
-        this->current_file->pop_region();
-
-    }
-    else
-    {
-        SF_NO_IMPL("Have yet to do inlined lambdas yet.");
     }
 
     return;
@@ -448,7 +726,91 @@ visit(SyntaxNodeProcedureStatement* node)
     }
     else
     {
-        SF_NO_IMPL("Have yet to do inlined lambdas yet.");
+        SyntaxNodeVariableStatement *variable_node =
+            dynamic_cast<SyntaxNodeVariableStatement*>(node->variable_node);
+        SF_ENSURE_PTR(variable_node);
+
+        this->current_file->insert_line_with_tabs("auto ");
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(" = []");
+        this->current_file->append_to_current_line("(");
+
+        for (int i = 0; i < node->parameters.size(); ++i)
+        {
+
+            SyntaxNodeVariableStatement *parameter_variable_node = 
+                dynamic_cast<SyntaxNodeVariableStatement*>(node->parameters[i]);
+            SF_ENSURE_PTR(parameter_variable_node);
+
+            Datatype parameter_datatype = parameter_variable_node->data_type;
+            switch (parameter_datatype)
+            {
+
+                case Datatype::DATA_TYPE_STRING:
+                {
+                    this->current_file->append_to_current_line("std::string ");
+                } break;
+
+                case Datatype::DATA_TYPE_INTEGER:
+                {
+                    this->current_file->append_to_current_line("int64_t ");
+                } break;
+
+                case Datatype::DATA_TYPE_REAL:
+                {
+                    this->current_file->append_to_current_line("double ");
+                } break;
+
+                case Datatype::DATA_TYPE_COMPLEX:
+                {
+                    this->current_file->append_to_current_line("std::complex<double> ");
+                } break;
+
+                default:
+                {
+                    SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+                };
+
+            }
+
+            this->current_file->append_to_current_line(parameter_variable_node->identifier);
+            if (i < node->parameters.size() - 1)
+            {
+                this->current_file->append_to_current_line(", ");
+
+            }
+
+        }
+
+        this->current_file->append_to_current_line(") -> ");
+
+        Datatype function_datatype = variable_node->data_type;
+        switch (function_datatype)
+        {
+
+            case Datatype::DATA_TYPE_VOID:
+            {
+                this->current_file->append_to_current_line("void ");
+            } break;
+
+            default:
+            {
+                SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+            };
+
+        }
+
+        this->current_file->insert_line_with_tabs("{");
+        this->current_file->insert_blank_line();
+
+        this->current_file->push_tabs();
+        for (auto child : node->children) child->accept(this);
+        this->current_file->pop_tabs();
+
+        this->current_file->insert_blank_line();
+        this->current_file->insert_line_with_tabs("};");
+        this->current_file->insert_blank_line();
+
     }
 
     return;
@@ -482,6 +844,71 @@ visit(SyntaxNodeWhileStatement* node)
     for (auto child : node->children) child->accept(this);
     this->current_file->pop_tabs();
 
+    this->current_file->insert_blank_line();
+    this->current_file->insert_line_with_tabs("}");
+    this->current_file->insert_blank_line();
+
+    return;
+}
+
+void TranspileCPPGenerator::    
+visit(SyntaxNodePloopStatement* node)
+{
+
+    this->current_file->insert_line_with_tabs("// This is a ploop statement, but ploop is not supported.");
+    this->current_file->insert_line_with_tabs("for (");
+
+    Datatype data_type = node->variable->data_type;
+    switch (data_type)
+    {
+
+        case Datatype::DATA_TYPE_STRING:
+        {
+            this->current_file->append_to_current_line("std::string ");
+        } break;
+
+        case Datatype::DATA_TYPE_INTEGER:
+        {
+            this->current_file->append_to_current_line("int64_t ");
+        } break;
+
+        case Datatype::DATA_TYPE_REAL:
+        {
+            this->current_file->append_to_current_line("double ");
+        } break;
+
+        case Datatype::DATA_TYPE_COMPLEX:
+        {
+            this->current_file->append_to_current_line("std::complex<double> ");
+        } break;
+
+        default:
+        {
+            SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+        };
+
+    }
+    
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" = ");
+    node->start->accept(this);
+    this->current_file->append_to_current_line("; ");
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" < ");
+    node->end->accept(this);
+    this->current_file->append_to_current_line("; ");
+    this->current_file->append_to_current_line(node->variable->identifier);
+    this->current_file->append_to_current_line(" += ");
+    node->step->accept(this);
+    this->current_file->append_to_current_line(")");
+
+    this->current_file->insert_line_with_tabs("{");
+    this->current_file->insert_blank_line();
+    this->current_file->push_tabs();
+
+    for (auto child : node->children) child->accept(this);
+
+    this->current_file->pop_tabs();
     this->current_file->insert_blank_line();
     this->current_file->insert_line_with_tabs("}");
     this->current_file->insert_blank_line();
@@ -559,33 +986,51 @@ visit(SyntaxNodeVariableStatement* node)
 
     this->current_file->insert_line_with_tabs("");
 
-    switch (node->data_type)
+    if (node->structure_type == Structuretype::STRUCTURE_TYPE_SCALAR ||
+        node->structure_type == Structuretype::STRUCTURE_TYPE_STRING)
+    {
+        switch (node->data_type)
+        {
+
+            case Datatype::DATA_TYPE_STRING:
+            {
+                this->current_file->append_to_current_line("std::string ");
+            } break;
+
+            case Datatype::DATA_TYPE_INTEGER:
+            {
+                this->current_file->append_to_current_line("int64_t ");
+            } break;
+
+            case Datatype::DATA_TYPE_REAL:
+            {
+                this->current_file->append_to_current_line("double ");
+            } break;
+
+            case Datatype::DATA_TYPE_COMPLEX:
+            {
+                this->current_file->append_to_current_line("std::complex<double> ");
+            } break;
+
+            case Datatype::DATA_TYPE_UNKNOWN:
+            {
+                this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+            } break;
+
+            default:
+            {
+                this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                //SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+            };
+
+        }
+    }
+    else
     {
 
-        case Datatype::DATA_TYPE_STRING:
-        {
-            this->current_file->append_to_current_line("std::string ");
-        } break;
-
-        case Datatype::DATA_TYPE_INTEGER:
-        {
-            this->current_file->append_to_current_line("int64_t ");
-        } break;
-
-        case Datatype::DATA_TYPE_REAL:
-        {
-            this->current_file->append_to_current_line("double ");
-        } break;
-
-        case Datatype::DATA_TYPE_COMPLEX:
-        {
-            this->current_file->append_to_current_line("std::complex<double> ");
-        } break;
-
-        default:
-        {
-            SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
-        };
+        this->current_file->append_to_current_line("dvector<double, ");
+        this->current_file->append_to_current_line(std::to_string(node->structure_length));
+        this->current_file->append_to_current_line("> ");
 
     }
 
@@ -827,6 +1272,35 @@ visit(SyntaxNodeComparison* node)
 }
 
 void TranspileCPPGenerator::    
+visit(SyntaxNodeConcatenation* node)
+{
+
+    node->left->accept(this);
+
+    Operationtype operation_type = node->operation;
+    switch (operation_type)
+    {
+
+        case Operationtype::OPERATION_TYPE_CONCATENATE:
+        {
+
+            this->current_file->append_to_current_line(" << ");
+
+        } break;
+
+        default:
+        {
+            SF_ASSERT(!"Invalid operation type defined for this expression type.");
+        };
+
+    }
+
+    node->right->accept(this);
+
+    return;
+}
+
+void TranspileCPPGenerator::    
 visit(SyntaxNodeTerm* node)
 {
 
@@ -940,6 +1414,7 @@ void TranspileCPPGenerator::
 visit(SyntaxNodeFunctionCall* node)
 {
 
+    this->current_file->append_to_current_line("fn_");
     this->current_file->append_to_current_line(node->identifier);
     this->current_file->append_to_current_line("(");
 

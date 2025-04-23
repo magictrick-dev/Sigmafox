@@ -162,6 +162,26 @@ accept(SyntaxNodeVisitor *visitor)
     visitor->visit(this);
 }
 
+// --- Ploop Statement Syntax Node ---------------------------------------------
+
+SyntaxNodePloopStatement::
+SyntaxNodePloopStatement()
+{
+    this->node_type = Nodetype::NODE_TYPE_PLOOP_STATEMENT;
+}
+
+SyntaxNodePloopStatement::
+~SyntaxNodePloopStatement()
+{
+
+}
+
+void SyntaxNodePloopStatement::
+accept(SyntaxNodeVisitor *visitor)
+{
+    visitor->visit(this);
+}
+
 // --- Loop Statement Syntax Node ----------------------------------------------
 
 SyntaxNodeLoopStatement::
@@ -187,9 +207,10 @@ accept(SyntaxNodeVisitor *visitor)
 SyntaxNodeVariableStatement::
 SyntaxNodeVariableStatement()
 {
-    this->node_type = Nodetype::NODE_TYPE_VARIABLE_STATEMENT;
-    this->data_type = Datatype::DATA_TYPE_UNKNOWN;
-    this->structure_type = Structuretype::STRUCTURE_TYPE_UNKNOWN;
+    this->node_type         = Nodetype::NODE_TYPE_VARIABLE_STATEMENT;
+    this->data_type         = Datatype::DATA_TYPE_UNKNOWN;
+    this->structure_type    = Structuretype::STRUCTURE_TYPE_UNKNOWN;
+    this->structure_length  = 1;
 }
 
 SyntaxNodeVariableStatement::
@@ -381,6 +402,27 @@ SyntaxNodeComparison::
 }
 
 void SyntaxNodeComparison::
+accept(SyntaxNodeVisitor *visitor)
+{
+    visitor->visit(this);
+}
+
+// --- Concancatenation Syntax Node ---------------------------------------------
+
+SyntaxNodeConcatenation::
+SyntaxNodeConcatenation()
+{
+    this->node_type = Nodetype::NODE_TYPE_CONCATENATION;
+    this->operation = Operationtype::OPERATION_TYPE_UNKNOWN;
+}
+
+SyntaxNodeConcatenation::
+~SyntaxNodeConcatenation()
+{
+
+}
+
+void SyntaxNodeConcatenation::
 accept(SyntaxNodeVisitor *visitor)
 {
     visitor->visit(this);

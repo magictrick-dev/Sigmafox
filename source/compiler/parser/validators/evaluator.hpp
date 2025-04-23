@@ -12,19 +12,26 @@ class ExpressionEvaluator : public SyntaxNodeVisitor
         virtual        ~ExpressionEvaluator();
         
         Datatype        operator()() const; // Funky functor behavior.
+                                            // NOTE(Chris): Is this even necessary??
 
-        virtual void    visit(SyntaxNodeEquality* node) override;
-        virtual void    visit(SyntaxNodeComparison* node) override;
-        virtual void    visit(SyntaxNodeTerm* node) override;
-        virtual void    visit(SyntaxNodeFactor* node) override;
-        virtual void    visit(SyntaxNodeMagnitude* node) override;
-        virtual void    visit(SyntaxNodeExtraction* node) override;
-        virtual void    visit(SyntaxNodeDerivation* node) override;
-        virtual void    visit(SyntaxNodeUnary* node) override;
-        virtual void    visit(SyntaxNodeFunctionCall* node) override;
-        virtual void    visit(SyntaxNodeArrayIndex* node) override;
-        virtual void    visit(SyntaxNodePrimary* node) override;
-        virtual void    visit(SyntaxNodeGrouping* node) override;
+        Datatype        get_data_type() const;
+        Structuretype   get_structure_type() const;
+        i32             get_structure_length() const;
+
+        virtual void    visit(SyntaxNodeEquality* node)         override;
+        virtual void    visit(SyntaxNodeComparison* node)       override;
+        virtual void    visit(SyntaxNodeConcatenation* node)    override;
+        virtual void    visit(SyntaxNodeTerm* node)             override;
+        virtual void    visit(SyntaxNodeFactor* node)           override;
+        virtual void    visit(SyntaxNodeMagnitude* node)        override;
+        virtual void    visit(SyntaxNodeExtraction* node)       override;
+        virtual void    visit(SyntaxNodeDerivation* node)       override;
+        virtual void    visit(SyntaxNodeUnary* node)            override;
+        virtual void    visit(SyntaxNodeFunctionCall* node)     override;
+        virtual void    visit(SyntaxNodeArrayIndex* node)       override;
+        virtual void    visit(SyntaxNodePrimary* node)          override;
+        virtual void    visit(SyntaxNodeGrouping* node)         override;
+
     
     protected:
         void            evaluate(Datatype type);
@@ -32,6 +39,8 @@ class ExpressionEvaluator : public SyntaxNodeVisitor
     protected:
         Environment    *environment;
         Datatype        evaluated_type;
+        Structuretype   structure_type;
+        i32             structure_length;
 
 };
 
