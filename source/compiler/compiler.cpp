@@ -21,7 +21,7 @@ Compiler::
 }
 
 bool Compiler::
-parse()
+parse(bool show_reference)
 {
 
     // Generate the parser.
@@ -53,6 +53,14 @@ parse()
         std::make_move_iterator(nodes.end()));
     nodes.clear();
 
+    if (show_reference)
+    {
+
+        ReferenceVisitor visitor;
+        this->root->accept(&visitor);
+
+    }
+
     return true;
 
 }
@@ -76,8 +84,6 @@ generate() const
     this->root->accept(&visitor);
 
 #else
-    ReferenceVisitor visitor;
-    this->root->accept(&visitor);
 
     TranspileCPPGenerator generator;
     this->root->accept(&generator);

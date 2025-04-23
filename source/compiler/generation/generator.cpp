@@ -176,6 +176,7 @@ visit(SyntaxNodeRoot* node)
     this->current_file->insert_line("#include <vector>");
     this->current_file->insert_line("#include <string>");
     this->current_file->insert_line("#include <cstdint>");
+    this->current_file->insert_line("#include <dvector.hpp>");
     this->current_file->insert_blank_line();
     this->current_file->insert_line("typedef std::complex<double> complexd;");
     this->current_file->insert_blank_line();

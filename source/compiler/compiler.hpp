@@ -12,7 +12,7 @@ class Compiler
                     Compiler(string entry_file);
         virtual    ~Compiler();
 
-        bool        parse();
+        bool        parse(bool show_reference = false);
         bool        validate() const;
         bool        generate() const;
 

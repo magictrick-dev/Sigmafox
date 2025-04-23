@@ -241,11 +241,12 @@ may translate to lambdas outside of the global scope.
 
 # Documentation
 
-The development of Sigmafox is still in its early stages and there isn't a lot of
-documentation on the implementation other than what is directly available in the
-comments of the source code. The compiler uses recursive descent to generate an AST
-which is then traversed during the translation pass. A good bulk of the code resides
-in the parser and visitor subroutines.
+### [CLI Parsing System](./documentation/CLI.md)
+### [Symbols](./documentation/Symbols.md)
+### [Table](./documentation/Table.md)
+### [Environment](./documentation/Environment.md)
+### [Graph](./documentation/Graph.md)
+### [Compiler](./documentation/Compiler.md)
 
 # License
 
