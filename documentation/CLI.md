@@ -1,6 +1,9 @@
 # CLI Parsing System
 
-This system provides a class-based interface for parsing command-line arguments in a structured and extensible manner. The core components include `CLIArgument` and its derived types for different argument forms, and the `CLI` class which handles the parsing and storage of all arguments.
+This system provides a class-based interface for parsing command-line arguments in a structured and extensible manner. 
+The core components include `CLIArgument` and its derived types for different argument forms, and the `CLI` class which 
+handles the parsing and storage of all arguments. It's primarily useful for probing and inspecting
+what was passed in the CLI arguments in `argc` and `argv`.
 
 ---
 

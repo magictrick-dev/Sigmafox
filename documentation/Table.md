@@ -1,6 +1,6 @@
 # Symboltable Class Documentation
 
-Represents a symbol table that maps string identifiers to `Symbol` instances. 
+Represents a symbol table that maps string identifiers to `Symbol` instances.
 
 ---
 

@@ -1,6 +1,11 @@
 # `Compiler` Class Documentation
 
-The `Compiler` class is responsible for parsing, validating, and generating output based on the given input file. It interacts with a `DependencyGraph`, an `Environment`, and `SyntaxNode` elements to process and analyze the code structure.
+The `Compiler` class is responsible for parsing, validating, and generating output based on the given input file. 
+It interacts with a `DependencyGraph`, an `Environment`, and `SyntaxNode` elements to process and analyze the code structure.
+The main purpose of this class is to centralize all the required components that the compiler needs to
+operate. Specifically, `Environment` is of note due to many internal facilities relying on it. Source
+file resolution occurs in the `DependencyGraph` class and is used by the parser to ensure that there
+are only unique inclusions as well as detecting circular dependencies.
 
 ## Constructor
 

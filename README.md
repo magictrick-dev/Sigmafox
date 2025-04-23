@@ -241,6 +241,9 @@ may translate to lambdas outside of the global scope.
 
 # Documentation
 
+Some documentation is added below regarding the implementation and usage of the
+core routines in the compiler.
+
 - [CLI Parsing System](./documentation/CLI.md)
 - [Symbols](./documentation/Symbols.md)
 - [Table](./documentation/Table.md)
@@ -251,6 +254,18 @@ may translate to lambdas outside of the global scope.
 - [Tokenizer](./documentation/Tokenizer.md)
 - [Parser](./documentation/Parser.md)
 
+## Implementation Notes & Details
+
+Currently, the core langauge functionality and grammar is mostly implemented, minus
+intrinsics and core libraries. A complete AST and type detection system in place to
+determine how certain variables are used. Given the current development state, areas
+to look at are the parser synchronization routines, error handling, and symbol table
+lookups. Since these areas aren't well-defined, some edge-case behaviors aren't checked
+which can cause some unintended side effects.
+
+There is not a good testing ecosystem for this. Most of the testing is done through
+sample files (in actuality, just one called sample.fox). A good testing framework
+would be highly beneficial.
 
 # License
 

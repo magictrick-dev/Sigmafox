@@ -1,6 +1,19 @@
 # Symbol Class Documentation
 
 Represents a symbol in the program, such as a variable, function, or procedure.
+Symbols generally maintain information (particularly the node in reference) about
+a symbol and its presence in the table (or table stack) indicates its existence.
+Inversely, non-existence means it is not declared/defined.
+
+In most cases, a variable is considered declared once it is assigned.
+
+Properties of the assignment variable are not maintained in the symbol table since
+this information must be preserved after the parser completes. Therefore, the
+`SyntaxNodeVariableStatement` sub-node contains the bulk properties of how a variable
+is described. By design, the node of which a symbol references is always going to be
+a `SyntaxNodeVariableStatement` for this reason, never anything else. This ensures
+consistency through the parser and the subroutines such as the `ExpressionEvaluator`
+and `BlockValidator` traversal routines.
 
 ---
 

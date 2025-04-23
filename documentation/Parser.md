@@ -1,6 +1,27 @@
 # `ParseTree` Class Documentation
 
-The `ParseTree` class is responsible for constructing an Abstract Syntax Tree (AST) from a source file using a tokenizer. It utilizes a `DependencyGraph` and `Environment` to manage global context during parsing. The class supports various parsing routines for statements and expressions, and is a key part of the compilation pipeline.
+The `ParseTree` class is responsible for constructing an Abstract Syntax Tree (AST) from a source file using a tokenizer. 
+It utilizes a `DependencyGraph` and `Environment` to manage global context during parsing. 
+The class supports various parsing routines for statements and expressions, and is a key part of the compilation pipeline.
+The parser itself is constructed with a classic recursive descent structure. The parser relies on additional
+components found in the `./compiler/parser/validators` folder to assess type and structure of variable
+definitions and return types.
+
+A `ParseTree` may create additional dependent parsers which are then recursively called when
+includes are encountered. Nodes are fed back up to the parent parser, where they are then
+stored for traversals. The dependency graph is responsible for ensuring that includes are
+checked for duplicates and circular inclusions. Parse trees are generated only when they
+are encountered for the first.
+
+The parser itself will attempt to resynchronize itself when it encounters an error.
+This system isn't completely refined and there are several edge cases where the
+synchronization doesn't quite reach the intended area. Synchronization attempts
+occur at the highest point where they can be synchronized; for example, statements
+will *always* synchronize to the next semicolon, while control structures themselves
+synchronize to their ending pair tags. Nested statements within well-formed control
+structures do not cause the parent's control structure to synchronize to the end tag,
+but statements could potentially synchronize to the end tag, causing additional errors
+and unintended behaviors in the symbol table.
 
 ---
 

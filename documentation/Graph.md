@@ -1,6 +1,10 @@
 # DependencyGraph Class Documentation
 
-The `DependencyGraph` is a utility for managing and validating dependencies (e.g., between source files or modules). It models the relationships as a directed graph and provides detection for common dependency issues such as circular references or duplicates.
+The `DependencyGraph` is a utility for managing and validating dependencies (e.g., between source files or modules). 
+It models the relationships as a directed graph and provides detection for common dependency issues such as circular references or duplicates.
+The dependency graph constructures a tree, where each node may be a child of another while also being
+adjacent to its siblings. The dependency graph itself does not manage any state aside from what source
+files are included where.
 
 ---
 

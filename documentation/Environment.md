@@ -1,6 +1,16 @@
 # Environment Class Documentation
 
-The `Environment` class serves as the central context for the compiler. It is responsible for managing the symbol table stack, tokenizers, and validation routines during the parsing phase.
+The `Environment` class serves as the central context for the compiler. It is responsible for 
+managing the symbol table stack, tokenizers, and validation routines during the parsing phase.
+It serves as the backbone of the compiler's state and contains all the shared state needed
+to ensure that the compiler works properly.
+
+The environment keeps track of the symbol table stack, which gets pushed and popped from
+as the parser nests scopes. The responsibility of the environment is to actually allow
+for querying of currently visible variables during parsing *and* validation cycles that
+are found in `compiler/parser/validators`. Specifically, the `BlockValidator` routine will
+generate temporary scopes in order to simulate function and procedure calls so that the
+internal variable definitions get updated when they're called.
 
 ---
 
