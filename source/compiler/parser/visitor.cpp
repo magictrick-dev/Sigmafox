@@ -140,10 +140,14 @@ visit(SyntaxNodeConcatenation* node)
 
 void SyntaxNodeVisitor::
 visit(SyntaxNodeTerm* node)                     
+void SyntaxNodeVisitor::
+visit(SyntaxNodeTerm* node)                     
 { 
     return; 
 }
 
+void SyntaxNodeVisitor::
+visit(SyntaxNodeFactor* node)                   
 void SyntaxNodeVisitor::
 visit(SyntaxNodeFactor* node)                   
 { 
@@ -152,10 +156,14 @@ visit(SyntaxNodeFactor* node)
 
 void SyntaxNodeVisitor::
 visit(SyntaxNodeMagnitude* node)                
+void SyntaxNodeVisitor::
+visit(SyntaxNodeMagnitude* node)                
 { 
     return; 
 }
 
+void SyntaxNodeVisitor::
+visit(SyntaxNodeExtraction* node)               
 void SyntaxNodeVisitor::
 visit(SyntaxNodeExtraction* node)               
 { 
@@ -164,10 +172,14 @@ visit(SyntaxNodeExtraction* node)
 
 void SyntaxNodeVisitor::
 visit(SyntaxNodeDerivation* node)               
+void SyntaxNodeVisitor::
+visit(SyntaxNodeDerivation* node)               
 { 
     return; 
 }
 
+void SyntaxNodeVisitor::
+visit(SyntaxNodeUnary* node)                    
 void SyntaxNodeVisitor::
 visit(SyntaxNodeUnary* node)                    
 { 
@@ -176,10 +188,14 @@ visit(SyntaxNodeUnary* node)
 
 void SyntaxNodeVisitor::
 visit(SyntaxNodeFunctionCall* node)             
+void SyntaxNodeVisitor::
+visit(SyntaxNodeFunctionCall* node)             
 { 
     return; 
 }
 
+void SyntaxNodeVisitor::
+visit(SyntaxNodeArrayIndex* node)               
 void SyntaxNodeVisitor::
 visit(SyntaxNodeArrayIndex* node)               
 { 
@@ -188,10 +204,14 @@ visit(SyntaxNodeArrayIndex* node)
 
 void SyntaxNodeVisitor::
 visit(SyntaxNodePrimary* node)                  
+void SyntaxNodeVisitor::
+visit(SyntaxNodePrimary* node)                  
 { 
     return; 
 }
 
+void SyntaxNodeVisitor::
+visit(SyntaxNodeGrouping* node)                 
 void SyntaxNodeVisitor::
 visit(SyntaxNodeGrouping* node)                 
 { 

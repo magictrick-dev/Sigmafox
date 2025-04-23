@@ -429,6 +429,7 @@ visit(SyntaxNodeFunctionStatement* node)
             };
 
         }
+<<<<<<< HEAD
 
         this->current_file->append_to_current_line(variable_node->identifier);
         this->current_file->append_to_current_line(";");
@@ -469,6 +470,11 @@ auto myLambda = [](int x, int y) -> double {
         this->current_file->append_to_current_line("fn_");
         this->current_file->append_to_current_line(variable_node->identifier);
         this->current_file->append_to_current_line(" = []");
+=======
+        
+        this->current_file->insert_line_with_tabs("fn_");
+        this->current_file->append_to_current_line(variable_node->identifier);
+>>>>>>> ccd99526cf2c0ab907e9d3e1b1b99b364b2a7d08
         this->current_file->append_to_current_line("(");
 
         for (int i = 0; i < node->parameters.size(); ++i)
@@ -611,6 +617,7 @@ auto myLambda = [](int x, int y) -> double {
         this->current_file->insert_blank_line();
 
         for (auto child : node->children) child->accept(this);
+<<<<<<< HEAD
 
         this->current_file->insert_blank_line();
 
@@ -621,6 +628,18 @@ auto myLambda = [](int x, int y) -> double {
         this->current_file->pop_tabs();
 
         this->current_file->insert_line_with_tabs("};");
+=======
+
+        this->current_file->insert_blank_line();
+
+        this->current_file->insert_line_with_tabs("return ");
+        this->current_file->append_to_current_line(variable_node->identifier);
+        this->current_file->append_to_current_line(";");
+        this->current_file->insert_blank_line();
+        this->current_file->pop_tabs();
+
+        this->current_file->insert_line_with_tabs("}");
+>>>>>>> ccd99526cf2c0ab907e9d3e1b1b99b364b2a7d08
         this->current_file->insert_blank_line();
 
     }
