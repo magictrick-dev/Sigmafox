@@ -100,6 +100,7 @@ visit(SyntaxNodeRoot* node)
         this->current_file->insert_line_with_tabs("SET(CMAKE_BUILD_TYPE Debug)");
         this->current_file->insert_blank_line();
         this->current_file->insert_line_with_tabs("ADD_EXECUTABLE(cosyproject");
+        this->current_file->insert_line_with_tabs("    \"./library/dvector.hpp\"");
         this->current_file->pop_region();
 
         this->current_file->push_region_as_body();
@@ -112,6 +113,10 @@ visit(SyntaxNodeRoot* node)
 
         this->current_file->push_region_as_foot();
         this->current_file->insert_line_with_tabs(")");
+        this->current_file->insert_blank_line();
+        this->current_file->insert_line_with_tabs("target_include_directories(cosyproject PUBLIC \"library\")");
+        this->current_file->insert_blank_line();
+        this->current_file->insert_blank_line();
         this->current_file->pop_region();
         
         this->source_files.push_back(std::make_shared<GeneratableSourcefile>(output_name, output_name));
@@ -478,33 +483,53 @@ auto myLambda = [](int x, int y) -> double {
             SF_ENSURE_PTR(parameter_variable_node);
 
             Datatype parameter_datatype = parameter_variable_node->data_type;
-            switch (parameter_datatype)
+            Structuretype parameter_structure_type = parameter_variable_node->structure_type;
+            i32 parameter_structure_length = parameter_variable_node->structure_length;
+            if (parameter_structure_type == Structuretype::STRUCTURE_TYPE_SCALAR ||
+                parameter_structure_type == Structuretype::STRUCTURE_TYPE_STRING)
+            {
+                switch (parameter_datatype)
+                {
+
+                    case Datatype::DATA_TYPE_STRING:
+                    {
+                        this->current_file->append_to_current_line("std::string ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_INTEGER:
+                    {
+                        this->current_file->append_to_current_line("int64_t ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_REAL:
+                    {
+                        this->current_file->append_to_current_line("double ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_COMPLEX:
+                    {
+                        this->current_file->append_to_current_line("std::complex<double> ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_UNKNOWN:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                    } break;
+
+                    default:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                        //SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+                    };
+
+                }
+            }
+            else
             {
 
-                case Datatype::DATA_TYPE_STRING:
-                {
-                    this->current_file->append_to_current_line("std::string ");
-                } break;
-
-                case Datatype::DATA_TYPE_INTEGER:
-                {
-                    this->current_file->append_to_current_line("int64_t ");
-                } break;
-
-                case Datatype::DATA_TYPE_REAL:
-                {
-                    this->current_file->append_to_current_line("double ");
-                } break;
-
-                case Datatype::DATA_TYPE_COMPLEX:
-                {
-                    this->current_file->append_to_current_line("std::complex<double> ");
-                } break;
-
-                default:
-                {
-                    SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
-                };
+                this->current_file->append_to_current_line("dvector<double, ");
+                this->current_file->append_to_current_line(std::to_string(parameter_structure_length));
+                this->current_file->append_to_current_line("> ");
 
             }
 
@@ -668,33 +693,53 @@ visit(SyntaxNodeProcedureStatement* node)
             SF_ENSURE_PTR(parameter_variable_node);
 
             Datatype parameter_datatype = parameter_variable_node->data_type;
-            switch (parameter_datatype)
+            Structuretype parameter_structure_type = parameter_variable_node->structure_type;
+            i32 parameter_structure_length = parameter_variable_node->structure_length;
+            if (parameter_structure_type == Structuretype::STRUCTURE_TYPE_SCALAR ||
+                parameter_structure_type == Structuretype::STRUCTURE_TYPE_STRING)
+            {
+                switch (parameter_datatype)
+                {
+
+                    case Datatype::DATA_TYPE_STRING:
+                    {
+                        this->current_file->append_to_current_line("std::string ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_INTEGER:
+                    {
+                        this->current_file->append_to_current_line("int64_t ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_REAL:
+                    {
+                        this->current_file->append_to_current_line("double ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_COMPLEX:
+                    {
+                        this->current_file->append_to_current_line("std::complex<double> ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_UNKNOWN:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                    } break;
+
+                    default:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                        //SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+                    };
+
+                }
+            }
+            else
             {
 
-                case Datatype::DATA_TYPE_STRING:
-                {
-                    this->current_file->append_to_current_line("std::string ");
-                } break;
-
-                case Datatype::DATA_TYPE_INTEGER:
-                {
-                    this->current_file->append_to_current_line("int64_t ");
-                } break;
-
-                case Datatype::DATA_TYPE_REAL:
-                {
-                    this->current_file->append_to_current_line("double ");
-                } break;
-
-                case Datatype::DATA_TYPE_COMPLEX:
-                {
-                    this->current_file->append_to_current_line("std::complex<double> ");
-                } break;
-
-                default:
-                {
-                    SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
-                };
+                this->current_file->append_to_current_line("dvector<double, ");
+                this->current_file->append_to_current_line(std::to_string(parameter_structure_length));
+                this->current_file->append_to_current_line("> ");
 
             }
 
@@ -742,33 +787,53 @@ visit(SyntaxNodeProcedureStatement* node)
             SF_ENSURE_PTR(parameter_variable_node);
 
             Datatype parameter_datatype = parameter_variable_node->data_type;
-            switch (parameter_datatype)
+            Structuretype parameter_structure_type = parameter_variable_node->structure_type;
+            i32 parameter_structure_length = parameter_variable_node->structure_length;
+            if (parameter_structure_type == Structuretype::STRUCTURE_TYPE_SCALAR ||
+                parameter_structure_type == Structuretype::STRUCTURE_TYPE_STRING)
+            {
+                switch (parameter_datatype)
+                {
+
+                    case Datatype::DATA_TYPE_STRING:
+                    {
+                        this->current_file->append_to_current_line("std::string ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_INTEGER:
+                    {
+                        this->current_file->append_to_current_line("int64_t ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_REAL:
+                    {
+                        this->current_file->append_to_current_line("double ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_COMPLEX:
+                    {
+                        this->current_file->append_to_current_line("std::complex<double> ");
+                    } break;
+
+                    case Datatype::DATA_TYPE_UNKNOWN:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                    } break;
+
+                    default:
+                    {
+                        this->current_file->append_to_current_line("/*unknown*/ int64_t ");
+                        //SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
+                    };
+
+                }
+            }
+            else
             {
 
-                case Datatype::DATA_TYPE_STRING:
-                {
-                    this->current_file->append_to_current_line("std::string ");
-                } break;
-
-                case Datatype::DATA_TYPE_INTEGER:
-                {
-                    this->current_file->append_to_current_line("int64_t ");
-                } break;
-
-                case Datatype::DATA_TYPE_REAL:
-                {
-                    this->current_file->append_to_current_line("double ");
-                } break;
-
-                case Datatype::DATA_TYPE_COMPLEX:
-                {
-                    this->current_file->append_to_current_line("std::complex<double> ");
-                } break;
-
-                default:
-                {
-                    SF_ASSERT(!"Unimplemented or invalid datatype encountered.");
-                };
+                this->current_file->append_to_current_line("dvector<double, ");
+                this->current_file->append_to_current_line(std::to_string(parameter_structure_length));
+                this->current_file->append_to_current_line("> ");
 
             }
 

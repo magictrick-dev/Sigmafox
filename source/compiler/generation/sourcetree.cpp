@@ -81,6 +81,38 @@ commit() const
 
     }
 
+    // Copy the library files.
+    std::filesystem::path sourcePath("./library/dvector.hpp");
+    std::filesystem::path targetPath(this->output_directory + "./library/dvector.hpp");
+    std::filesystem::path targetDir = targetPath.parent_path();
+
+    if (!std::filesystem::exists(sourcePath)) {
+        std::cerr << "Source file does not exist: " << sourcePath << std::endl;
+        return false;
+    }
+
+    if (!targetDir.empty() && !std::filesystem::exists(targetDir)) {
+        if (!std::filesystem::create_directories(targetDir)) {
+            std::cerr << "Failed to create target directory: " << targetDir << std::endl;
+            return false;
+        }
+    }
+
+    std::ifstream inFile(sourcePath, std::ios::binary);
+    if (!inFile) {
+        std::cerr << "Failed to open source file: " << sourcePath << std::endl;
+        return false;
+    }
+
+    std::ofstream outFile(targetPath, std::ios::binary);
+    if (!outFile) {
+        std::cerr << "Failed to open target file: " << targetPath << std::endl;
+        return false;
+    }
+
+    std::cout << "-- Outputting: " << this->output_directory << "/dvector.hpp" << std::endl;
+    outFile << inFile.rdbuf();
+
     return true;
 }
 
